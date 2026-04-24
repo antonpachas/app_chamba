@@ -29,6 +29,9 @@ const state = {
     token: localStorage.getItem(LS_TOKEN),
     user: loadJson(LS_USER),
     guest: localStorage.getItem(LS_GUEST) === '1',
+    resetToken: '',
+    resetEmail: '',
+    flashMessage: '',
     categories: [],
     selectedCategoryId: null,
     keyword: '',
@@ -37,6 +40,33 @@ const state = {
     loading: false,
     error: null,
 };
+
+function parseResetFromUrl() {
+    const qs = new URLSearchParams(window.location.search);
+    const t = qs.get('token');
+    const em = qs.get('email');
+    if (t && em) {
+        state.resetToken = t;
+        state.resetEmail = em;
+        state.view = 'reset';
+        return true;
+    }
+    return false;
+}
+
+function clearResetQueryFromUrl() {
+    try {
+        const u = new URL(window.location.href);
+        if (!u.searchParams.has('token')) return;
+        u.searchParams.delete('token');
+        u.searchParams.delete('email');
+        const q = u.searchParams.toString();
+        const path = u.pathname + (q ? `?${q}` : '') + u.hash;
+        window.history.replaceState({}, '', path);
+    } catch {
+        /* noop */
+    }
+}
 
 function persistAuth() {
     if (state.token) localStorage.setItem(LS_TOKEN, state.token);
@@ -143,6 +173,50 @@ async function submitLogin(email, password) {
         state.view = 'main';
         state.mainTab = 'search';
         await loadCategories();
+    } catch (e) {
+        state.error = e.message;
+    } finally {
+        state.loading = false;
+        render();
+    }
+}
+
+async function submitForgot(email) {
+    state.loading = true;
+    state.error = null;
+    render();
+    try {
+        await api('POST', '/auth/forgot-password', { body: { email } });
+        state.error = null;
+        state.view = 'gate';
+        state.forgotSuccess = true;
+    } catch (e) {
+        state.error = e.message;
+        state.forgotSuccess = false;
+    } finally {
+        state.loading = false;
+        render();
+    }
+}
+
+async function submitReset(email, token, password, passwordConfirmation) {
+    state.loading = true;
+    state.error = null;
+    render();
+    try {
+        await api('POST', '/auth/reset-password', {
+            body: {
+                email,
+                token,
+                password,
+                password_confirmation: passwordConfirmation,
+            },
+        });
+        clearResetQueryFromUrl();
+        state.resetToken = '';
+        state.resetEmail = '';
+        state.view = 'login';
+        state.resetDoneMsg = 'Contraseña actualizada. Ya puedes iniciar sesión.';
     } catch (e) {
         state.error = e.message;
     } finally {

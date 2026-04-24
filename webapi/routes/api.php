@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
+use App\Http\Controllers\Api\V1\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Client\FavoriteController;
 use App\Http\Controllers\Api\V1\Client\ReviewController;
@@ -18,6 +20,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function (): void {
     Route::post('auth/register', [RegisterController::class, 'store']);
     Route::post('auth/login', [LoginController::class, 'store']);
+    Route::post('auth/forgot-password', [ForgotPasswordController::class, 'store'])->middleware('throttle:6,1');
+    Route::post('auth/reset-password', [ResetPasswordController::class, 'store'])->middleware('throttle:10,1');
 
     Route::get('categories', [CategoryController::class, 'index']);
     Route::get('geo/departments', [GeoController::class, 'departments']);
