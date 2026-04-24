@@ -45,27 +45,34 @@ class _LoginBodyState extends State<_LoginBody> {
   Widget build(BuildContext context) {
     final vm = context.watch<LoginViewModel>();
     final scheme = Theme.of(context).colorScheme;
-
+    final textTheme = Theme.of(context).textTheme;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Scaffold(
+      backgroundColor: scheme.surfaceContainerLow,
       resizeToAvoidBottomInset: true,
-      body: Column(
-        children: [
-          const AuthHeroHeader(
-            title: 'Bienvenido',
-            subtitle: 'Encuentra oficios de confianza cerca de ti.',
+      body: CustomScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: [
+          const SliverToBoxAdapter(
+            child: AuthHeroHeader(
+              compact: true,
+              title: 'Acceso a Chamba',
+              subtitle: 'Correo y contraseña, u otras opciones abajo.',
+            ),
           ),
-          Expanded(
-            child: Transform.translate(
-              offset: const Offset(0, -20),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(20, 0, 20, 28 + bottomInset),
-                child: Card(
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(20, 8, 20, 28 + bottomInset),
+            sliver: SliverToBoxAdapter(
+              child: Transform.translate(
+                offset: const Offset(0, -18),
+                child: Material(
+                  color: scheme.surface,
                   elevation: 2,
-                  shadowColor: scheme.shadow.withValues(alpha: 0.12),
+                  shadowColor: Colors.black.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(24),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
+                    padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -73,25 +80,26 @@ class _LoginBodyState extends State<_LoginBody> {
                         children: [
                           Text(
                             'Iniciar sesión',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.3,
-                                ),
+                            style: textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.4,
+                            ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Text(
-                            'Usa el correo con el que te registraste.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  height: 1.4,
-                                ),
+                            'Introduce tus credenciales.',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              height: 1.35,
+                            ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 22),
                           TextFormField(
                             controller: _email,
                             decoration: const InputDecoration(
                               labelText: 'Correo electrónico',
                               prefixIcon: Icon(Icons.alternate_email_rounded),
+                              alignLabelWithHint: true,
                             ),
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
@@ -103,18 +111,40 @@ class _LoginBodyState extends State<_LoginBody> {
                             decoration: const InputDecoration(
                               labelText: 'Contraseña',
                               prefixIcon: Icon(Icons.lock_outline_rounded),
+                              alignLabelWithHint: true,
                             ),
                             obscureText: true,
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) => _submit(context, vm),
                             validator: (v) => (v == null || v.isEmpty) ? 'Campo obligatorio' : null,
                           ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: vm.loading ? null : () => context.push('/forgot-password'),
+                              icon: Icon(
+                                Icons.lock_reset_rounded,
+                                size: 18,
+                                color: scheme.primary,
+                              ),
+                              label: const Text('Recuperar contraseña'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: scheme.primary,
+                                textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
                           if (vm.error != null) ...[
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 6),
                             ErrorBanner(message: vm.error!),
                           ],
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 18),
                           FilledButton(
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
                             onPressed: vm.loading ? null : () => _submit(context, vm),
                             child: vm.loading
                                 ? SizedBox(
@@ -127,23 +157,50 @@ class _LoginBodyState extends State<_LoginBody> {
                                   )
                                 : const Text('Entrar'),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 22),
+                          Row(
+                            children: [
+                              Expanded(child: Divider(color: scheme.outlineVariant.withValues(alpha: 0.6))),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  'Más opciones',
+                                  style: textTheme.labelSmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.6,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: scheme.outlineVariant.withValues(alpha: 0.6))),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              side: BorderSide(color: scheme.outline.withValues(alpha: 0.85)),
+                            ),
+                            onPressed: vm.loading ? null : () => context.push('/register'),
+                            child: const Text('Crear cuenta nueva'),
+                          ),
+                          const SizedBox(height: 10),
                           OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              foregroundColor: scheme.onSurfaceVariant,
+                              side: BorderSide(color: scheme.outlineVariant),
+                            ),
                             onPressed: vm.loading
                                 ? null
                                 : () async {
                                     await context.read<SessionViewModel>().enterGuestMode();
                                     if (context.mounted) context.go('/home');
                                   },
-                            icon: const Icon(Icons.explore_outlined),
-                            label: const Text('Solo quiero explorar'),
-                          ),
-                          const SizedBox(height: 4),
-                          Center(
-                            child: TextButton(
-                              onPressed: vm.loading ? null : () => context.go('/register'),
-                              child: const Text('¿No tienes cuenta? Crear una'),
-                            ),
+                            icon: const Icon(Icons.explore_outlined, size: 20),
+                            label: const Text('Explorar como invitado'),
                           ),
                         ],
                       ),

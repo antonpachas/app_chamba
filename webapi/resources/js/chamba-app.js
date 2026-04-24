@@ -163,6 +163,7 @@ async function runSearch() {
 async function submitLogin(email, password) {
     state.loading = true;
     state.error = null;
+    state.flashMessage = '';
     render();
     try {
         const data = await api('POST', '/auth/login', { body: { email, password } });
@@ -187,12 +188,11 @@ async function submitForgot(email) {
     render();
     try {
         await api('POST', '/auth/forgot-password', { body: { email } });
-        state.error = null;
+        state.flashMessage =
+            'Si ese correo está en Chamba, te enviamos un enlace para restablecer la contraseña. Revisa también spam.';
         state.view = 'gate';
-        state.forgotSuccess = true;
     } catch (e) {
         state.error = e.message;
-        state.forgotSuccess = false;
     } finally {
         state.loading = false;
         render();
@@ -215,8 +215,8 @@ async function submitReset(email, token, password, passwordConfirmation) {
         clearResetQueryFromUrl();
         state.resetToken = '';
         state.resetEmail = '';
-        state.view = 'login';
-        state.resetDoneMsg = 'Contraseña actualizada. Ya puedes iniciar sesión.';
+        state.flashMessage = 'Contraseña actualizada. Ya puedes iniciar sesión.';
+        state.view = 'gate';
     } catch (e) {
         state.error = e.message;
     } finally {
@@ -266,7 +266,8 @@ async function logout() {
 }
 
 async function boot() {
-    if (state.token) {
+    const fromReset = parseResetFromUrl();
+    if (!fromReset && state.token) {
         try {
             const data = await api('GET', '/auth/me', { auth: true });
             state.user = data.user || data;
@@ -279,7 +280,7 @@ async function boot() {
             persistAuth();
             state.view = 'gate';
         }
-    } else if (state.guest) {
+    } else if (!fromReset && state.guest) {
         state.view = 'main';
         await loadCategories();
     }
@@ -288,37 +289,63 @@ async function boot() {
 
 function renderGate(root) {
     root.innerHTML = `
-        <div class="min-h-screen flex flex-col">
-            <header class="bg-gradient-to-br from-teal-600 to-teal-800 text-white px-6 pt-10 pb-16 rounded-b-[2rem] shadow-lg">
-                <div class="max-w-lg mx-auto">
-                    <p class="text-sm font-semibold text-white/80 mb-2">Chamba</p>
-                    <h1 class="text-3xl font-extrabold tracking-tight mb-2">Bienvenido</h1>
-                    <p class="text-white/90 text-lg leading-relaxed">Encuentra oficios de confianza cerca de ti.</p>
+        <div class="min-h-screen bg-gradient-to-b from-stone-100 via-stone-50 to-teal-50/30 flex flex-col items-center justify-start sm:justify-center px-4 py-8 sm:py-12">
+            <div class="w-full max-w-md">
+                <div class="flex items-center gap-3 mb-6 sm:mb-8">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-600 text-2xl shadow-lg shadow-teal-600/25 ring-4 ring-white">🛠</div>
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-widest text-teal-700">Chamba</p>
+                        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-stone-900">Servicios locales</h1>
+                        <p class="text-sm text-stone-600 mt-0.5">Inicia sesión o explora sin cuenta.</p>
+                    </div>
                 </div>
-            </header>
-            <div class="max-w-lg mx-auto w-full -mt-8 px-4 pb-10 flex-1">
-                <div class="bg-white rounded-2xl shadow-xl border border-stone-200/80 p-6 space-y-4">
-                    ${state.error ? `<div class="rounded-xl bg-red-50 text-red-800 text-sm font-medium px-4 py-3 border border-red-100">${escapeHtml(state.error)}</div>` : ''}
-                    <a href="#" data-act="login" class="block w-full text-center rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 transition">Iniciar sesión</a>
-                    <a href="#" data-act="register" class="block w-full text-center rounded-xl border-2 border-stone-200 hover:border-teal-300 font-bold py-3.5 text-teal-800 transition">Crear cuenta</a>
-                    <button type="button" data-act="guest" class="w-full rounded-xl border border-stone-200 text-stone-700 font-semibold py-3 hover:bg-stone-50 transition">
-                        Solo quiero explorar
-                    </button>
-                    <p class="text-center text-sm text-stone-500 pt-2">
-                        <a href="${escapeHtml(window.CHAMBA_HOME_URL || '/')}" class="text-teal-700 font-medium hover:underline">Volver al inicio</a>
+                <div class="rounded-3xl bg-white p-6 sm:p-8 shadow-xl shadow-stone-900/5 ring-1 ring-stone-200/80">
+                    ${state.flashMessage ? `<div class="mb-5 rounded-2xl bg-emerald-50 text-emerald-900 text-sm font-medium px-4 py-3 border border-emerald-100/80">${escapeHtml(state.flashMessage)}</div>` : ''}
+                    ${state.error ? `<div class="mb-5 rounded-2xl bg-red-50 text-red-800 text-sm font-medium px-4 py-3 border border-red-100/80">${escapeHtml(state.error)}</div>` : ''}
+                    <form id="gate-login-form" class="space-y-4">
+                        <div>
+                            <label for="gate-email" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-stone-500">Correo electrónico</label>
+                            <input id="gate-email" name="email" type="email" required autocomplete="email" placeholder="tu@correo.com"
+                                class="w-full rounded-xl border border-stone-200 bg-stone-50/50 px-4 py-3.5 text-stone-900 placeholder:text-stone-400 outline-none transition focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                        </div>
+                        <div>
+                            <div class="mb-1.5 flex items-center justify-between gap-2">
+                                <label for="gate-password" class="text-xs font-bold uppercase tracking-wide text-stone-500">Contraseña</label>
+                                <button type="button" data-act="forgot" class="text-xs font-semibold text-teal-700 hover:text-teal-800 hover:underline">¿Olvidaste tu contraseña?</button>
+                            </div>
+                            <input id="gate-password" name="password" type="password" required autocomplete="current-password"
+                                class="w-full rounded-xl border border-stone-200 bg-stone-50/50 px-4 py-3.5 text-stone-900 outline-none transition focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                        </div>
+                        <button type="submit" ${state.loading ? 'disabled' : ''} class="mt-2 w-full rounded-xl bg-teal-600 py-3.5 text-[15px] font-bold text-white shadow-md shadow-teal-600/25 transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60">
+                            ${state.loading ? 'Entrando…' : 'Entrar'}
+                        </button>
+                    </form>
+                    <div class="relative my-7">
+                        <div class="absolute inset-0 flex items-center" aria-hidden="true"><div class="w-full border-t border-stone-200"></div></div>
+                        <div class="relative flex justify-center"><span class="bg-white px-3 text-xs font-semibold uppercase tracking-wide text-stone-400">Otras opciones</span></div>
+                    </div>
+                    <div class="space-y-3">
+                        <button type="button" data-act="register" class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-stone-200 bg-white py-3.5 text-[15px] font-bold text-stone-800 transition hover:border-teal-300 hover:bg-teal-50/40">
+                            <span>Crear cuenta</span>
+                        </button>
+                        <button type="button" data-act="guest" class="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-200 py-3.5 text-sm font-semibold text-stone-600 transition hover:bg-stone-50">
+                            Explorar como invitado
+                        </button>
+                    </div>
+                    <p class="mt-6 text-center text-sm text-stone-500">
+                        <a href="${escapeHtml(window.CHAMBA_HOME_URL || '/')}" class="font-medium text-teal-700 hover:underline">Volver al sitio</a>
                     </p>
                 </div>
             </div>
         </div>
     `;
-    root.querySelector('[data-act="login"]').addEventListener('click', (e) => {
-        e.preventDefault();
+    root.querySelector('[data-act="forgot"]').addEventListener('click', () => {
+        state.flashMessage = '';
         clearError();
-        state.view = 'login';
+        state.view = 'forgot';
         render();
     });
-    root.querySelector('[data-act="register"]').addEventListener('click', (e) => {
-        e.preventDefault();
+    root.querySelector('[data-act="register"]').addEventListener('click', () => {
         clearError();
         state.view = 'register';
         render();
@@ -327,27 +354,29 @@ function renderGate(root) {
         clearError();
         enterGuest();
     });
+    root.querySelector('#gate-login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        void submitLogin(String(fd.get('email') || '').trim(), String(fd.get('password') || ''));
+    });
 }
 
-function renderLogin(root) {
+function renderForgot(root) {
     root.innerHTML = `
         <div class="min-h-screen flex flex-col bg-stone-100">
             <header class="bg-gradient-to-br from-teal-600 to-teal-800 text-white px-6 pt-8 pb-12 rounded-b-[2rem]">
                 <button type="button" data-back class="text-white/90 text-sm font-semibold mb-6 hover:text-white">← Volver</button>
-                <h1 class="text-2xl font-extrabold">Iniciar sesión</h1>
-                <p class="text-white/85 mt-2">Usa el correo con el que te registraste.</p>
+                <h1 class="text-2xl font-extrabold">Recuperar contraseña</h1>
+                <p class="text-white/85 mt-2 text-sm">Te enviaremos un enlace a tu correo.</p>
             </header>
-            <form class="max-w-lg mx-auto w-full -mt-6 px-4 pb-10 flex-1 space-y-4" id="login-form">
+            <form class="max-w-lg mx-auto w-full -mt-6 px-4 pb-10 flex-1 space-y-4" id="forgot-form">
                 ${state.error ? `<div class="rounded-xl bg-red-50 text-red-800 text-sm font-medium px-4 py-3 border border-red-100">${escapeHtml(state.error)}</div>` : ''}
                 <div class="bg-white rounded-2xl shadow-lg border border-stone-200/80 p-6 space-y-4">
                     <label class="block text-sm font-bold text-stone-700">Correo</label>
                     <input name="email" type="email" required autocomplete="email"
-                        class="w-full rounded-xl border border-stone-200 px-4 py-3.5 text-stone-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" placeholder="tu@correo.com" />
-                    <label class="block text-sm font-bold text-stone-700">Contraseña</label>
-                    <input name="password" type="password" required autocomplete="current-password"
-                        class="w-full rounded-xl border border-stone-200 px-4 py-3.5 text-stone-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" />
-                    <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-3.5 mt-2">
-                        ${state.loading ? 'Entrando…' : 'Entrar'}
+                        class="w-full rounded-xl border border-stone-200 px-4 py-3.5 text-stone-900 focus:ring-2 focus:ring-teal-500 outline-none" placeholder="tu@correo.com" />
+                    <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-3.5">
+                        ${state.loading ? 'Enviando…' : 'Enviar enlace'}
                     </button>
                 </div>
             </form>
@@ -358,10 +387,56 @@ function renderLogin(root) {
         state.view = 'gate';
         render();
     });
-    root.querySelector('#login-form').addEventListener('submit', (e) => {
+    root.querySelector('#forgot-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const fd = new FormData(e.target);
-        void submitLogin(String(fd.get('email') || '').trim(), String(fd.get('password') || ''));
+        void submitForgot(String(fd.get('email') || '').trim());
+    });
+}
+
+function renderReset(root) {
+    const em = escapeHtml(state.resetEmail);
+    root.innerHTML = `
+        <div class="min-h-screen flex flex-col bg-stone-100">
+            <header class="bg-gradient-to-br from-teal-600 to-teal-800 text-white px-6 pt-8 pb-12 rounded-b-[2rem]">
+                <button type="button" data-back class="text-white/90 text-sm font-semibold mb-6 hover:text-white">← Ir a iniciar sesión</button>
+                <h1 class="text-2xl font-extrabold">Nueva contraseña</h1>
+                <p class="text-white/85 mt-2 text-sm">Elige una contraseña segura.</p>
+            </header>
+            <form class="max-w-lg mx-auto w-full -mt-6 px-4 pb-10 flex-1 space-y-4" id="reset-form">
+                ${state.error ? `<div class="rounded-xl bg-red-50 text-red-800 text-sm font-medium px-4 py-3 border border-red-100">${escapeHtml(state.error)}</div>` : ''}
+                <div class="bg-white rounded-2xl shadow-lg border border-stone-200/80 p-6 space-y-4">
+                    <p class="text-sm text-stone-600">Correo: <strong>${em}</strong></p>
+                    <label class="block text-sm font-bold text-stone-700">Nueva contraseña</label>
+                    <input name="password" type="password" required minlength="8" autocomplete="new-password"
+                        class="w-full rounded-xl border border-stone-200 px-4 py-3.5 outline-none focus:ring-2 focus:ring-teal-500" />
+                    <label class="block text-sm font-bold text-stone-700">Confirmar contraseña</label>
+                    <input name="password_confirmation" type="password" required minlength="8" autocomplete="new-password"
+                        class="w-full rounded-xl border border-stone-200 px-4 py-3.5 outline-none focus:ring-2 focus:ring-teal-500" />
+                    <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-3.5">
+                        ${state.loading ? 'Guardando…' : 'Guardar contraseña'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    root.querySelector('[data-back]').addEventListener('click', () => {
+        clearResetQueryFromUrl();
+        state.resetToken = '';
+        state.resetEmail = '';
+        clearError();
+        state.view = 'gate';
+        render();
+    });
+    root.querySelector('#reset-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        void submitReset(
+            state.resetEmail,
+            state.resetToken,
+            String(fd.get('password') || ''),
+            String(fd.get('password_confirmation') || ''),
+        );
     });
 }
 
@@ -395,6 +470,7 @@ function renderRegister(root) {
                     <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-3.5">
                         ${state.loading ? 'Registrando…' : 'Registrarme'}
                     </button>
+                    <button type="button" data-to-forgot-reg class="w-full text-center text-sm font-semibold text-teal-700 hover:underline pt-1">¿Olvidaste tu contraseña?</button>
                 </div>
             </form>
         </div>
@@ -402,6 +478,11 @@ function renderRegister(root) {
     root.querySelector('[data-back]').addEventListener('click', () => {
         clearError();
         state.view = 'gate';
+        render();
+    });
+    root.querySelector('[data-to-forgot-reg]').addEventListener('click', () => {
+        clearError();
+        state.view = 'forgot';
         render();
     });
     root.querySelector('#reg-form').addEventListener('submit', (e) => {
@@ -578,7 +659,7 @@ function renderMain(root) {
     if (toL)
         toL.addEventListener('click', () => {
             exitGuest();
-            state.view = 'login';
+            state.view = 'gate';
             render();
         });
     const toR = root.querySelector('[data-to-register]');
@@ -600,7 +681,8 @@ function render() {
     const root = document.getElementById('chamba-root');
     if (!root) return;
     if (state.view === 'gate') renderGate(root);
-    else if (state.view === 'login') renderLogin(root);
+    else if (state.view === 'forgot') renderForgot(root);
+    else if (state.view === 'reset') renderReset(root);
     else if (state.view === 'register') renderRegister(root);
     else if (state.view === 'main') renderMain(root);
 }

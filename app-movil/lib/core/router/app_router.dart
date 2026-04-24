@@ -1,5 +1,7 @@
+import 'package:chamba_app/presentation/features/auth/forgot_password_screen.dart';
 import 'package:chamba_app/presentation/features/auth/login_screen.dart';
 import 'package:chamba_app/presentation/features/auth/register_screen.dart';
+import 'package:chamba_app/presentation/features/auth/reset_password_screen.dart';
 import 'package:chamba_app/presentation/features/home/home_shell_screen.dart';
 import 'package:chamba_app/presentation/features/splash/splash_screen.dart';
 import 'package:chamba_app/presentation/view_models/session_view_model.dart';
@@ -18,7 +20,11 @@ GoRouter createAppRouter(SessionViewModel session) {
       if (loc == '/splash') {
         return null;
       }
-      if (!session.canAccessHome && loc != '/login' && loc != '/register') {
+      if (!session.canAccessHome &&
+          loc != '/login' &&
+          loc != '/register' &&
+          loc != '/forgot-password' &&
+          loc != '/reset-password') {
         return '/login';
       }
       if (session.canAccessHome && (loc == '/login' || loc == '/register')) {
@@ -38,6 +44,21 @@ GoRouter createAppRouter(SessionViewModel session) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          final token = state.uri.queryParameters['token'] ?? '';
+          return ResetPasswordScreen(
+            initialEmail: email,
+            initialToken: token,
+          );
+        },
       ),
       GoRoute(
         path: '/home',

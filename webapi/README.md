@@ -153,6 +153,48 @@ Si el usuario es `proveedor` y aún no tiene perfil, `provider_profile` será `n
 
 ---
 
+### 2.1 Solicitar enlace de recuperación de contraseña
+
+**URL:** `POST {BASE}/auth/forgot-password`  
+**Auth:** no  
+**Límite:** 6 solicitudes por minuto (por IP).
+
+**Body (JSON):**
+
+| Campo | Tipo | Obligatorio |
+|-------|------|-------------|
+| `email` | string | sí |
+
+**Response `200 OK`:** siempre un mensaje genérico (no revela si el correo existe). Requiere correo configurado en el servidor (`MAIL_*` en `.env`).
+
+**Response `429`:** demasiadas solicitudes seguidas.
+
+El correo incluye un enlace a la app web (`/app?token=…&email=…`) para elegir la nueva contraseña.
+
+---
+
+### 2.2 Restablecer contraseña (con token del correo)
+
+**URL:** `POST {BASE}/auth/reset-password`  
+**Auth:** no  
+**Límite:** 10 intentos por minuto (por IP).
+
+**Body (JSON):**
+
+| Campo | Tipo | Obligatorio |
+|-------|------|-------------|
+| `email` | string | sí |
+| `token` | string | sí (el del enlace) |
+| `password` | string | sí (mín. 8) |
+| `password_confirmation` | string | sí |
+
+**Response `200 OK`:** `message` indicando éxito.  
+**Response `422`:** token inválido o expirado, u otras validaciones.
+
+En base de datos debe existir la tabla `password_reset_tokens` (`php artisan migrate` o script `db-mysql/05-password-reset-tokens.sql`).
+
+---
+
 ### 3. Cerrar sesión (revocar token actual)
 
 **URL:** `POST {BASE}/auth/logout`  

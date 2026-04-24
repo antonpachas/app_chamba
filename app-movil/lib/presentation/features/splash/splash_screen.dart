@@ -34,9 +34,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!mounted) return;
     if (session.canAccessHome) {
       context.go('/home');
-    } else {
-      context.go('/login');
     }
+    // Sin sesión: el redirect de GoRouter envía /splash → /login.
   }
 
   @override

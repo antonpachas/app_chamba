@@ -168,7 +168,14 @@ class _RegisterBodyState extends State<_RegisterBody> {
                                   )
                                 : const Text('Registrarme'),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 4),
+                          Center(
+                            child: TextButton(
+                              onPressed: vm.loading ? null : () => context.push('/forgot-password'),
+                              child: const Text('¿Olvidaste tu contraseña?'),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           OutlinedButton.icon(
                             onPressed: vm.loading
                                 ? null

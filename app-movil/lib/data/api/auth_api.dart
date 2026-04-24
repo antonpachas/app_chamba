@@ -72,4 +72,38 @@ class AuthApi {
       throw ApiClient.mapDioException(e);
     }
   }
+
+  /// Solicita correo con enlace para restablecer contraseña (mismo mensaje genérico si el correo no existe).
+  Future<void> forgotPassword({required String email}) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        'auth/forgot-password',
+        data: {'email': email.trim()},
+      );
+    } on DioException catch (e) {
+      throw ApiClient.mapDioException(e);
+    }
+  }
+
+  /// Completa el restablecimiento con el token recibido por correo.
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        'auth/reset-password',
+        data: {
+          'email': email.trim(),
+          'token': token.trim(),
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        },
+      );
+    } on DioException catch (e) {
+      throw ApiClient.mapDioException(e);
+    }
+  }
 }

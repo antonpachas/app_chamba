@@ -6,10 +6,12 @@ class AuthHeroHeader extends StatelessWidget {
     super.key,
     required this.title,
     required this.subtitle,
+    this.compact = false,
   });
 
   final String title;
   final String subtitle;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -29,62 +31,62 @@ class AuthHeroHeader extends StatelessWidget {
           ],
           stops: const [0.0, 0.55, 1.0],
         ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(compact ? 24 : 32)),
         boxShadow: [
           BoxShadow(
-            color: scheme.primary.withValues(alpha: 0.28),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
+            color: scheme.primary.withValues(alpha: compact ? 0.18 : 0.28),
+            blurRadius: compact ? 18 : 28,
+            offset: Offset(0, compact ? 10 : 14),
           ),
         ],
       ),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 12, 22, 32),
+          padding: EdgeInsets.fromLTRB(20, compact ? 6 : 12, 20, compact ? 18 : 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(compact ? 10 : 12),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(compact ? 14 : 18),
                       border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
                     ),
-                    child: Icon(Icons.handyman_rounded, color: scheme.onPrimary, size: 28),
+                    child: Icon(Icons.handyman_rounded, color: scheme.onPrimary, size: compact ? 24 : 28),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Text(
                     'Chamba',
-                    style: textTheme.headlineSmall?.copyWith(
+                    style: (compact ? textTheme.titleLarge : textTheme.headlineSmall)?.copyWith(
                       color: scheme.onPrimary,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: -0.6,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: compact ? 14 : 22),
               Text(
                 title,
-                style: textTheme.headlineMedium?.copyWith(
+                style: (compact ? textTheme.titleLarge : textTheme.headlineMedium)?.copyWith(
                   color: scheme.onPrimary,
                   fontWeight: FontWeight.w800,
-                  height: 1.12,
-                  letterSpacing: -0.6,
+                  height: 1.15,
+                  letterSpacing: -0.4,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: compact ? 6 : 10),
               Text(
                 subtitle,
-                style: textTheme.bodyLarge?.copyWith(
+                style: textTheme.bodyMedium?.copyWith(
                   color: scheme.onPrimary.withValues(alpha: 0.92),
-                  height: 1.4,
+                  height: 1.35,
                   fontWeight: FontWeight.w500,
-                  fontSize: 16,
+                  fontSize: compact ? 14 : 16,
                 ),
               ),
             ],
