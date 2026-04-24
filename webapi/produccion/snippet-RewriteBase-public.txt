@@ -1,0 +1,12 @@
+# Si después del despliegue los estilos no cargan o /api/v1 da 404,
+# edita el archivo public/.htaccess del servidor y añade UNA línea
+# inmediatamente DESPUÉS de "RewriteEngine On":
+#
+# --- Prueba primero esta (cuando usas .htaccess en la raíz de Laravel): ---
+RewriteBase /v1/app_chamba/public/
+#
+# --- Si no mejora, prueba esta (cuando el document root ya es la carpeta public/): ---
+# RewriteBase /v1/app_chamba/
+#
+# La ruta debe coincidir con la carpeta donde está instalada la app respecto al dominio.
+# Guarda el archivo y ejecuta: php artisan optimize:clear

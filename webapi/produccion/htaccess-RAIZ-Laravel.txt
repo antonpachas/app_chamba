@@ -1,0 +1,13 @@
+# Renombrar o copiar este archivo como ".htaccess" en la RAÍZ de Laravel
+# (misma carpeta donde están "artisan" y la carpeta "public/").
+#
+# Objetivo: que https://jaapsystem.com/v1/app_chamba/ funcione sin "/public/" en la URL.
+# Requisito: Apache con mod_rewrite.
+
+<IfModule mod_rewrite.c>
+    Options +FollowSymLinks
+    RewriteEngine On
+
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^((?!public/).*)$ public/$1 [L,NC]
+</IfModule>
