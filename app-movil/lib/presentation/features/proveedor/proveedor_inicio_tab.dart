@@ -26,7 +26,29 @@ class _Body extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     if (vm.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                color: scheme.primary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Cargando tu resumen…',
+              style: textTheme.titleSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     if (vm.error != null) {

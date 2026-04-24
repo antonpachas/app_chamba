@@ -76,17 +76,21 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             ];
     }
 
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 16,
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: scheme.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
+                color: scheme.primaryContainer.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.35)),
               ),
-              child: Icon(Icons.handyman_rounded, color: scheme.onPrimaryContainer, size: 22),
+              child: Icon(Icons.handyman_rounded, color: scheme.onPrimaryContainer, size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -94,21 +98,34 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(titleLine),
+                  Text(
+                    titleLine,
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.4,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
                   Text(
                     subtitleLine,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
             ),
             if (session.isGuest)
-              Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: Icon(Icons.visibility_outlined, size: 22, color: scheme.tertiary),
+              Tooltip(
+                message: 'Modo invitado',
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Icon(Icons.visibility_outlined, size: 24, color: scheme.tertiary),
+                ),
               ),
           ],
         ),
@@ -117,17 +134,25 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         index: _index,
         children: [for (final t in tabs) t.child],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: [
-          for (final t in tabs)
-            NavigationDestination(
-              icon: Icon(t.icon),
-              selectedIcon: Icon(t.icon),
-              label: t.label,
-            ),
-        ],
+      bottomNavigationBar: Material(
+        elevation: 8,
+        shadowColor: scheme.shadow.withValues(alpha: 0.12),
+        color: scheme.surface,
+        child: SafeArea(
+          top: false,
+          child: NavigationBar(
+            selectedIndex: _index,
+            onDestinationSelected: (i) => setState(() => _index = i),
+            destinations: [
+              for (final t in tabs)
+                NavigationDestination(
+                  icon: Icon(t.icon),
+                  selectedIcon: Icon(t.icon),
+                  label: t.label,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:chamba_app/data/api/catalog_api.dart';
 import 'package:chamba_app/data/api/search_api.dart';
 import 'package:chamba_app/presentation/common/widgets/error_banner.dart';
+import 'package:chamba_app/presentation/common/widgets/section_header.dart';
 import 'package:chamba_app/presentation/features/cliente/buscar_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -46,36 +47,29 @@ class _BuscarBodyState extends State<_BuscarBody> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Card(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+              padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.tune_rounded, color: scheme.primary, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Encuentra un servicio',
-                        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                    ],
+                  const SectionHeader(
+                    icon: Icons.tune_rounded,
+                    title: 'Encuentra un servicio',
+                    subtitle: 'Elige un rubro y escribe lo que necesitas.',
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Filtra por rubro y palabras clave.',
-                    style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   if (vm.loadingCategories)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: const LinearProgressIndicator(minHeight: 6),
                     )
                   else ...[
-                    Text('Categoría', style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      'Categoría',
+                      style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                    ),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
@@ -147,12 +141,12 @@ class _BuscarBodyState extends State<_BuscarBody> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
           child: Row(
             children: [
               Text(
                 'Resultados',
-                style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.2),
               ),
               const Spacer(),
               if (vm.hasSearched)
@@ -184,22 +178,22 @@ class _ResultsBody extends StatelessWidget {
     if (!vm.hasSearched) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(28),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.manage_search_rounded, size: 56, color: scheme.outline),
-              const SizedBox(height: 16),
+              _SearchHintOrb(scheme: scheme, icon: Icons.manage_search_rounded),
+              const SizedBox(height: 20),
               Text(
                 'Busca por categoría o palabra',
-                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.2),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 'Te mostraremos proveedores y servicios que coincidan con lo que necesitas.',
                 textAlign: TextAlign.center,
-                style: textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant, height: 1.4),
+                style: textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant, height: 1.45),
               ),
             ],
           ),
@@ -210,21 +204,21 @@ class _ResultsBody extends StatelessWidget {
     if (vm.results.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(28),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.search_off_rounded, size: 56, color: scheme.outline),
-              const SizedBox(height: 16),
+              _SearchHintOrb(scheme: scheme, icon: Icons.search_off_rounded),
+              const SizedBox(height: 20),
               Text(
                 'Sin resultados',
-                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.2),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 'Prueba otra categoría o cambia las palabras clave.',
                 textAlign: TextAlign.center,
-                style: textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant, height: 1.4),
+                style: textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant, height: 1.45),
               ),
             ],
           ),
@@ -249,7 +243,7 @@ class _ResultsBody extends StatelessWidget {
 
         return Card(
           child: InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(22),
             onTap: () {
               // Próximo: detalle + contacto
             },
@@ -344,7 +338,7 @@ class _ResultsBody extends StatelessWidget {
                   if (price != null && price.isNotEmpty && price != 'null') ...[
                     const SizedBox(height: 10),
                     Text(
-                      _priceLabel(price, priceType),
+                      _buscarPriceLabel(price, priceType),
                       style: textTheme.labelLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: scheme.onSurface,
@@ -359,15 +353,48 @@ class _ResultsBody extends StatelessWidget {
       },
     );
   }
+}
 
-  static String _priceLabel(String price, String type) {
-    final t = switch (type) {
-      'fijo' => 'Precio',
-      'desde' => 'Desde',
-      'cotizar' => 'A cotizar',
-      _ => 'Precio',
-    };
-    if (type == 'cotizar') return 'A cotizar en sitio';
-    return '$t: S/ $price';
+class _SearchHintOrb extends StatelessWidget {
+  const _SearchHintOrb({required this.scheme, required this.icon});
+
+  final ColorScheme scheme;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            scheme.primaryContainer.withValues(alpha: 0.85),
+            scheme.tertiaryContainer.withValues(alpha: 0.55),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.12),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Icon(icon, size: 52, color: scheme.onPrimaryContainer),
+    );
   }
+}
+
+String _buscarPriceLabel(String price, String type) {
+  final t = switch (type) {
+    'fijo' => 'Precio',
+    'desde' => 'Desde',
+    'cotizar' => 'A cotizar',
+    _ => 'Precio',
+  };
+  if (type == 'cotizar') return 'A cotizar en sitio';
+  return '$t: S/ $price';
 }

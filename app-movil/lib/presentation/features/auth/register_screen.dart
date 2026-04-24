@@ -53,7 +53,10 @@ class _RegisterBodyState extends State<_RegisterBody> {
     final vm = context.watch<RegisterViewModel>();
     final scheme = Theme.of(context).colorScheme;
 
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Column(
         children: [
           const AuthHeroHeader(
@@ -62,14 +65,14 @@ class _RegisterBodyState extends State<_RegisterBody> {
           ),
           Expanded(
             child: Transform.translate(
-              offset: const Offset(0, -18),
+              offset: const Offset(0, -20),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 28 + bottomInset),
                 child: Card(
-                  elevation: 6,
-                  shadowColor: scheme.primary.withValues(alpha: 0.2),
+                  elevation: 2,
+                  shadowColor: scheme.shadow.withValues(alpha: 0.12),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -151,7 +154,7 @@ class _RegisterBodyState extends State<_RegisterBody> {
                             const SizedBox(height: 14),
                             ErrorBanner(message: vm.error!),
                           ],
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 24),
                           FilledButton(
                             onPressed: vm.loading ? null : () => _submit(context, vm),
                             child: vm.loading
@@ -165,21 +168,20 @@ class _RegisterBodyState extends State<_RegisterBody> {
                                   )
                                 : const Text('Registrarme'),
                           ),
-                          Center(
-                            child: TextButton.icon(
-                              onPressed: vm.loading
-                                  ? null
-                                  : () async {
-                                      await context.read<SessionViewModel>().enterGuestMode();
-                                      if (context.mounted) context.go('/home');
-                                    },
-                              icon: const Icon(Icons.visibility_outlined),
-                              label: const Text('Explorar como invitado'),
-                            ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: vm.loading
+                                ? null
+                                : () async {
+                                    await context.read<SessionViewModel>().enterGuestMode();
+                                    if (context.mounted) context.go('/home');
+                                  },
+                            icon: const Icon(Icons.explore_outlined),
+                            label: const Text('Solo quiero explorar'),
                           ),
                           Center(
                             child: TextButton(
-                              onPressed: () => context.go('/login'),
+                              onPressed: vm.loading ? null : () => context.go('/login'),
                               child: const Text('Ya tengo cuenta'),
                             ),
                           ),

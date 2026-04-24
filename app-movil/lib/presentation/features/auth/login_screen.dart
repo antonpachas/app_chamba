@@ -46,7 +46,10 @@ class _LoginBodyState extends State<_LoginBody> {
     final vm = context.watch<LoginViewModel>();
     final scheme = Theme.of(context).colorScheme;
 
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Column(
         children: [
           const AuthHeroHeader(
@@ -55,14 +58,14 @@ class _LoginBodyState extends State<_LoginBody> {
           ),
           Expanded(
             child: Transform.translate(
-              offset: const Offset(0, -18),
+              offset: const Offset(0, -20),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 28 + bottomInset),
                 child: Card(
-                  elevation: 6,
-                  shadowColor: scheme.primary.withValues(alpha: 0.2),
+                  elevation: 2,
+                  shadowColor: scheme.shadow.withValues(alpha: 0.12),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -71,17 +74,19 @@ class _LoginBodyState extends State<_LoginBody> {
                           Text(
                             'Iniciar sesión',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.3,
                                 ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Text(
                             'Usa el correo con el que te registraste.',
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: scheme.onSurfaceVariant,
+                                  height: 1.4,
                                 ),
                           ),
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 24),
                           TextFormField(
                             controller: _email,
                             decoration: const InputDecoration(
@@ -108,7 +113,7 @@ class _LoginBodyState extends State<_LoginBody> {
                             const SizedBox(height: 14),
                             ErrorBanner(message: vm.error!),
                           ],
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 24),
                           FilledButton(
                             onPressed: vm.loading ? null : () => _submit(context, vm),
                             child: vm.loading
@@ -122,22 +127,21 @@ class _LoginBodyState extends State<_LoginBody> {
                                   )
                                 : const Text('Entrar'),
                           ),
-                          const SizedBox(height: 8),
-                          Center(
-                            child: TextButton.icon(
-                              onPressed: vm.loading
-                                  ? null
-                                  : () async {
-                                      await context.read<SessionViewModel>().enterGuestMode();
-                                      if (context.mounted) context.go('/home');
-                                    },
-                              icon: const Icon(Icons.visibility_outlined),
-                              label: const Text('Continuar como invitado'),
-                            ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: vm.loading
+                                ? null
+                                : () async {
+                                    await context.read<SessionViewModel>().enterGuestMode();
+                                    if (context.mounted) context.go('/home');
+                                  },
+                            icon: const Icon(Icons.explore_outlined),
+                            label: const Text('Solo quiero explorar'),
                           ),
+                          const SizedBox(height: 4),
                           Center(
                             child: TextButton(
-                              onPressed: () => context.go('/register'),
+                              onPressed: vm.loading ? null : () => context.go('/register'),
                               child: const Text('¿No tienes cuenta? Crear una'),
                             ),
                           ),
