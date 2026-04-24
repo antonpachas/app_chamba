@@ -583,6 +583,12 @@ o `"removed"`.
 
 ---
 
+## Aplicación web (misma instalación Laravel)
+
+- **Portada:** `GET /` — enlace a la app web.
+- **App web (similar al flujo móvil):** `GET /app` — login, registro, modo invitado y búsqueda de servicios contra **`/api/v1`** (token en `localStorage`).
+- Requiere `npm run build` (o `npm run dev`) para compilar `resources/js/chamba-app.js` y los estilos.
+
 ## Arranque rápido (desarrollo)
 
 1. Configura `.env` (MySQL apuntando a la base creada con los scripts en `../db-mysql/`).
