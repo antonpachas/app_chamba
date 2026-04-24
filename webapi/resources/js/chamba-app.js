@@ -363,23 +363,38 @@ function renderGate(root) {
 
 function renderForgot(root) {
     root.innerHTML = `
-        <div class="min-h-screen flex flex-col bg-stone-100">
-            <header class="bg-gradient-to-br from-teal-600 to-teal-800 text-white px-6 pt-8 pb-12 rounded-b-[2rem]">
-                <button type="button" data-back class="text-white/90 text-sm font-semibold mb-6 hover:text-white">← Volver</button>
-                <h1 class="text-2xl font-extrabold">Recuperar contraseña</h1>
-                <p class="text-white/85 mt-2 text-sm">Te enviaremos un enlace a tu correo.</p>
-            </header>
-            <form class="max-w-lg mx-auto w-full -mt-6 px-4 pb-10 flex-1 space-y-4" id="forgot-form">
-                ${state.error ? `<div class="rounded-xl bg-red-50 text-red-800 text-sm font-medium px-4 py-3 border border-red-100">${escapeHtml(state.error)}</div>` : ''}
-                <div class="bg-white rounded-2xl shadow-lg border border-stone-200/80 p-6 space-y-4">
-                    <label class="block text-sm font-bold text-stone-700">Correo</label>
-                    <input name="email" type="email" required autocomplete="email"
-                        class="w-full rounded-xl border border-stone-200 px-4 py-3.5 text-stone-900 focus:ring-2 focus:ring-teal-500 outline-none" placeholder="tu@correo.com" />
-                    <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-3.5">
-                        ${state.loading ? 'Enviando…' : 'Enviar enlace'}
-                    </button>
+        <div class="min-h-screen bg-stone-100">
+            <div class="border-b border-stone-200/80 bg-white">
+                <div class="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-4 flex items-center justify-between gap-4">
+                    <button type="button" data-back class="text-sm font-semibold text-teal-800 hover:text-teal-950 hover:underline">← Volver al acceso</button>
+                    <span class="text-xs font-bold uppercase tracking-widest text-stone-400">Chamba</span>
                 </div>
-            </form>
+            </div>
+            <div class="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-10 lg:py-16">
+                <div class="lg:grid lg:grid-cols-12 lg:gap-14 xl:gap-16 items-start">
+                    <div class="lg:col-span-5 mb-10 lg:mb-0">
+                        <h1 class="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight leading-tight">Recuperar contraseña</h1>
+                        <p class="mt-4 text-lg text-stone-600 leading-relaxed">Indica el correo de tu cuenta y te enviaremos un enlace para elegir una nueva contraseña.</p>
+                        <ul class="mt-8 space-y-3 text-stone-600 text-[15px] leading-relaxed">
+                            <li class="flex gap-3"><span class="text-teal-600 font-bold shrink-0">·</span> Revisa también la carpeta de spam.</li>
+                            <li class="flex gap-3"><span class="text-teal-600 font-bold shrink-0">·</span> Por seguridad no decimos si el correo existe o no.</li>
+                        </ul>
+                    </div>
+                    <div class="lg:col-span-7">
+                        <form id="forgot-form" class="bg-white rounded-2xl border border-stone-200/90 shadow-sm shadow-stone-900/5 p-8 sm:p-10 space-y-6">
+                            ${state.error ? `<div class="rounded-xl bg-red-50 text-red-800 text-sm font-medium px-4 py-3 border border-red-100">${escapeHtml(state.error)}</div>` : ''}
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wide text-stone-500 mb-2">Correo electrónico</label>
+                                <input name="email" type="email" required autocomplete="email" placeholder="tu@correo.com"
+                                    class="w-full rounded-xl border border-stone-200 bg-stone-50/40 px-4 py-3.5 text-stone-900 text-[15px] outline-none focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                            </div>
+                            <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full sm:w-auto min-w-[200px] rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-3.5 px-8 shadow-md shadow-teal-600/20">
+                                ${state.loading ? 'Enviando…' : 'Enviar enlace'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
     root.querySelector('[data-back]').addEventListener('click', () => {
@@ -397,27 +412,46 @@ function renderForgot(root) {
 function renderReset(root) {
     const em = escapeHtml(state.resetEmail);
     root.innerHTML = `
-        <div class="min-h-screen flex flex-col bg-stone-100">
-            <header class="bg-gradient-to-br from-teal-600 to-teal-800 text-white px-6 pt-8 pb-12 rounded-b-[2rem]">
-                <button type="button" data-back class="text-white/90 text-sm font-semibold mb-6 hover:text-white">← Ir a iniciar sesión</button>
-                <h1 class="text-2xl font-extrabold">Nueva contraseña</h1>
-                <p class="text-white/85 mt-2 text-sm">Elige una contraseña segura.</p>
-            </header>
-            <form class="max-w-lg mx-auto w-full -mt-6 px-4 pb-10 flex-1 space-y-4" id="reset-form">
-                ${state.error ? `<div class="rounded-xl bg-red-50 text-red-800 text-sm font-medium px-4 py-3 border border-red-100">${escapeHtml(state.error)}</div>` : ''}
-                <div class="bg-white rounded-2xl shadow-lg border border-stone-200/80 p-6 space-y-4">
-                    <p class="text-sm text-stone-600">Correo: <strong>${em}</strong></p>
-                    <label class="block text-sm font-bold text-stone-700">Nueva contraseña</label>
-                    <input name="password" type="password" required minlength="8" autocomplete="new-password"
-                        class="w-full rounded-xl border border-stone-200 px-4 py-3.5 outline-none focus:ring-2 focus:ring-teal-500" />
-                    <label class="block text-sm font-bold text-stone-700">Confirmar contraseña</label>
-                    <input name="password_confirmation" type="password" required minlength="8" autocomplete="new-password"
-                        class="w-full rounded-xl border border-stone-200 px-4 py-3.5 outline-none focus:ring-2 focus:ring-teal-500" />
-                    <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-3.5">
-                        ${state.loading ? 'Guardando…' : 'Guardar contraseña'}
-                    </button>
+        <div class="min-h-screen bg-stone-100">
+            <div class="border-b border-stone-200/80 bg-white">
+                <div class="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-4 flex items-center justify-between gap-4">
+                    <button type="button" data-back class="text-sm font-semibold text-teal-800 hover:text-teal-950 hover:underline">← Volver al acceso</button>
+                    <span class="text-xs font-bold uppercase tracking-widest text-stone-400">Chamba</span>
                 </div>
-            </form>
+            </div>
+            <div class="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-10 lg:py-16">
+                <div class="lg:grid lg:grid-cols-12 lg:gap-14 xl:gap-16 items-start">
+                    <div class="lg:col-span-5 mb-10 lg:mb-0">
+                        <h1 class="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight leading-tight">Nueva contraseña</h1>
+                        <p class="mt-4 text-lg text-stone-600 leading-relaxed">Define una contraseña segura para tu cuenta.</p>
+                        <div class="mt-8 rounded-2xl bg-teal-50/80 border border-teal-100/80 px-5 py-4 text-sm text-stone-700">
+                            <p class="font-bold text-teal-900 text-xs uppercase tracking-wide mb-1">Correo vinculado</p>
+                            <p class="text-[15px] font-medium break-all">${em}</p>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-7">
+                        <form id="reset-form" class="bg-white rounded-2xl border border-stone-200/90 shadow-sm shadow-stone-900/5 p-8 sm:p-10 space-y-6">
+                            ${state.error ? `<div class="rounded-xl bg-red-50 text-red-800 text-sm font-medium px-4 py-3 border border-red-100">${escapeHtml(state.error)}</div>` : ''}
+                            <div class="grid sm:grid-cols-2 gap-5 sm:gap-6">
+                                <div class="sm:col-span-1">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-stone-500 mb-2">Nueva contraseña</label>
+                                    <input name="password" type="password" required minlength="8" autocomplete="new-password"
+                                        class="w-full rounded-xl border border-stone-200 bg-stone-50/40 px-4 py-3.5 outline-none focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                                </div>
+                                <div class="sm:col-span-1">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-stone-500 mb-2">Confirmar</label>
+                                    <input name="password_confirmation" type="password" required minlength="8" autocomplete="new-password"
+                                        class="w-full rounded-xl border border-stone-200 bg-stone-50/40 px-4 py-3.5 outline-none focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                                </div>
+                            </div>
+                            <p class="text-sm text-stone-500">Mínimo 8 caracteres. Combina letras y números si puedes.</p>
+                            <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full sm:w-auto min-w-[220px] rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-3.5 px-8 shadow-md shadow-teal-600/20">
+                                ${state.loading ? 'Guardando…' : 'Guardar contraseña'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
     root.querySelector('[data-back]').addEventListener('click', () => {
@@ -442,37 +476,69 @@ function renderReset(root) {
 
 function renderRegister(root) {
     root.innerHTML = `
-        <div class="min-h-screen flex flex-col bg-stone-100">
-            <header class="bg-gradient-to-br from-teal-600 to-teal-800 text-white px-6 pt-8 pb-10 rounded-b-[2rem]">
-                <button type="button" data-back class="text-white/90 text-sm font-semibold mb-6 hover:text-white">← Volver</button>
-                <h1 class="text-2xl font-extrabold">Crear cuenta</h1>
-                <p class="text-white/85 mt-2 text-sm">Cliente o proveedor de servicios.</p>
-            </header>
-            <form class="max-w-lg mx-auto w-full -mt-6 px-4 pb-12 flex-1" id="reg-form">
-                ${state.error ? `<div class="mb-4 rounded-xl bg-red-50 text-red-800 text-sm font-medium px-4 py-3 border border-red-100">${escapeHtml(state.error)}</div>` : ''}
-                <div class="bg-white rounded-2xl shadow-lg border border-stone-200/80 p-6 space-y-4">
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="cursor-pointer"><input type="radio" name="role" value="cliente" checked class="peer sr-only" />
-                            <span class="block text-center rounded-xl border-2 border-stone-200 peer-checked:border-teal-600 peer-checked:bg-teal-50 py-3 font-bold text-sm">Cliente</span></label>
-                        <label class="cursor-pointer"><input type="radio" name="role" value="proveedor" class="peer sr-only" />
-                            <span class="block text-center rounded-xl border-2 border-stone-200 peer-checked:border-teal-600 peer-checked:bg-teal-50 py-3 font-bold text-sm">Proveedor</span></label>
-                    </div>
-                    <label class="block text-sm font-bold text-stone-700">Nombre completo</label>
-                    <input name="full_name" required class="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:ring-2 focus:ring-teal-500" />
-                    <label class="block text-sm font-bold text-stone-700">Correo</label>
-                    <input name="email" type="email" required class="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:ring-2 focus:ring-teal-500" />
-                    <label class="block text-sm font-bold text-stone-700">Teléfono (opcional)</label>
-                    <input name="phone" type="tel" class="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:ring-2 focus:ring-teal-500" />
-                    <label class="block text-sm font-bold text-stone-700">Contraseña (mín. 8)</label>
-                    <input name="password" type="password" required minlength="8" class="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:ring-2 focus:ring-teal-500" />
-                    <label class="block text-sm font-bold text-stone-700">Confirmar contraseña</label>
-                    <input name="password_confirmation" type="password" required class="w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:ring-2 focus:ring-teal-500" />
-                    <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-3.5">
-                        ${state.loading ? 'Registrando…' : 'Registrarme'}
-                    </button>
-                    <button type="button" data-to-forgot-reg class="w-full text-center text-sm font-semibold text-teal-700 hover:underline pt-1">¿Olvidaste tu contraseña?</button>
+        <div class="min-h-screen bg-stone-100">
+            <div class="border-b border-stone-200/80 bg-white">
+                <div class="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-4 flex items-center justify-between gap-4">
+                    <button type="button" data-back class="text-sm font-semibold text-teal-800 hover:text-teal-950 hover:underline">← Volver al acceso</button>
+                    <span class="text-xs font-bold uppercase tracking-widest text-stone-400">Chamba</span>
                 </div>
-            </form>
+            </div>
+            <div class="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-10 lg:py-16">
+                <div class="lg:grid lg:grid-cols-12 lg:gap-14 xl:gap-16 items-start">
+                    <div class="lg:col-span-5 mb-10 lg:mb-0">
+                        <h1 class="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight leading-tight">Crear cuenta</h1>
+                        <p class="mt-4 text-lg text-stone-600 leading-relaxed">Regístrate como cliente para contratar servicios, o como proveedor para publicar tu negocio.</p>
+                        <ul class="mt-8 space-y-3 text-stone-600 text-[15px] leading-relaxed">
+                            <li class="flex gap-3"><span class="text-teal-600 font-bold shrink-0">·</span> Una sola cuenta para la web y la app.</li>
+                            <li class="flex gap-3"><span class="text-teal-600 font-bold shrink-0">·</span> Puedes explorar como invitado sin registrarte.</li>
+                        </ul>
+                    </div>
+                    <div class="lg:col-span-7">
+                        <form id="reg-form" class="bg-white rounded-2xl border border-stone-200/90 shadow-sm shadow-stone-900/5 p-8 sm:p-10 space-y-8">
+                            ${state.error ? `<div class="rounded-xl bg-red-50 text-red-800 text-sm font-medium px-4 py-3 border border-red-100">${escapeHtml(state.error)}</div>` : ''}
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wide text-stone-500 mb-3">Tipo de cuenta</p>
+                                <div class="grid grid-cols-2 sm:grid-cols-2 gap-3">
+                                    <label class="cursor-pointer"><input type="radio" name="role" value="cliente" checked class="peer sr-only" />
+                                        <span class="block text-center rounded-xl border-2 border-stone-200 peer-checked:border-teal-600 peer-checked:bg-teal-50 py-4 font-bold text-sm sm:text-base text-stone-800 transition">Cliente</span></label>
+                                    <label class="cursor-pointer"><input type="radio" name="role" value="proveedor" class="peer sr-only" />
+                                        <span class="block text-center rounded-xl border-2 border-stone-200 peer-checked:border-teal-600 peer-checked:bg-teal-50 py-4 font-bold text-sm sm:text-base text-stone-800 transition">Proveedor</span></label>
+                                </div>
+                            </div>
+                            <div class="grid sm:grid-cols-2 gap-5 sm:gap-6">
+                                <div class="sm:col-span-1">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-stone-500 mb-2">Nombre completo</label>
+                                    <input name="full_name" required class="w-full rounded-xl border border-stone-200 bg-stone-50/40 px-4 py-3.5 outline-none focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                                </div>
+                                <div class="sm:col-span-1">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-stone-500 mb-2">Correo electrónico</label>
+                                    <input name="email" type="email" required class="w-full rounded-xl border border-stone-200 bg-stone-50/40 px-4 py-3.5 outline-none focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wide text-stone-500 mb-2">Teléfono <span class="font-normal text-stone-400">(opcional)</span></label>
+                                <input name="phone" type="tel" class="w-full max-w-xl rounded-xl border border-stone-200 bg-stone-50/40 px-4 py-3.5 outline-none focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                            </div>
+                            <div class="grid sm:grid-cols-2 gap-5 sm:gap-6">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-stone-500 mb-2">Contraseña <span class="font-normal text-stone-400">(mín. 8)</span></label>
+                                    <input name="password" type="password" required minlength="8" class="w-full rounded-xl border border-stone-200 bg-stone-50/40 px-4 py-3.5 outline-none focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-stone-500 mb-2">Confirmar contraseña</label>
+                                    <input name="password_confirmation" type="password" required class="w-full rounded-xl border border-stone-200 bg-stone-50/40 px-4 py-3.5 outline-none focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
+                                <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full sm:w-auto min-w-[200px] rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-3.5 px-8 shadow-md shadow-teal-600/20">
+                                    ${state.loading ? 'Registrando…' : 'Crear mi cuenta'}
+                                </button>
+                                <button type="button" data-to-forgot-reg class="text-sm font-semibold text-teal-700 hover:underline text-center sm:text-left">¿Olvidaste tu contraseña?</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
     root.querySelector('[data-back]').addEventListener('click', () => {
@@ -515,28 +581,35 @@ function renderMain(root) {
         state.categories.length === 0
             ? '<p class="text-sm text-stone-500">Cargando categorías…</p>'
             : `<div class="flex flex-wrap gap-2">
-            <button type="button" data-cat="" class="rounded-full border px-3 py-1.5 text-sm font-semibold ${chipClass(state.selectedCategoryId == null)}">Todas</button>
+            <button type="button" data-cat="" class="rounded-full border px-3.5 py-2 text-sm font-semibold ${chipClass(state.selectedCategoryId == null)}">Todas</button>
             ${state.categories
                 .map(
                     (c) => `
-                <button type="button" data-cat="${c.id}" class="rounded-full border px-3 py-1.5 text-sm font-semibold ${chipClass(state.selectedCategoryId === c.id)}">${escapeHtml(c.name)}</button>
+                <button type="button" data-cat="${c.id}" class="rounded-full border px-3.5 py-2 text-sm font-semibold ${chipClass(state.selectedCategoryId === c.id)}">${escapeHtml(c.name)}</button>
             `,
                 )
                 .join('')}
         </div>`;
 
+    const tabSearchDesktop = `rounded-lg px-5 py-2.5 text-sm font-bold transition ${
+        state.mainTab === 'search' ? 'bg-white text-teal-800 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+    }`;
+    const tabAccountDesktop = `rounded-lg px-5 py-2.5 text-sm font-bold transition ${
+        state.mainTab === 'account' ? 'bg-white text-teal-800 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+    }`;
+
     const resultsHtml =
         !state.searched
-            ? `<div class="text-center py-14 px-4">
-                <div class="w-20 h-20 mx-auto rounded-full bg-teal-100 flex items-center justify-center text-teal-700 text-3xl mb-4">🔍</div>
-                <p class="font-bold text-lg text-stone-800">Busca por categoría o palabra</p>
-                <p class="text-stone-600 mt-2 max-w-sm mx-auto">Te mostramos servicios y proveedores que coincidan con lo que necesitas.</p>
+            ? `<div class="rounded-2xl border border-dashed border-stone-200/90 bg-stone-50/60 py-16 lg:py-20 px-6 lg:px-10 text-center">
+                <div class="w-16 h-16 lg:w-20 lg:h-20 mx-auto rounded-2xl bg-teal-100 flex items-center justify-center text-teal-700 text-2xl lg:text-3xl mb-5">🔍</div>
+                <p class="font-black text-xl lg:text-2xl text-stone-900 tracking-tight">Busca por categoría o palabra clave</p>
+                <p class="text-stone-600 mt-3 max-w-xl mx-auto text-[15px] lg:text-base leading-relaxed">Usa el panel izquierdo para filtrar. Los resultados aparecerán aquí con más espacio para revisarlos.</p>
                </div>`
             : state.loading
-              ? `<div class="py-16 text-center text-stone-600 font-medium">Buscando…</div>`
+              ? `<div class="py-20 lg:py-28 text-center text-stone-500 font-medium text-lg">Buscando…</div>`
               : state.results.length === 0
-                ? `<div class="text-center py-14 text-stone-600">Sin resultados. Prueba otras palabras o categoría.</div>`
-                : `<ul class="space-y-3 pb-24">
+                ? `<div class="rounded-2xl border border-stone-200 bg-white py-16 lg:py-20 px-6 text-center text-stone-600">Sin resultados. Prueba otras palabras o categoría.</div>`
+                : `<ul class="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 pb-4">
                     ${state.results
                         .map((r) => {
                             const titleS = escapeHtml(r.title || '');
@@ -545,19 +618,19 @@ function renderMain(root) {
                             const cat = escapeHtml(r.category_name || '');
                             const rating =
                                 r.avg_rating && String(r.avg_rating) !== '0.00'
-                                    ? `<span class="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold px-2 py-1">★ ${escapeHtml(String(r.avg_rating))}</span>`
+                                    ? `<span class="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold px-2.5 py-1 shrink-0">★ ${escapeHtml(String(r.avg_rating))}</span>`
                                     : '';
-                            return `<li class="bg-white rounded-2xl border border-stone-200 shadow-sm p-4">
-                                <div class="flex gap-3">
-                                    <div class="shrink-0 w-12 h-12 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl">🛠</div>
-                                    <div class="min-w-0 flex-1">
-                                        <div class="flex justify-between gap-2 items-start">
-                                            <h3 class="font-extrabold text-stone-900 leading-tight">${titleS}</h3>
+                            return `<li class="bg-white rounded-2xl border border-stone-200/90 shadow-sm shadow-stone-900/5 p-5 lg:p-6 h-full flex flex-col hover:border-teal-200/80 transition-colors">
+                                <div class="flex gap-4">
+                                    <div class="shrink-0 w-14 h-14 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-2xl">🛠</div>
+                                    <div class="min-w-0 flex-1 flex flex-col">
+                                        <div class="flex justify-between gap-3 items-start">
+                                            <h3 class="font-extrabold text-stone-900 text-lg leading-snug">${titleS}</h3>
                                             ${rating}
                                         </div>
-                                        ${cat ? `<p class="text-xs font-bold text-teal-700 mt-1">${cat}</p>` : ''}
-                                        <p class="text-sm font-semibold text-stone-700 mt-2">${prov}</p>
-                                        <p class="text-xs text-stone-500 mt-1">📍 ${loc}</p>
+                                        ${cat ? `<p class="text-xs font-bold text-teal-700 mt-2 uppercase tracking-wide">${cat}</p>` : ''}
+                                        <p class="text-sm font-semibold text-stone-700 mt-3">${prov}</p>
+                                        <p class="text-sm text-stone-500 mt-auto pt-3 border-t border-stone-100">📍 ${loc}</p>
                                     </div>
                                 </div>
                             </li>`;
@@ -566,61 +639,95 @@ function renderMain(root) {
                    </ul>`;
 
     const accountTab = state.guest
-        ? `<div class="p-6 max-w-lg mx-auto space-y-4">
-                <div class="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
-                    <h2 class="text-xl font-extrabold text-stone-900">Modo invitado</h2>
-                    <p class="text-stone-600 mt-3 leading-relaxed">Puedes buscar sin cuenta. Para más funciones, inicia sesión o regístrate.</p>
+        ? `<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 pb-28 md:pb-16">
+                <div class="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                    <div class="lg:col-span-7">
+                        <h2 class="text-2xl lg:text-3xl font-black text-stone-900 tracking-tight">Modo invitado</h2>
+                        <p class="text-stone-600 mt-4 text-lg leading-relaxed">Puedes buscar servicios sin crear cuenta. Para guardar favoritos, publicar como proveedor o más funciones, crea una cuenta o inicia sesión.</p>
+                    </div>
+                    <div class="lg:col-span-5 flex flex-col gap-3">
+                        <button type="button" data-to-login class="w-full rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 px-6 shadow-md shadow-teal-600/15">Iniciar sesión</button>
+                        <button type="button" data-to-register class="w-full rounded-xl border-2 border-stone-200 hover:border-teal-300 bg-white font-bold py-3.5 text-teal-900">Crear cuenta</button>
+                        <button type="button" data-exit-guest class="text-stone-500 text-sm font-semibold py-3 hover:text-stone-700">Salir del modo invitado</button>
+                    </div>
                 </div>
-                <button type="button" data-to-login class="w-full rounded-xl bg-teal-600 text-white font-bold py-3.5">Iniciar sesión</button>
-                <button type="button" data-to-register class="w-full rounded-xl border-2 border-stone-200 font-bold py-3.5 text-teal-800">Crear cuenta</button>
-                <button type="button" data-exit-guest class="text-stone-500 text-sm font-semibold w-full py-2">Salir del modo invitado</button>
            </div>`
-        : `<div class="p-6 max-w-lg mx-auto space-y-4">
-                <div class="bg-gradient-to-br from-teal-100 to-emerald-50 rounded-2xl border border-teal-200/60 p-6 shadow-sm">
-                    <p class="text-xs font-bold text-teal-800 uppercase tracking-wide">${escapeHtml(u?.role === 'proveedor' ? 'Proveedor' : 'Cliente')}</p>
-                    <h2 class="text-2xl font-extrabold text-stone-900 mt-1">${escapeHtml(u?.full_name || '')}</h2>
-                    <p class="text-stone-600 text-sm mt-2">${escapeHtml(u?.email || '')}</p>
-                    <p class="text-xs text-stone-500 mt-2">Estado: ${escapeHtml(u?.status || '')}</p>
+        : `<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 pb-28 md:pb-16">
+                <div class="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                    <div class="lg:col-span-7 bg-gradient-to-br from-teal-100 to-emerald-50 rounded-2xl border border-teal-200/60 p-8 lg:p-10 shadow-sm">
+                        <p class="text-xs font-bold text-teal-800 uppercase tracking-widest">${escapeHtml(u?.role === 'proveedor' ? 'Proveedor' : 'Cliente')}</p>
+                        <h2 class="text-3xl lg:text-4xl font-black text-stone-900 mt-2 tracking-tight">${escapeHtml(u?.full_name || '')}</h2>
+                        <p class="text-stone-700 text-base mt-4">${escapeHtml(u?.email || '')}</p>
+                        <p class="text-sm text-stone-600 mt-6 font-medium">Estado: <span class="text-stone-900">${escapeHtml(u?.status || '')}</span></p>
+                    </div>
+                    <div class="lg:col-span-5 flex flex-col justify-end gap-3">
+                        <button type="button" data-logout class="w-full rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold py-3.5 px-6">Cerrar sesión</button>
+                    </div>
                 </div>
-                <button type="button" data-logout class="w-full rounded-xl bg-stone-800 text-white font-bold py-3.5">Cerrar sesión</button>
            </div>`;
 
     const searchPanel =
         state.mainTab === 'search'
-            ? `<div class="p-4 max-w-lg mx-auto pb-28">
-                <div class="bg-white rounded-2xl border border-stone-200 shadow-sm p-5 space-y-4">
-                    <h2 class="font-extrabold text-lg text-stone-900">Encuentra un servicio</h2>
-                    <p class="text-sm text-stone-600">Elige rubro y palabras clave.</p>
-                    <div><p class="text-xs font-bold text-stone-500 mb-2">Categoría</p>${catChips}</div>
-                    <div>
-                        <label class="text-xs font-bold text-stone-500">¿Qué necesitas?</label>
-                        <input type="search" id="kw" value="${escapeHtml(state.keyword)}" placeholder="Ej. electricista, pintura…"
-                            class="mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 outline-none focus:ring-2 focus:ring-teal-500" />
-                    </div>
-                    <button type="button" id="btn-search" class="w-full rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5">Buscar</button>
+            ? `<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10 pb-28 md:pb-12">
+                <div class="lg:grid lg:grid-cols-12 lg:gap-10 xl:gap-12 items-start">
+                    <aside class="lg:col-span-4 xl:col-span-3">
+                        <div class="bg-white rounded-2xl border border-stone-200/90 shadow-sm shadow-stone-900/5 p-6 lg:p-7 space-y-6 lg:sticky lg:top-24">
+                            <div>
+                                <h2 class="font-black text-xl text-stone-900 tracking-tight">Buscar servicios</h2>
+                                <p class="text-sm text-stone-600 mt-2 leading-relaxed">Filtra por rubro y describe lo que necesitas.</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wide text-stone-500 mb-3">Categoría</p>
+                                ${catChips}
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold uppercase tracking-wide text-stone-500" for="kw">Palabras clave</label>
+                                <input type="search" id="kw" value="${escapeHtml(state.keyword)}" placeholder="Ej. electricista, pintura…"
+                                    class="mt-2 w-full rounded-xl border border-stone-200 bg-stone-50/50 px-4 py-3.5 text-[15px] outline-none focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20" />
+                            </div>
+                            <button type="button" id="btn-search" class="w-full rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 shadow-md shadow-teal-600/15">Buscar</button>
+                        </div>
+                    </aside>
+                    <section class="lg:col-span-8 xl:col-span-9 mt-8 lg:mt-0 min-h-[280px]">
+                        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-5 lg:mb-6">
+                            <h3 class="text-xl lg:text-2xl font-black text-stone-900 tracking-tight">Resultados</h3>
+                            ${
+                                state.searched && !state.loading
+                                    ? `<span class="text-sm font-semibold text-stone-500">${state.results.length} encontrado(s)</span>`
+                                    : ''
+                            }
+                        </div>
+                        ${resultsHtml}
+                    </section>
                 </div>
-                <h3 class="font-extrabold text-stone-800 mt-6 mb-2 px-1">Resultados</h3>
-                ${resultsHtml}
             </div>`
             : accountTab;
 
     root.innerHTML = `
-        <div class="min-h-screen flex flex-col bg-stone-100 pb-20">
-            <header class="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-stone-200 px-4 py-3 flex items-center gap-3 shadow-sm">
-                <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-lg font-bold">C</div>
-                <div class="min-w-0 flex-1">
-                    <p class="font-extrabold text-stone-900 leading-tight truncate">${escapeHtml(title)}</p>
-                    <p class="text-xs text-stone-500 font-medium truncate">${subtitle}</p>
+        <div class="min-h-screen flex flex-col bg-stone-100 md:pb-0 pb-24">
+            <header class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-stone-200/90 shadow-sm">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 lg:py-4 flex flex-wrap items-center gap-3 lg:gap-4">
+                    <div class="flex items-center gap-3 min-w-0 flex-1 md:flex-none">
+                        <div class="w-11 h-11 shrink-0 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-lg font-black">C</div>
+                        <div class="min-w-0">
+                            <p class="font-black text-stone-900 leading-tight truncate text-lg">${escapeHtml(title)}</p>
+                            <p class="text-sm text-stone-500 font-medium truncate">${subtitle}</p>
+                        </div>
+                    </div>
+                    <div class="hidden md:flex items-center gap-1 p-1 rounded-xl bg-stone-100/90 border border-stone-200/80 ml-auto">
+                        <button type="button" data-tab="search" class="${tabSearchDesktop}">Buscar</button>
+                        <button type="button" data-tab="account" class="${tabAccountDesktop}">Cuenta</button>
+                    </div>
+                    ${state.guest ? '<span class="text-xs font-bold text-amber-800 bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200/60 shrink-0">Invitado</span>' : ''}
                 </div>
-                ${state.guest ? '<span class="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-lg">Invitado</span>' : ''}
             </header>
-            <main class="flex-1">${searchPanel}</main>
-            <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-stone-200 flex justify-around py-2 safe-area-pb shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-                <button type="button" data-tab="search" class="flex flex-col items-center gap-1 px-6 py-2 rounded-xl ${state.mainTab === 'search' ? 'text-teal-700 font-extrabold' : 'text-stone-500 font-semibold'}">
-                    <span class="text-xl">🔍</span><span class="text-xs">Buscar</span>
+            <main class="flex-1 w-full">${searchPanel}</main>
+            <nav class="md:hidden fixed bottom-0 inset-x-0 z-20 bg-white/98 backdrop-blur border-t border-stone-200 flex justify-around py-2.5 safe-area-pb shadow-[0_-8px_30px_rgba(0,0,0,0.06)]">
+                <button type="button" data-tab="search" class="flex flex-col items-center gap-0.5 px-8 py-1.5 rounded-xl ${state.mainTab === 'search' ? 'text-teal-700 font-extrabold' : 'text-stone-500 font-semibold'}">
+                    <span class="text-xl leading-none">🔍</span><span class="text-[11px] uppercase tracking-wide">Buscar</span>
                 </button>
-                <button type="button" data-tab="account" class="flex flex-col items-center gap-1 px-6 py-2 rounded-xl ${state.mainTab === 'account' ? 'text-teal-700 font-extrabold' : 'text-stone-500 font-semibold'}">
-                    <span class="text-xl">👤</span><span class="text-xs">Cuenta</span>
+                <button type="button" data-tab="account" class="flex flex-col items-center gap-0.5 px-8 py-1.5 rounded-xl ${state.mainTab === 'account' ? 'text-teal-700 font-extrabold' : 'text-stone-500 font-semibold'}">
+                    <span class="text-xl leading-none">👤</span><span class="text-[11px] uppercase tracking-wide">Cuenta</span>
                 </button>
             </nav>
         </div>
