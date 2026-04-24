@@ -585,9 +585,12 @@ o `"removed"`.
 
 ## Aplicación web (misma instalación Laravel)
 
-- **Portada:** `GET /` — enlace a la app web.
-- **App web (similar al flujo móvil):** `GET /app` — login, registro, modo invitado y búsqueda de servicios contra **`/api/v1`** (token en `localStorage`).
+- **`GET /`** redige a **`/app`** (app web principal).
+- **`GET /app`** — login, registro, modo invitado y búsqueda contra **`/api/v1`** (token en `localStorage`).
+- **`GET /portada`** — página informativa con enlace a `/app` y la URL de la API.
 - Requiere `npm run build` (o `npm run dev`) para compilar `resources/js/chamba-app.js` y los estilos.
+
+Si en producción sigues viendo la plantilla “Let’s get started” de Laravel, el servidor **no tiene desplegado** este código (o hay `php artisan route:cache` antiguo): sube `routes/web.php`, `resources/views/chamba/`, `resources/js/chamba-app.js`, `vite.config.js` y la carpeta `public/build/` generada, luego `php artisan optimize:clear`.
 
 ## Arranque rápido (desarrollo)
 
