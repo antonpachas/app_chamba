@@ -512,6 +512,7 @@ BEGIN
     COALESCE(pp.business_name, u.full_name) AS provider_name,
     pp.whatsapp,
     pp.contact_phone,
+    pp.address_text,
     pp.avg_rating,
     pp.total_reviews,
     d.id AS district_id,
@@ -543,10 +544,10 @@ BEGIN
       OR COALESCE(pp.business_name, u.full_name) LIKE CONCAT('%', p_keyword, '%')
     )
     AND (
-      p_user_lat IS NULL
-      OR p_user_lng IS NULL
-      OR p_radius_km IS NULL
-      OR fn_distance_km(p_user_lat, p_user_lng, d.latitude, d.longitude) <= p_radius_km
+      CASE
+        WHEN p_user_lat IS NULL OR p_user_lng IS NULL OR p_radius_km IS NULL THEN TRUE
+        ELSE fn_distance_km(p_user_lat, p_user_lng, d.latitude, d.longitude) <= p_radius_km
+      END
     )
   ORDER BY
     CASE

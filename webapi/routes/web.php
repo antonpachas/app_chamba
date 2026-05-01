@@ -2,9 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 
-/** Portada informativa (opcional): …/public/portada */
-Route::view('/portada', 'chamba.landing')->name('chamba.landing');
+/** Portada inicial (visitantes): buscador, categorías, CTA → /app */
+Route::view('/', 'chamba.home')->name('chamba.home');
 
-/** App web Chamba (misma API). La raíz redirige aquí para quien entra en …/public/ */
-Route::redirect('/', '/app');
+/** Redirección desde la portada anterior */
+Route::redirect('/portada', '/', 302);
+
+/** App web Chamba (misma API): acceso / sesión tras la portada */
 Route::view('/app', 'chamba.app')->name('chamba.app');

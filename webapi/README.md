@@ -343,7 +343,7 @@ Si el usuario es cliente o el proveedor no tiene perfil cargado en relación, `p
 
 - `service_id`, `title`, `description`, `base_price`, `price_type`
 - `category_id`, `category_name`
-- `provider_profile_id`, `provider_name`, `whatsapp`, `contact_phone`, `avg_rating`, `total_reviews`
+- `provider_profile_id`, `provider_name`, `whatsapp`, `contact_phone`, `address_text`, `avg_rating`, `total_reviews`
 - `district_id`, `district_name`, `province_id`, `province_name`, `department_id`, `department_name`
 - `provider_latitude`, `provider_longitude`, `distance_km`
 
@@ -362,6 +362,7 @@ Si el usuario es cliente o el proveedor no tiene perfil cargado en relación, `p
       "provider_name": "Llantera Rápida",
       "whatsapp": "51999...",
       "contact_phone": "999...",
+      "address_text": "Av. Ejemplo 123",
       "avg_rating": "5.00",
       "total_reviews": 1,
       "district_id": 5,
