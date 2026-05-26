@@ -60,6 +60,20 @@ return [
             'report' => false,
         ],
 
+        'chamba_ftp' => [
+            'driver' => 'ftp',
+            'host' => env('CHAMBA_FTP_HOST'),
+            'username' => env('CHAMBA_FTP_USERNAME'),
+            'password' => env('CHAMBA_FTP_PASSWORD'),
+            'port' => (int) env('CHAMBA_FTP_PORT', 21),
+            'root' => env('CHAMBA_FTP_ROOT', '/'),
+            'passive' => env('CHAMBA_FTP_PASSIVE', true),
+            'ssl' => env('CHAMBA_FTP_SSL', false),
+            'timeout' => (int) env('CHAMBA_FTP_TIMEOUT', 20),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

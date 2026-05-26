@@ -4,8 +4,109 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../**/*.vue';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans:
+        'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Playfair Display', Georgia, serif;
+
+    /* Marca primaria (azul Chamba) */
+    --color-chamba-50: #eef4ff;
+    --color-chamba-100: #dce9ff;
+    --color-chamba-200: #b6cffa;
+    --color-chamba-300: #87aef0;
+    --color-chamba-400: #4f80de;
+    --color-chamba-500: #2660c8;
+    --color-chamba-600: #08458b;
+    --color-chamba-700: #003874;
+    --color-chamba-800: #002b59;
+    --color-chamba-900: #001b3d;
+
+    /* Acentos vibrantes */
+    --color-chamba-coral: #ff5e7e;
+    --color-chamba-amber: #ff9c2b;
+    --color-chamba-orange: #ff7a2b;
+    --color-chamba-violet: #7c3aed;
+    --color-chamba-teal: #0ea5e9;
+    --color-chamba-mint: #10b981;
+
+    /* Fondos de marca */
+    --color-chamba-bg: #f8f9ff;
+    --color-chamba-bg-soft: #eef2ff;
 }
+
+/* Gradientes reutilizables */
+.bg-grad-hero {
+    background-image:
+        radial-gradient(1200px 600px at 100% 0%, rgba(124, 58, 237, 0.18), transparent 60%),
+        radial-gradient(900px 500px at 0% 100%, rgba(255, 122, 43, 0.18), transparent 60%),
+        linear-gradient(135deg, #003874 0%, #1d4ed8 45%, #0ea5e9 100%);
+}
+.bg-grad-brand {
+    background-image: linear-gradient(135deg, #003874 0%, #1d4ed8 45%, #0ea5e9 100%);
+}
+.bg-grad-warm {
+    background-image: linear-gradient(135deg, #ff7a2b 0%, #ff5e7e 100%);
+}
+.bg-grad-violet {
+    background-image: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #ec4899 100%);
+}
+.bg-grad-emerald {
+    background-image: linear-gradient(135deg, #059669 0%, #10b981 60%, #34d399 100%);
+}
+.bg-grad-card-amber {
+    background-image: linear-gradient(180deg, #fffaf0 0%, #fff5e1 100%);
+}
+.bg-grad-card-emerald {
+    background-image: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+}
+.bg-grad-card-blue {
+    background-image: linear-gradient(180deg, #eef4ff 0%, #dce9ff 100%);
+}
+.bg-grad-card-violet {
+    background-image: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%);
+}
+.bg-grad-card-coral {
+    background-image: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%);
+}
+
+/* Tarjeta con halo de color suave */
+.glow-blue { box-shadow: 0 16px 40px -16px rgba(0, 56, 116, 0.25); }
+.glow-coral { box-shadow: 0 16px 40px -16px rgba(255, 94, 126, 0.30); }
+.glow-amber { box-shadow: 0 16px 40px -16px rgba(255, 156, 43, 0.30); }
+.glow-emerald { box-shadow: 0 16px 40px -16px rgba(16, 185, 129, 0.30); }
+
+/* Botón premium con gradient */
+.btn-grad-primary {
+    background-image: linear-gradient(135deg, #003874 0%, #1d4ed8 100%);
+    color: #fff;
+    box-shadow: 0 10px 24px -10px rgba(0, 56, 116, 0.55);
+    transition: all 200ms ease;
+}
+.btn-grad-primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.btn-grad-warm {
+    background-image: linear-gradient(135deg, #ff7a2b 0%, #ff5e7e 100%);
+    color: #fff;
+    box-shadow: 0 10px 24px -10px rgba(255, 94, 126, 0.55);
+    transition: all 200ms ease;
+}
+.btn-grad-warm:hover { filter: brightness(1.06); transform: translateY(-1px); }
+
+/* Texto con gradient */
+.text-grad-brand {
+    background-image: linear-gradient(135deg, #003874 0%, #1d4ed8 50%, #0ea5e9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.text-grad-warm {
+    background-image: linear-gradient(135deg, #ff7a2b 0%, #ff5e7e 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Pequeñas utilidades */
+.no-underline { text-decoration: none; }

@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Auth\LoginRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
+use App\Services\SubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 final class LoginController extends Controller
 {
+    public function __construct(
+        private readonly SubscriptionService $subscriptions,
+    ) {}
+
     public function store(LoginRequest $request): JsonResponse
     {
         $credentials = $request->validated();
@@ -26,6 +31,8 @@ final class LoginController extends Controller
                 'email' => ['Credenciales incorrectas.'],
             ]);
         }
+
+        $this->subscriptions->ensureSubscription($user);
 
         $user->load('providerProfile');
         $token = $user->createToken('mobile')->plainTextToken;

@@ -8,12 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ServiceImage extends Model
 {
     protected $fillable = [
-        'service_id',
-        'image_url',
+        'provider_service_id',
+        'path',
+        'sort_order',
     ];
 
-    public function providerService(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(ProviderService::class, 'service_id');
+        return $this->belongsTo(ProviderService::class, 'provider_service_id');
     }
 }

@@ -15,11 +15,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // En producción los datos base (categorías, distritos, planes y settings)
+        // se siembran desde las migraciones. Este seeder queda como punto de extensión
+        // para futuros datos opcionales sin tocar las migraciones.
     }
 }

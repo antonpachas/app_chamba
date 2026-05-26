@@ -10,10 +10,19 @@ class ExampleTest extends TestCase
     /**
      * A basic test example.
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_root_redirects_to_spa(): void
     {
-        $response = $this->get('/');
+        $this->get('/')->assertRedirect('/app');
+    }
 
-        $response->assertStatus(200);
+    public function test_spa_shell_renders(): void
+    {
+        $this->get('/app')->assertStatus(200)->assertSee('chamba-root', false);
+    }
+
+    public function test_spa_catch_all_renders_for_inner_routes(): void
+    {
+        $this->get('/app/buscar')->assertStatus(200);
+        $this->get('/app/acceder')->assertStatus(200);
     }
 }

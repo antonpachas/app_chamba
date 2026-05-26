@@ -1,0 +1,29 @@
+<IfModule mod_rewrite.c>
+    Options -MultiViews -Indexes
+    RewriteEngine On
+    RewriteBase /v1/chamba/
+
+    # Header de autorización (Bearer/Basic) que algunos hostings descartan.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Si la URL ya viene dentro de public/, no la reescribas.
+    RewriteRule ^public/ - [L]
+
+    # Si el archivo físico existe en public/ (CSS, JS, imágenes), sírvelo desde ahí.
+    RewriteCond %{DOCUMENT_ROOT}/v1/chamba/public/$1 -f
+    RewriteRule ^(.+)$ public/$1 [L]
+
+    # Cualquier otra cosa (rutas Laravel + SPA) va al front controller.
+    RewriteRule ^(.*)$ public/index.php [L]
+</IfModule>
+
+DirectoryIndex public/index.php
+
+# Bloquea archivos sensibles si quedaran en raíz.
+<FilesMatch "^(\.env|\.env\..+|composer\.json|composer\.lock|artisan|deploy\.sh|DEPLOY\.md|package\.json|package-lock\.json|vite\.config\.js|phpunit\.xml)$">
+    Require all denied
+</FilesMatch>
+
+# Bloquea acceso directo a carpetas privadas (sin chocar con /app, ruta del SPA).
+RedirectMatch 403 ^/v1/chamba/(bootstrap|config|database|resources|routes|storage|tests|vendor)(/|$)

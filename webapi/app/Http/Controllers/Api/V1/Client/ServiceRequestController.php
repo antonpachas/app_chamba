@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1\Client;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Client\StoreServiceRequestRequest;
+use App\Models\ProviderService;
 use App\Models\ServiceRequest;
 use App\Services\StoredProcedureService;
+use App\Services\SubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,17 +15,41 @@ final class ServiceRequestController extends Controller
 {
     public function __construct(
         private readonly StoredProcedureService $storedProcedures,
+        private readonly SubscriptionService $subscriptions,
     ) {}
 
     public function store(StoreServiceRequestRequest $request): JsonResponse
     {
         $data = $request->validated();
 
+        $service = ProviderService::with('providerProfile.user')->findOrFail((int) $data['provider_service_id']);
+        $providerUser = $service->providerProfile?->user;
+
+        if (! $providerUser) {
+            return response()->json(['message' => 'Servicio no disponible.'], 404);
+        }
+
+        if (! $this->subscriptions->providerCanReceiveContact($providerUser)) {
+            return response()->json([
+                'message' => 'Este proveedor alcanzó el cupo gratuito de contactos del mes. Pídele que actualice su plan o intenta con otro profesional.',
+                'code' => 'provider_free_limit_reached',
+            ], 422);
+        }
+
         $id = $this->storedProcedures->createServiceRequest(
             (int) $request->user()->id,
             (int) $data['provider_service_id'],
             $data['message'] ?? null,
             $data['contact_channel'],
+        );
+
+        $this->subscriptions->recordContact(
+            $request->user(),
+            (int) $service->provider_profile_id,
+            (int) $providerUser->id,
+            (int) $service->id,
+            (int) $id,
+            'solicitud',
         );
 
         return response()->json([

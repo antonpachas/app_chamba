@@ -13,6 +13,11 @@ class ProviderServiceResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $media = app(\App\Services\MediaStorageService::class);
+        $images = $this->relationLoaded('images')
+            ? $this->images
+            : $this->images()->get();
+
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -21,6 +26,12 @@ class ProviderServiceResource extends JsonResource
             'price_type' => $this->price_type,
             'is_active' => (bool) $this->is_active,
             'category' => CategoryResource::make($this->whenLoaded('category')),
+            'images' => $images->map(fn ($i) => [
+                'id' => $i->id,
+                'url' => $media->publicUrl($i->path),
+                'sort_order' => $i->sort_order,
+            ])->values(),
+            'cover_image_url' => $images->isNotEmpty() ? $media->publicUrl($images->first()->path) : null,
         ];
     }
 }

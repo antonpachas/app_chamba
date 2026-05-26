@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\MediaStorageService;
+use App\Services\SystemSettingsService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\URL;
@@ -14,7 +16,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(SystemSettingsService::class);
+        $this->app->singleton(MediaStorageService::class);
     }
 
     /**
@@ -28,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
                 'token' => $token,
                 'email' => $email,
             ]);
-            $path = '/app?'.$query;
+            $path = '/app/restablecer?'.$query;
             $url = URL::to($path);
 
             return (new MailMessage)

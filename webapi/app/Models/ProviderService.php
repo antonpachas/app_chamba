@@ -37,6 +37,11 @@ class ProviderService extends Model
 
     public function serviceImages(): HasMany
     {
-        return $this->hasMany(ServiceImage::class, 'service_id');
+        return $this->hasMany(ServiceImage::class, 'provider_service_id');
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ServiceImage::class, 'provider_service_id')->orderBy('sort_order');
     }
 }

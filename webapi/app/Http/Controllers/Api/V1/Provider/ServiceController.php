@@ -28,7 +28,7 @@ final class ServiceController extends Controller
         }
 
         $services = ProviderService::query()
-            ->with('category')
+            ->with(['category', 'images'])
             ->where('provider_profile_id', $profile->id)
             ->orderByDesc('id')
             ->paginate(20);
