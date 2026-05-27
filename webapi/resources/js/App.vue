@@ -1,12 +1,37 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useProviderNotificationsStore } from '@/stores/providerNotifications';
 import AppHeader from '@/components/layout/AppHeader.vue';
 import AppFooter from '@/components/layout/AppFooter.vue';
 import BottomNav from '@/components/layout/BottomNav.vue';
 
 const route = useRoute();
+const auth = useAuthStore();
+const notifications = useProviderNotificationsStore();
 const isPlain = computed(() => route.meta.layout === 'plain');
+
+function syncNotificationPolling() {
+    if (auth.isAuthenticated && auth.isProveedor) {
+        notifications.startPolling();
+    } else {
+        notifications.stopPolling();
+    }
+}
+
+onMounted(() => {
+    syncNotificationPolling();
+});
+
+onUnmounted(() => {
+    notifications.stopPolling();
+});
+
+watch(
+    () => [auth.isAuthenticated, auth.isProveedor],
+    () => syncNotificationPolling(),
+);
 </script>
 
 <template>

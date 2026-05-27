@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\ContactEvent;
+use App\Models\ProviderService;
+use App\Models\ServiceRequest;
 use App\Models\SubscriptionPayment;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
@@ -13,6 +15,83 @@ use RuntimeException;
 
 class SubscriptionService
 {
+    public function __construct(
+        private readonly LedgerService $ledger,
+    ) {}
+
+    public function userShowsAds(User $user): bool
+    {
+        if ($user->role === 'admin') {
+            return false;
+        }
+
+        $sub = $user->activeSubscription();
+        $features = $sub?->plan?->features ?? [];
+
+        return ! ($features['no_ads'] ?? false);
+    }
+
+    public function clientRequestsThisMonth(User $client): int
+    {
+        return ServiceRequest::query()
+            ->where('client_user_id', $client->id)
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->where('status', '!=', 'cancelado')
+            ->count();
+    }
+
+    public function clientCanCreateRequest(User $client): bool
+    {
+        $sub = $client->activeSubscription();
+        $plan = $sub?->plan;
+        $features = $plan?->features ?? [];
+
+        if ($plan && $plan->isPro() && (bool) chamba_setting('limits.premium_unlimited', true)) {
+            return true;
+        }
+
+        $limit = isset($features['max_requests_per_month']) && $features['max_requests_per_month'] !== null
+            ? (int) $features['max_requests_per_month']
+            : (int) chamba_setting('limits.client_free_requests_per_month', 3);
+
+        return $this->clientRequestsThisMonth($client) < $limit;
+    }
+
+    public function providerRequestsReceivedThisMonth(User $providerUser): int
+    {
+        $profileId = $providerUser->providerProfile?->id;
+        if (! $profileId) {
+            return 0;
+        }
+
+        $serviceIds = ProviderService::query()
+            ->where('provider_profile_id', $profileId)
+            ->pluck('id');
+
+        return ServiceRequest::query()
+            ->whereIn('provider_service_id', $serviceIds)
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->whereNotIn('status', ['cancelado'])
+            ->count();
+    }
+
+    public function providerCanReceiveRequest(User $providerUser): bool
+    {
+        $sub = $providerUser->activeSubscription();
+        $plan = $sub?->plan;
+
+        if ($plan && $plan->isPro() && (bool) chamba_setting('limits.premium_unlimited', true)) {
+            return true;
+        }
+
+        $features = $plan?->features ?? [];
+        $limit = isset($features['max_requests_received_per_month']) && $features['max_requests_received_per_month'] !== null
+            ? (int) $features['max_requests_received_per_month']
+            : (int) chamba_setting('limits.provider_free_requests_per_month', 2);
+
+        return $this->providerRequestsReceivedThisMonth($providerUser) < $limit;
+    }
+
     /**
      * Devuelve la suscripción activa o la crea como Free según el rol.
      */
@@ -166,7 +245,10 @@ class SubscriptionService
                 'cancelled_at' => null,
             ]);
 
-            return $payment->refresh();
+            $payment = $payment->refresh();
+            $this->ledger->recordSubscriptionIncome($payment, $admin);
+
+            return $payment;
         });
     }
 
@@ -254,19 +336,7 @@ class SubscriptionService
      */
     public function providerCanReceiveContact(User $providerUser): bool
     {
-        $sub = $providerUser->activeSubscription();
-        $plan = $sub?->plan;
-
-        if ($plan && $plan->isPro()) {
-            return true;
-        }
-
-        $features = $plan?->features ?? [];
-        $limit = isset($features['contacts_per_month']) && $features['contacts_per_month'] !== null
-            ? (int) $features['contacts_per_month']
-            : (int) config('chamba.subscriptions.provider.free_contacts_per_month', 3);
-
-        return $this->providerContactsThisMonth($providerUser) < $limit;
+        return $this->providerCanReceiveRequest($providerUser);
     }
 
     public function recordContact(User $clientUser, int $providerProfileId, int $providerUserId, ?int $serviceId = null, ?int $requestId = null, string $kind = 'contacto'): ContactEvent

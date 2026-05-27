@@ -23,6 +23,8 @@ class UpdateProviderServiceRequest extends FormRequest
             'description' => ['required', 'string'],
             'base_price' => ['nullable', 'numeric', 'min:0'],
             'price_type' => ['required', Rule::in(['fijo', 'desde', 'cotizar'])],
+            'location_ids' => ['nullable', 'array'],
+            'location_ids.*' => ['integer', 'exists:provider_locations,id'],
         ];
     }
 }

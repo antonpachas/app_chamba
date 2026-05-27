@@ -5,8 +5,11 @@ import StatusPill from '@/components/common/StatusPill.vue';
 import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import ListingPreviewModal from '@/components/listing/ListingPreviewModal.vue';
 
 const store = useClientRequestsStore();
+const previewListingId = ref(null);
+const previewOpen = ref(false);
 const busyId = ref(null);
 const payOpenId = ref(null);
 const payForm = ref({ payment_method: 'yape', payment_reference: '', notes: '', proof: null });
@@ -84,6 +87,12 @@ function openDispute(paymentId) {
     disputeReason.value = '';
 }
 
+function openListingPreview(serviceId) {
+    if (!serviceId) return;
+    previewListingId.value = Number(serviceId);
+    previewOpen.value = true;
+}
+
 async function submitDispute(paymentId) {
     if ((disputeReason.value || '').trim().length < 10) {
         localError.value = 'Describe el problema con al menos 10 caracteres.';
@@ -128,7 +137,15 @@ async function submitDispute(paymentId) {
                         <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">
                             #{{ r.id }} · {{ r.service?.category?.name || '—' }}
                         </p>
-                        <h2 class="text-lg font-bold text-[#0b1c30] truncate">{{ r.service?.title }}</h2>
+                        <h2 class="text-lg font-bold text-[#0b1c30] truncate">
+                            <button
+                                v-if="r.service?.id"
+                                type="button"
+                                class="text-left hover:text-[#003874] hover:underline bg-transparent border-0 p-0 cursor-pointer font-bold"
+                                @click="openListingPreview(r.service.id)"
+                            >{{ r.service.title }}</button>
+                            <span v-else>—</span>
+                        </h2>
                         <p class="text-sm text-slate-600 mt-0.5">
                             <strong>{{ r.provider?.name }}</strong>
                         </p>
@@ -177,7 +194,7 @@ async function submitDispute(paymentId) {
 
                 <div v-if="r.latest_quote?.status === 'aceptada' && !r.payment" class="rounded-xl border border-amber-200 bg-amber-50 p-4 mb-4">
                     <p class="text-sm text-amber-900 mb-3">
-                        Para asegurar el trabajo, paga el monto cotizado a Chamba. Cuando confirmes que el servicio terminó,
+                        Para asegurar el trabajo, paga el monto cotizado a Busca PE. Cuando confirmes que el servicio terminó,
                         liberamos el dinero al proveedor (menos comisión).
                     </p>
                     <AppButton variant="secondary" size="sm" @click="openPay(r.id)">
@@ -191,7 +208,7 @@ async function submitDispute(paymentId) {
                     class="rounded-xl border border-slate-200 bg-white p-4 mb-4 space-y-3"
                 >
                     <p class="text-sm text-slate-700">
-                        Paga vía Yape/Plin/Transferencia a Chamba:
+                        Paga vía Yape/Plin/Transferencia a Busca PE:
                         <strong>{{ store.platformPayoutInfo?.yape || '999999999' }}</strong>
                         ({{ store.platformPayoutInfo?.bank_name }} · {{ store.platformPayoutInfo?.bank_account }} ·
                         {{ store.platformPayoutInfo?.bank_holder }}).
@@ -344,6 +361,14 @@ async function submitDispute(paymentId) {
                 </details>
 
                 <div class="flex flex-wrap gap-2 text-sm">
+                    <AppButton
+                        v-if="r.service?.id"
+                        variant="outline"
+                        size="sm"
+                        @click="openListingPreview(r.service.id)"
+                    >
+                        Ver anuncio
+                    </AppButton>
                     <a
                         v-if="r.provider?.whatsapp"
                         :href="`https://wa.me/${String(r.provider.whatsapp).replace(/\\D/g,'')}`"
@@ -358,5 +383,11 @@ async function submitDispute(paymentId) {
                 </div>
             </article>
         </div>
+
+        <ListingPreviewModal
+            :open="previewOpen"
+            :listing-id="previewListingId"
+            @close="previewOpen = false"
+        />
     </div>
 </template>

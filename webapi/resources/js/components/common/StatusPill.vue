@@ -5,6 +5,7 @@ const props = defineProps({ status: { type: String, default: '' } });
 
 const map = {
     nuevo: { label: 'Nueva', cls: 'bg-blue-100 text-blue-800' },
+    visto: { label: 'Visto', cls: 'bg-violet-100 text-violet-800' },
     contactado: { label: 'Contactado', cls: 'bg-violet-100 text-violet-800' },
     cotizado: { label: 'Cotizado', cls: 'bg-amber-100 text-amber-900' },
     aceptado: { label: 'Cotización aceptada', cls: 'bg-emerald-100 text-emerald-900' },

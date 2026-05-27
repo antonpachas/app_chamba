@@ -34,7 +34,7 @@ const pendingPay = computed(() => requestsStore.items.filter((r) => r.status ===
                     <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1">
                         Hola, {{ profileStore.profile?.business_name || profileStore.profile?.user?.full_name || 'Proveedor' }}
                     </h1>
-                    <p class="text-white/80 mt-1">Resumen de tu actividad en Chamba.</p>
+                    <p class="text-white/80 mt-1">Resumen de tu actividad en Busca PE.</p>
                 </div>
                 <RouterLink
                     v-if="!profileStore.profile"

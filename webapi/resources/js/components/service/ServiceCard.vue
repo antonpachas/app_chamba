@@ -1,13 +1,24 @@
 <script setup>
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
+import { providerPublicProfileEnabled } from '@/services/features';
 
 const props = defineProps({
     service: { type: Object, required: true },
     featured: { type: Boolean, default: false },
+    showProviderLink: { type: Boolean, default: true },
 });
 
 const id = computed(() => Number(props.service.service_id));
+const providerProfileId = computed(() => {
+    const pid = props.service.provider_profile_id;
+    return pid != null && pid !== '' ? Number(pid) : null;
+});
+
+const showProfileLink = computed(
+    () => props.showProviderLink && providerPublicProfileEnabled() && providerProfileId.value,
+);
+
 const image = computed(() => {
     return props.service.cover_image_url
         || (props.service.images && props.service.images[0])
@@ -41,7 +52,7 @@ const priceFooter = computed(() => {
 
 <template>
     <RouterLink
-        :to="{ name: 'service-detail', params: { id } }"
+        :to="{ name: 'listing-detail', params: { id } }"
         class="group block bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg transition-all no-underline text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#003874] focus-visible:ring-offset-2"
     >
         <div class="relative h-48 bg-slate-200 overflow-hidden">
@@ -79,6 +90,15 @@ const priceFooter = computed(() => {
                 </span>
             </div>
             <p class="text-sm font-semibold text-slate-800 mb-0.5">{{ service.provider_name }}</p>
+            <RouterLink
+                v-if="showProfileLink"
+                :to="{ name: 'provider-public', params: { id: providerProfileId } }"
+                class="inline-flex items-center gap-1 text-xs font-bold text-[#003874] hover:underline mb-2 relative z-10"
+                @click.stop
+            >
+                <span class="material-symbols-outlined text-[14px]">storefront</span>
+                Ver perfil del negocio
+            </RouterLink>
             <div class="flex items-center gap-1 text-slate-500 text-sm mb-4">
                 <span class="material-symbols-outlined text-sm">location_on</span>
                 <span>{{ locationLine || '—' }}</span>

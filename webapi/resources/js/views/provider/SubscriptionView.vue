@@ -69,7 +69,7 @@ function fmtDate(d) {
         <header class="mb-8 rounded-3xl bg-grad-hero text-white p-6 md:p-10 relative overflow-hidden">
             <div class="relative z-10">
                 <p class="text-xs font-bold uppercase tracking-widest text-white/70">Tu plan</p>
-                <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1">Membresía Chamba Pro</h1>
+                <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1">Membresía Busca PE Pro</h1>
                 <p class="text-white/80 mt-1">Más visibilidad, contactos ilimitados y herramientas para crecer.</p>
             </div>
             <div class="pointer-events-none absolute -bottom-20 -right-20 w-72 h-72 bg-[#ff7a2b]/30 rounded-full blur-3xl"></div>

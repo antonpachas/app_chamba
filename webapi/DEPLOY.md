@@ -31,7 +31,7 @@ powershell -ExecutionPolicy Bypass -File build-deploy-zip.ps1
 > - `app/`, `bootstrap/`, `config/`, `database/`, `resources/`, `routes/`
 > - `public/` (con `index.php`, `.htaccess`, `build/`, **sin** scripts `_*.php` viejos)
 > - Esqueleto `storage/` con sus `.gitignore` (la app no arranca sin esto)
-> - `public/_reset.php` y `public/_migrate.php` (scripts de un uso, se borran al final)
+> - `public/_reset.php`, `public/_migrate.php` y `public/_cron.php` (utilitarios; migrador/reset se borran al final; `_cron.php` solo si usas cron por URL)
 > - `composer.json`, `composer.lock`, `artisan`
 
 **Tamaño esperado:** ~8-10 MB · ~6500 archivos.
@@ -102,6 +102,19 @@ Laravel handle() -> HTTP 200
 ```
 
 Si alguno de esos sale en NO o el handle no es 200, hay un problema concreto que se resuelve mirando el log (`storage/logs/laravel-YYYY-MM-DD.log`).
+
+---
+
+## 4b) Configurar cron (anuncios + suscripciones)
+
+Sin esto, los anuncios no se ocultan solos al vencer y las suscripciones Premium no bajan a Free.
+
+**Guía completa (recomendada):** [`docs/GUIA_CRON_CPANEL.md`](../docs/GUIA_CRON_CPANEL.md) — qué hace cada tarea, paso a paso en cPanel, pruebas y problemas frecuentes.
+
+Resumen rápido:
+
+1. Prueba manual: `https://jaapsystem.com/v1/chamba/public/_cron.php?token=<TU_TOKEN>&task=all`
+2. En **cPanel → Cron Jobs**, crea las dos tareas con `php artisan` (ver guía) o una sola con `curl` a `_cron.php`.
 
 ---
 
@@ -193,6 +206,7 @@ Borrá del servidor (file manager):
 ```
 public/_migrate.php
 public/_reset.php
+public/_cron.php
 public/_fix_htaccess.php
 public/_diag.php
 public/_ftp_test.php
@@ -290,14 +304,16 @@ CHAMBA_SETUP_TOKEN=
 
 ---
 
-## Cron (opcional, recomendado)
+## Cron (recomendado en producción)
 
-Para que las suscripciones expiren y los escrows se liberen automáticamente, en cPanel → **Cron Jobs**:
+Documentación detallada: **[`docs/GUIA_CRON_CPANEL.md`](../docs/GUIA_CRON_CPANEL.md)** (para qué sirve, cPanel paso a paso, URL `_cron.php`, fallos frecuentes).
 
-```
-0 3 * * *   cd /home/jaapsyst/public_html/v1/chamba && php artisan chamba:expire-subscriptions >> storage/logs/cron.log 2>&1
-30 3 * * *  cd /home/jaapsyst/public_html/v1/chamba && php artisan chamba:escrow:auto-release >> storage/logs/cron.log 2>&1
-```
+| Comando | Qué hace |
+|---------|----------|
+| `busca:listings:expire` | Oculta anuncios vencidos (ej. 5 días) |
+| `chamba:expire-subscriptions` | Premium/trial vencido → plan Free |
+
+Prueba manual: `https://jaapsystem.com/v1/chamba/public/_cron.php?token=<TU_TOKEN>&task=all`
 
 ---
 

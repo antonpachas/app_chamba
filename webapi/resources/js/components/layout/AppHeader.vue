@@ -4,8 +4,10 @@ import { RouterLink, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { escrowEnabled } from '@/services/features';
 import { asset } from '@/utils/asset';
+import { useProviderNotificationsStore } from '@/stores/providerNotifications';
 
 const auth = useAuthStore();
+const notifications = useProviderNotificationsStore();
 const route = useRoute();
 const menuOpen = ref(false);
 const escrow = escrowEnabled();
@@ -34,7 +36,7 @@ const navLinks = computed(() => {
     if (auth.isProveedor) {
         return [
             { name: 'provider-dashboard', label: 'Panel' },
-            { name: 'provider-services', label: 'Mis servicios' },
+            { name: 'provider-listings', label: 'Mis anuncios' },
             { name: 'provider-locations', label: 'Mis sedes' },
             { name: 'provider-requests', label: 'Solicitudes' },
             { name: 'provider-subscription', label: 'Mi plan' },
@@ -43,14 +45,14 @@ const navLinks = computed(() => {
     }
     if (auth.isCliente) {
         return [
-            { name: 'search', label: 'Buscar servicios' },
+            { name: 'search', label: 'Buscar anuncios' },
             { name: 'client-requests', label: 'Mis solicitudes' },
             { name: 'client-history', label: 'Historial' },
             { name: 'client-favorites', label: 'Favoritos' },
         ];
     }
     return [
-        { name: 'search', label: 'Buscar servicios' },
+        { name: 'search', label: 'Buscar anuncios' },
         { name: 'home', label: 'Cómo funciona', hash: '#como-funciona' },
     ];
 });
@@ -61,15 +63,15 @@ const navLinks = computed(() => {
         <nav class="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4 justify-between">
             <div class="flex items-center gap-6 lg:gap-10 min-w-0">
                 <RouterLink :to="{ name: 'home' }" class="flex items-center gap-2 shrink-0 no-underline">
-                    <img :src="asset('img/chamba-icon.png')" alt="" class="w-10 h-10 rounded-xl shadow-md shadow-[#003874]/15 ring-1 ring-slate-200" />
-                    <span class="text-2xl font-black tracking-tighter text-grad-brand">Chamba</span>
+                    <img :src="asset('img/chamba-icon.png')" alt="Busca PE" class="w-10 h-10 rounded-xl shadow-md shadow-[#003874]/15 ring-1 ring-slate-200" />
+                    <span class="text-2xl font-black tracking-tighter text-grad-brand">Busca PE</span>
                 </RouterLink>
                 <div class="hidden md:flex items-center gap-6">
                     <RouterLink
                         v-for="link in navLinks"
                         :key="link.name + (link.hash || '')"
                         :to="{ name: link.name, hash: link.hash }"
-                        class="text-sm font-medium tracking-tight pb-1 border-b-2 transition no-underline"
+                        class="text-sm font-medium tracking-tight pb-1 border-b-2 transition no-underline relative"
                         :class="
                             route.name === link.name
                                 ? 'text-[#003874] border-[#003874]'
@@ -77,6 +79,10 @@ const navLinks = computed(() => {
                         "
                     >
                         {{ link.label }}
+                        <span
+                            v-if="link.name === 'provider-requests' && notifications.unreadCount > 0"
+                            class="absolute -top-1 -right-3 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rose-600 text-white text-[10px] font-black flex items-center justify-center"
+                        >{{ notifications.unreadCount > 9 ? '9+' : notifications.unreadCount }}</span>
                     </RouterLink>
                 </div>
             </div>

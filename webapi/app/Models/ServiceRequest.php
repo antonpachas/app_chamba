@@ -9,11 +9,18 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ServiceRequest extends Model
 {
-    /** Estados completos del ciclo escrow + flujo libre. Útil para validaciones server-side. */
+    /** Estados Busca PE (solo contacto, sin custodia). */
     public const STATUSES = [
-        'nuevo','contactado','cotizado','aceptado',
-        'pagado_pendiente','en_custodia','en_progreso',
-        'entregado','terminado','confirmado','cancelado','disputado','reembolsado','cerrado',
+        'nuevo',
+        'visto',
+        'cerrado',
+        'cancelado',
+    ];
+
+    /** @deprecated Estados legacy del modo custodia */
+    public const LEGACY_STATUSES = [
+        'contactado', 'cotizado', 'aceptado', 'pagado_pendiente', 'en_custodia',
+        'en_progreso', 'entregado', 'terminado', 'confirmado', 'disputado', 'reembolsado',
     ];
 
     protected $fillable = [

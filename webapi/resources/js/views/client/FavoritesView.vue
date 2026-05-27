@@ -18,7 +18,7 @@ onMounted(() => favs.load());
         <p v-if="favs.loading" class="text-slate-500">Cargando…</p>
         <div v-else-if="!favs.items.length" class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
             Aún no guardaste favoritos.
-            <RouterLink :to="{ name: 'search' }" class="text-[#003874] font-bold hover:underline ml-1">Buscar servicios</RouterLink>
+            <RouterLink :to="{ name: 'search' }" class="text-[#003874] font-bold hover:underline ml-1">Buscar anuncios</RouterLink>
         </div>
         <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <article v-for="f in favs.items" :key="f.provider_profile_id" class="rounded-2xl border border-slate-200 bg-white p-5">

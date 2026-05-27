@@ -14,6 +14,7 @@ class ProviderLocation extends Model
         'department_id',
         'province_id',
         'district_id',
+        'ubigeo',
         'latitude',
         'longitude',
         'is_primary',

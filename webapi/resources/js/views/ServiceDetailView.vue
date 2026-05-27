@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth';
 import { api } from '@/services/api';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import { providerPublicProfileEnabled } from '@/services/features';
 
 const route = useRoute();
 const router = useRouter();
@@ -68,27 +69,45 @@ const telUrl = computed(() => {
     return d ? `tel:${d}` : null;
 });
 
-onMounted(async () => {
+const providerProfileId = computed(() => {
+    const pid = service.value?.provider_profile_id;
+    return pid != null && pid !== '' ? Number(pid) : null;
+});
+
+const showProviderProfileLink = computed(
+    () => providerPublicProfileEnabled() && providerProfileId.value != null,
+);
+
+async function loadListing() {
     loading.value = true;
     error.value = '';
-    const cached = search.findById(id.value);
-    if (cached) {
-        service.value = cached;
-        loading.value = false;
-        return;
-    }
+    service.value = null;
     try {
-        const res = await api.get('/services/search');
-        const list = res.data || [];
-        const found = list.find((row) => Number(row.service_id) === id.value);
-        if (found) service.value = found;
-        else error.value = 'No encontramos este servicio.';
+        const res = await api.get(`/listings/${id.value}`, { auth: auth.isAuthenticated });
+        if (res.data) {
+            service.value = res.data;
+            return;
+        }
     } catch (e) {
-        error.value = e.message || 'No se pudo cargar el servicio.';
+        if (e.status && e.status !== 404) {
+            error.value = e.message || 'No se pudo cargar el anuncio.';
+            return;
+        }
     } finally {
         loading.value = false;
     }
-});
+    const cached = search.findById(id.value);
+    if (cached) {
+        service.value = cached;
+        error.value = '';
+        return;
+    }
+    if (!error.value) {
+        error.value = 'No encontramos este anuncio.';
+    }
+}
+
+onMounted(loadListing);
 
 async function submitRequest() {
     if (!auth.isAuthenticated || auth.user?.role !== 'cliente' || !service.value) return;
@@ -160,6 +179,14 @@ function goLogin() {
                     <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">{{ service.category_name }}</p>
                     <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight mt-1">{{ service.title }}</h1>
                     <p class="text-base font-semibold text-slate-700 mt-2">{{ service.provider_name }}</p>
+                    <RouterLink
+                        v-if="showProviderProfileLink"
+                        :to="{ name: 'provider-public', params: { id: providerProfileId } }"
+                        class="inline-flex items-center gap-2 mt-2 text-sm font-bold text-[#003874] hover:underline no-underline"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">storefront</span>
+                        Ver todos los anuncios de este negocio
+                    </RouterLink>
                     <p class="text-sm text-slate-500 mt-1 flex items-center gap-1">
                         <span class="material-symbols-outlined text-base">location_on</span>
                         {{ locationLine || '—' }}

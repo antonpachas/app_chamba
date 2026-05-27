@@ -65,7 +65,7 @@ async function submit() {
                     <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl overflow-hidden shadow-lg shadow-[#003874]/25 ring-1 ring-slate-200">
                         <img :src="asset('img/chamba-icon.png')" alt="" class="h-14 w-14" />
                     </div>
-                    <span class="text-2xl font-black tracking-tight text-grad-brand">Chamba</span>
+                    <span class="text-2xl font-black tracking-tight text-grad-brand">Busca PE</span>
                 </div>
                 <h1 class="text-center font-['Playfair_Display',Georgia,serif] text-[1.85rem] font-semibold text-slate-900 mb-6">
                     Crear cuenta

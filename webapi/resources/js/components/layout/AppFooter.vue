@@ -10,18 +10,18 @@ const year = new Date().getFullYear();
         <div class="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
             <div>
                 <div class="flex items-center gap-2 mb-4">
-                    <img :src="asset('img/chamba-icon.png')" alt="" class="w-9 h-9 rounded-lg shadow-md shadow-[#003874]/15 ring-1 ring-slate-200" />
-                    <span class="text-2xl font-black tracking-tighter text-grad-brand">Chamba</span>
+                    <img :src="asset('img/chamba-icon.png')" alt="Busca PE" class="w-9 h-9 rounded-lg shadow-md shadow-[#003874]/15 ring-1 ring-slate-200" />
+                    <span class="text-2xl font-black tracking-tighter text-grad-brand">Busca PE</span>
                 </div>
                 <p class="text-slate-600 text-sm leading-relaxed">
-                    Talentos locales para tu hogar. Encuentra, compara y paga seguro con custodia.
+                    Directorio con publicidad en Perú. Encuentra negocios cerca de ti o publica tu anuncio.
                 </p>
             </div>
             <div>
                 <h4 class="font-bold text-[#0b1c30] mb-5 uppercase text-xs tracking-widest">Plataforma</h4>
                 <ul class="space-y-3 text-sm text-slate-600">
                     <li>
-                        <RouterLink :to="{ name: 'search' }" class="hover:text-[#003874]">Buscar servicios</RouterLink>
+                        <RouterLink :to="{ name: 'search' }" class="hover:text-[#003874]">Buscar anuncios</RouterLink>
                     </li>
                     <li>
                         <RouterLink :to="{ name: 'home', hash: '#como-funciona' }" class="hover:text-[#003874]">
@@ -53,7 +53,7 @@ const year = new Date().getFullYear();
             </div>
         </div>
         <div class="max-w-7xl mx-auto px-4 md:px-8 mt-12 pt-8 border-t border-slate-200/80 flex flex-col md:flex-row justify-between gap-4 text-xs text-slate-500">
-            <p>© {{ year }} Chamba</p>
+            <p>© {{ year }} Busca PE</p>
             <span>Web app</span>
         </div>
     </footer>

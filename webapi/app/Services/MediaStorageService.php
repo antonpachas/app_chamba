@@ -24,6 +24,7 @@ class MediaStorageService
     public const FOLDER_AVATAR = 'avatars';
     public const FOLDER_SERVICE = 'services';
     public const FOLDER_PAYMENT = 'payments';
+    public const FOLDER_ADS = 'ads';
 
     private const ALLOWED_MIMES = [
         'image/jpeg' => 'jpg',
@@ -51,7 +52,7 @@ class MediaStorageService
      */
     public function storeImage(UploadedFile $file, string $folder, array $opts = []): string
     {
-        if (! in_array($folder, [self::FOLDER_AVATAR, self::FOLDER_SERVICE, self::FOLDER_PAYMENT], true)) {
+        if (! in_array($folder, [self::FOLDER_AVATAR, self::FOLDER_SERVICE, self::FOLDER_PAYMENT, self::FOLDER_ADS], true)) {
             throw new RuntimeException("Carpeta no permitida: {$folder}");
         }
 
@@ -160,7 +161,7 @@ class MediaStorageService
 
         // CDN/HTTP directo del FTP solo para carpetas públicas (avatars, services).
         $base = (string) env('CHAMBA_FTP_PUBLIC_URL', '');
-        if ($base !== '' && in_array($folder, ['avatars', 'services'], true)) {
+        if ($base !== '' && in_array($folder, ['avatars', 'services', 'ads'], true)) {
             return rtrim($base, '/').'/'.ltrim($path, '/');
         }
 
@@ -172,7 +173,7 @@ class MediaStorageService
             );
         }
 
-        if (in_array($folder, ['avatars', 'services'], true) && $name !== '') {
+        if (in_array($folder, ['avatars', 'services', 'ads'], true) && $name !== '') {
             return URL::route('media.'.$folder, ['name' => $name]);
         }
 

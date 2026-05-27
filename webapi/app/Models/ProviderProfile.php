@@ -16,6 +16,7 @@ class ProviderProfile extends Model
         'contact_phone',
         'address_text',
         'district_id',
+        'listing_duration_days_override',
         'is_verified',
         'avg_rating',
         'total_reviews',
@@ -25,6 +26,7 @@ class ProviderProfile extends Model
     {
         return [
             'is_verified' => 'boolean',
+            'listing_duration_days_override' => 'integer',
         ];
     }
 

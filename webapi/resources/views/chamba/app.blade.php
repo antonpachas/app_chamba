@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#003874">
-    <meta name="description" content="Chamba — Encuentra plomeros, electricistas, carpinteros y más. Servicios locales con reputación y precios claros.">
-    <meta name="application-name" content="Chamba">
+    <meta name="description" content="Busca PE — Encuentra negocios y profesionales cerca de ti. Discotecas, tiendas, talleres y más.">
+    <meta name="application-name" content="Busca PE">
 
-    <title>Chamba — Encuentra al experto ideal</title>
+    <title>Busca PE — Negocios cerca de ti</title>
 
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/chamba-icon.png') }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('img/chamba-icon.png') }}">
@@ -15,12 +15,12 @@
     <link rel="manifest" href="{{ route('chamba.manifest') }}">
 
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Chamba">
-    <meta property="og:title" content="Chamba — Encuentra al experto ideal">
-    <meta property="og:description" content="Plomeros, electricistas, carpinteros y más. Servicios locales con reputación y precios claros.">
+    <meta property="og:site_name" content="Busca PE">
+    <meta property="og:title" content="Busca PE — Negocios cerca de ti">
+    <meta property="og:description" content="Directorio de negocios y profesionales en Perú. Busca por ubicación y contacta directo.">
     <meta property="og:image" content="{{ asset('img/chamba-icon.png') }}">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Chamba — Encuentra al experto ideal">
+    <meta name="twitter:title" content="Busca PE — Negocios cerca de ti">
     <meta name="twitter:image" content="{{ asset('img/chamba-icon.png') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,6 +29,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
 
+    <script>
+        /** Base web de Laravel (sin /app). Ej: / o /v1/chamba */
+        window.CHAMBA_WEB_ROOT = @json(rtrim(parse_url(url('/'), PHP_URL_PATH) ?: '/', '/')) || '/';
+        /** Chunks lazy de Vite viven en public/build/ */
+        window.__chambaViteUrl = function (file) {
+            var base = window.CHAMBA_WEB_ROOT || '/';
+            if (!base.endsWith('/')) base += '/';
+            var name = String(file || '').replace(/^\/?build\//, '');
+            return base + 'build/' + name;
+        };
+    </script>
     @vite(['resources/css/app.css', 'resources/js/main.js'])
 
     <style>
@@ -43,6 +54,11 @@
         $chambaFeatures = [
             'escrow' => (bool) chamba_setting('features.escrow', config('chamba.features.escrow')),
             'subscriptions' => (bool) chamba_setting('features.subscriptions', config('chamba.features.subscriptions')),
+        ];
+
+        $chambaPlatform = [
+            'provider_public_profile' => (bool) chamba_setting('providers.public_profile_enabled', true),
+            'provider_show_contact' => (bool) chamba_setting('providers.show_contact_on_public_profile', true),
         ];
 
         $chambaPricing = \Illuminate\Support\Facades\Cache::remember('chamba.pricing.public.v1', 600, function () {
@@ -72,6 +88,7 @@
         window.CHAMBA_APP_URL = @json(url('/app'));
         window.CHAMBA_FEATURES = @json($chambaFeatures);
         window.CHAMBA_PRICING = @json($chambaPricing);
+        window.CHAMBA_PLATFORM = @json($chambaPlatform);
     </script>
 </body>
 </html>

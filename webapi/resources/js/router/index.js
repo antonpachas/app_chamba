@@ -25,14 +25,25 @@ const routes = [
         path: '/buscar',
         name: 'search',
         component: () => import('@/views/SearchView.vue'),
-        meta: { layout: 'default', title: 'Buscar servicios' },
+        meta: { layout: 'default', title: 'Buscar anuncios' },
+    },
+    {
+        path: '/anuncio/:id',
+        name: 'listing-detail',
+        component: () => import('@/views/ServiceDetailView.vue'),
+        props: true,
+        meta: { layout: 'default', title: 'Detalle del anuncio' },
+    },
+    {
+        path: '/negocio/:id',
+        name: 'provider-public',
+        component: () => import('@/views/ProviderPublicProfileView.vue'),
+        props: true,
+        meta: { layout: 'default', title: 'Perfil del negocio' },
     },
     {
         path: '/servicio/:id',
-        name: 'service-detail',
-        component: () => import('@/views/ServiceDetailView.vue'),
-        props: true,
-        meta: { layout: 'default', title: 'Detalle del servicio' },
+        redirect: (to) => ({ name: 'listing-detail', params: { id: to.params.id } }),
     },
     {
         path: '/acceder',
@@ -68,7 +79,7 @@ const routes = [
         path: '/cliente/solicitudes',
         name: 'client-requests',
         component: () => import('@/views/client/RequestsView.vue'),
-        meta: { layout: 'default', requiresAuth: true, role: 'cliente', title: 'Mis solicitudes' },
+        meta: { layout: 'default', requiresAuth: true, role: 'cliente', title: 'Mis contactos' },
     },
     {
         path: '/cliente/favoritos',
@@ -98,7 +109,7 @@ const routes = [
         path: '/proveedor/panel',
         name: 'provider-dashboard',
         component: () => import('@/views/provider/DashboardView.vue'),
-        meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Panel del proveedor' },
+        meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Panel del negocio' },
     },
     {
         path: '/proveedor/perfil',
@@ -107,10 +118,14 @@ const routes = [
         meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Mi perfil' },
     },
     {
-        path: '/proveedor/servicios',
-        name: 'provider-services',
+        path: '/proveedor/anuncios',
+        name: 'provider-listings',
         component: () => import('@/views/provider/ServicesView.vue'),
-        meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Mis servicios' },
+        meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Mis anuncios' },
+    },
+    {
+        path: '/proveedor/servicios',
+        redirect: { name: 'provider-listings' },
     },
     {
         path: '/proveedor/sedes',
@@ -122,7 +137,7 @@ const routes = [
         path: '/proveedor/solicitudes',
         name: 'provider-requests',
         component: () => import('@/views/provider/RequestsView.vue'),
-        meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Solicitudes recibidas' },
+        meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Contactos recibidos' },
     },
     {
         path: '/proveedor/wallet',
@@ -165,6 +180,24 @@ const routes = [
         name: 'admin-settings',
         component: () => import('@/views/admin/SettingsView.vue'),
         meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Configuración' },
+    },
+    {
+        path: '/admin/reportes',
+        name: 'admin-reports',
+        component: () => import('@/views/admin/ReportsView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Reportes' },
+    },
+    {
+        path: '/admin/kardex',
+        name: 'admin-ledger',
+        component: () => import('@/views/admin/LedgerView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Kardex' },
+    },
+    {
+        path: '/admin/publicidad',
+        name: 'admin-platform-ads',
+        component: () => import('@/views/admin/PlatformAdsView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Publicidad' },
     },
     {
         path: '/:pathMatch(.*)*',
@@ -227,10 +260,10 @@ router.beforeEach(async (to) => {
 });
 
 router.afterEach((to) => {
-    const base = 'Chamba';
+    const base = 'Busca PE';
     const t = to.meta?.title;
     if (typeof document !== 'undefined') {
-        document.title = t ? `${t} · ${base}` : `${base} — Encuentra al experto ideal`;
+        document.title = t ? `${t} · ${base}` : `${base} — Encuentra negocios cerca de ti`;
     }
 });
 

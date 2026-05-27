@@ -8,6 +8,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Tareas diarias de Chamba
+// Tareas diarias Busca PE / Chamba
 Schedule::command('chamba:subscriptions:expire')->dailyAt('03:00');
-Schedule::command('chamba:escrow:auto-release')->dailyAt('03:30');
+Schedule::command('busca:listings:expire')->dailyAt('02:00');
+Schedule::command('chamba:escrow:auto-release')->dailyAt('03:30')->when(fn () => (bool) chamba_setting('features.escrow', false));

@@ -59,6 +59,7 @@ class ProviderLocationService
                 'department_id' => $data['department_id'] ?? null,
                 'province_id' => $data['province_id'] ?? null,
                 'district_id' => $data['district_id'],
+                'ubigeo' => $data['ubigeo'] ?? null,
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
                 'is_primary' => $isPrimary,

@@ -9,6 +9,7 @@ use App\Models\District;
 use App\Models\ProviderLocation;
 use App\Models\ProviderProfile;
 use App\Models\ProviderService;
+use App\Models\SearchEvent;
 use App\Models\ServiceImage;
 use App\Models\SubscriptionPlan;
 use App\Models\UserSubscription;
@@ -30,10 +31,17 @@ final class ServiceSearchController extends Controller
 
         $categoryId = isset($data['category_id']) ? (int) $data['category_id'] : null;
         $districtId = isset($data['district_id']) ? (int) $data['district_id'] : null;
+        $ubigeo = isset($data['ubigeo']) ? (string) $data['ubigeo'] : null;
+        if ($ubigeo && ! $districtId) {
+            $districtId = District::query()->where('ubigeo', $ubigeo)->value('id');
+        }
         $keyword = isset($data['keyword']) && $data['keyword'] !== '' ? (string) $data['keyword'] : null;
         $userLat = isset($data['user_lat']) ? (float) $data['user_lat'] : null;
         $userLng = isset($data['user_lng']) ? (float) $data['user_lng'] : null;
         $radiusKm = isset($data['radius_km']) ? (float) $data['radius_km'] : null;
+        if ($userLat !== null && $userLng !== null && $radiusKm === null) {
+            $radiusKm = 25.0;
+        }
 
         $rows = $this->storedProcedures->searchProviderServices(
             $categoryId,
@@ -52,6 +60,8 @@ final class ServiceSearchController extends Controller
             $rows = $this->mergeMultiLocationResults($rows, $districtId, $categoryId, $keyword);
         }
 
+        $rows = $this->filterVisibleListings($rows);
+
         $profileIds = collect($rows)->pluck('provider_profile_id')->filter()->unique()->values();
         $proUserIds = collect();
         if ($profileIds->isNotEmpty()) {
@@ -69,12 +79,9 @@ final class ServiceSearchController extends Controller
                 $row['is_pro'] = $proUserIds->contains($uid);
             }
             unset($row);
-
-            usort($rows, function (array $a, array $b) {
-                $rank = (int) ($b['is_pro'] ?? 0) - (int) ($a['is_pro'] ?? 0);
-                return $rank;
-            });
         }
+
+        $rows = $this->sortListings($rows);
 
         $serviceIds = collect($rows)->pluck('service_id')->filter()->unique()->values();
         if ($serviceIds->isNotEmpty()) {
@@ -92,6 +99,19 @@ final class ServiceSearchController extends Controller
             }
             unset($row);
         }
+
+        SearchEvent::create([
+            'user_id' => $request->user()?->id,
+            'category_id' => $categoryId,
+            'query' => $keyword,
+            'district_id' => $districtId,
+            'ubigeo' => $ubigeo,
+            'user_lat' => $userLat,
+            'user_lng' => $userLng,
+            'radius_km' => $radiusKm,
+            'results_count' => count($rows),
+            'created_at' => now(),
+        ]);
 
         return response()->json(['data' => $rows]);
     }
@@ -115,8 +135,8 @@ final class ServiceSearchController extends Controller
         }
 
         $query = ProviderService::query()
+            ->visible()
             ->whereIn('provider_profile_id', $providerIdsWithBranch)
-            ->where('is_active', 1)
             ->with([
                 'category:id,name',
                 'providerProfile:id,user_id,business_name,district_id,address_text,avg_rating,total_reviews,is_verified',
@@ -138,7 +158,7 @@ final class ServiceSearchController extends Controller
             $query->whereNotIn('id', $existingServiceIds);
         }
 
-        $extra = $query->limit(50)->get();
+        $extra = $query->orderByDesc('published_at')->orderByDesc('id')->limit(50)->get();
 
         foreach ($extra as $svc) {
             $prof = $svc->providerProfile;
@@ -173,5 +193,74 @@ final class ServiceSearchController extends Controller
         }
 
         return $rows;
+    }
+
+    /**
+     * Orden: Pro primero, luego los más recientes (publicados / creados).
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function sortListings(array $rows): array
+    {
+        if ($rows === []) {
+            return $rows;
+        }
+
+        $ids = collect($rows)->pluck('service_id')->filter()->unique()->values();
+        $timestamps = ProviderService::query()
+            ->whereIn('id', $ids)
+            ->get(['id', 'published_at', 'created_at'])
+            ->keyBy('id');
+
+        foreach ($rows as &$row) {
+            $sid = (int) ($row['service_id'] ?? 0);
+            $listing = $timestamps->get($sid);
+            $row['published_at'] = $listing?->published_at?->toIso8601String();
+            $row['created_at'] = $listing?->created_at?->toIso8601String();
+        }
+        unset($row);
+
+        usort($rows, function (array $a, array $b): int {
+            $pro = (int) ($b['is_pro'] ?? 0) <=> (int) ($a['is_pro'] ?? 0);
+            if ($pro !== 0) {
+                return $pro;
+            }
+
+            $ta = strtotime((string) ($a['published_at'] ?? $a['created_at'] ?? '')) ?: 0;
+            $tb = strtotime((string) ($b['published_at'] ?? $b['created_at'] ?? '')) ?: 0;
+            if ($tb !== $ta) {
+                return $tb <=> $ta;
+            }
+
+            return (int) ($b['service_id'] ?? 0) <=> (int) ($a['service_id'] ?? 0);
+        });
+
+        return $rows;
+    }
+
+    /**
+     * Excluye anuncios pausados o vencidos (Busca PE).
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterVisibleListings(array $rows): array
+    {
+        $ids = collect($rows)->pluck('service_id')->filter()->unique()->values();
+        if ($ids->isEmpty()) {
+            return $rows;
+        }
+
+        $visibleIds = ProviderService::query()
+            ->visible()
+            ->whereIn('id', $ids)
+            ->pluck('id')
+            ->flip();
+
+        return array_values(array_filter(
+            $rows,
+            static fn (array $row): bool => $visibleIds->has((int) ($row['service_id'] ?? 0)),
+        ));
     }
 }

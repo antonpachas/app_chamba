@@ -19,6 +19,7 @@ class ServiceSearchRequest extends FormRequest
         return [
             'category_id' => ['nullable', 'integer'],
             'district_id' => ['nullable', 'integer'],
+            'ubigeo' => ['nullable', 'string', 'regex:/^\d{6}$/'],
             'keyword' => ['nullable', 'string', 'max:120'],
             'user_lat' => ['nullable', 'numeric'],
             'user_lng' => ['nullable', 'numeric'],

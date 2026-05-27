@@ -1,32 +1,93 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useProviderProfileStore } from '@/stores/providerProfile';
+import { useProviderLocationsStore } from '@/stores/providerLocations';
 import { useCatalogStore } from '@/stores/catalog';
+import { useAuthStore } from '@/stores/auth';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import Money from '@/components/common/Money.vue';
+import ListingCardPreview from '@/components/listing/ListingCardPreview.vue';
+
+const MAX_PHOTOS = 8;
 
 const store = useProviderProfileStore();
+const locStore = useProviderLocationsStore();
 const catalog = useCatalogStore();
+const auth = useAuthStore();
 
 const editing = ref(null);
 const showForm = ref(false);
-const form = ref({ category_id: null, title: '', description: '', base_price: '', price_type: 'cotizar' });
+const form = ref({
+    category_id: null,
+    title: '',
+    description: '',
+    base_price: '',
+    price_type: 'cotizar',
+    location_ids: [],
+});
+/** @type {import('vue').Ref<Array<{ key: string, file?: File, url: string, id?: number, isExisting?: boolean }>>} */
+const formPhotos = ref([]);
+const photosToDelete = ref([]);
 const errMsg = ref('');
 const okMsg = ref('');
+const loadError = ref('');
 const saving = ref(false);
 
-onMounted(async () => {
-    await Promise.all([store.loadProfile(), store.loadServices(), catalog.ensureCategories()]);
+const categoryName = computed(() => {
+    const id = form.value.category_id;
+    return catalog.categories.find((c) => Number(c.id) === Number(id))?.name || '';
 });
+
+const previewImages = computed(() => formPhotos.value.map((p) => p.url));
+
+const previewService = computed(() => ({
+    service_id: editing.value?.id || 0,
+    title: form.value.title.trim() || 'Título del anuncio',
+    base_price: form.value.base_price === '' ? null : form.value.base_price,
+    price_type: form.value.price_type,
+    cover_image_url: previewImages.value[0] || null,
+    images: previewImages.value,
+    provider_name: store.profile?.business_name || auth.user?.full_name || 'Tu negocio',
+    district_name: null,
+    province_name: null,
+    address_text: store.profile?.address_text || null,
+    avg_rating: store.profile?.avg_rating,
+    total_reviews: store.profile?.total_reviews,
+    is_pro: auth.isPro,
+}));
+
+function revokePhotoUrls() {
+    for (const p of formPhotos.value) {
+        if (p.url?.startsWith('blob:')) {
+            URL.revokeObjectURL(p.url);
+        }
+    }
+}
+
+function resetPhotos() {
+    revokePhotoUrls();
+    formPhotos.value = [];
+    photosToDelete.value = [];
+}
 
 function startCreate() {
     editing.value = null;
-    form.value = { category_id: catalog.categories[0]?.id || null, title: '', description: '', base_price: '', price_type: 'cotizar' };
+    form.value = {
+        category_id: catalog.categories[0]?.id || null,
+        title: '',
+        description: '',
+        base_price: '',
+        price_type: 'cotizar',
+        location_ids: [],
+    };
+    resetPhotos();
     showForm.value = true;
-    errMsg.value = ''; okMsg.value = '';
+    errMsg.value = '';
+    okMsg.value = '';
 }
+
 function startEdit(s) {
     editing.value = s;
     form.value = {
@@ -35,15 +96,89 @@ function startEdit(s) {
         description: s.description,
         base_price: s.base_price ?? '',
         price_type: s.price_type,
+        location_ids: [...(s.location_ids || [])],
     };
+    resetPhotos();
+    formPhotos.value = (s.images || []).map((img) => ({
+        key: `existing-${img.id}`,
+        id: img.id,
+        url: img.url,
+        isExisting: true,
+    }));
     showForm.value = true;
-    errMsg.value = ''; okMsg.value = '';
+    errMsg.value = '';
+    okMsg.value = '';
+}
+
+function closeForm() {
+    showForm.value = false;
+    resetPhotos();
+}
+
+async function onPickPhotos(event) {
+    const input = event.target;
+    const files = Array.from(input.files || []);
+    errMsg.value = '';
+    for (const f of files) {
+        if (formPhotos.value.length >= MAX_PHOTOS) {
+            errMsg.value = `Máximo ${MAX_PHOTOS} fotos por anuncio.`;
+            break;
+        }
+        if (!/^image\/(jpeg|png|webp)$/.test(f.type)) {
+            errMsg.value = 'Solo JPG, PNG o WEBP.';
+            continue;
+        }
+        if (f.size > 5 * 1024 * 1024) {
+            errMsg.value = 'Cada imagen máximo 5 MB.';
+            continue;
+        }
+        formPhotos.value.push({
+            key: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            file: f,
+            url: URL.createObjectURL(f),
+        });
+    }
+    if (input) input.value = '';
+}
+
+function removeFormPhoto(item) {
+    if (item.isExisting && item.id) {
+        photosToDelete.value.push(item.id);
+    }
+    if (item.url?.startsWith('blob:')) {
+        URL.revokeObjectURL(item.url);
+    }
+    formPhotos.value = formPhotos.value.filter((p) => p.key !== item.key);
+}
+
+function setCover(index) {
+    if (index <= 0 || index >= formPhotos.value.length) return;
+    const next = [...formPhotos.value];
+    const [picked] = next.splice(index, 1);
+    next.unshift(picked);
+    formPhotos.value = next;
+}
+
+async function uploadPendingPhotos(serviceId) {
+    for (const photo of formPhotos.value) {
+        if (photo.file) {
+            await store.addServiceImage(serviceId, photo.file);
+        }
+    }
+    for (const imageId of photosToDelete.value) {
+        await store.removeServiceImage(serviceId, imageId);
+    }
 }
 
 async function submit() {
-    errMsg.value = ''; okMsg.value = '';
+    errMsg.value = '';
+    okMsg.value = '';
     if (!store.profile) {
-        errMsg.value = 'Primero crea tu perfil de proveedor.';
+        errMsg.value = 'Primero crea tu perfil de negocio.';
+        return;
+    }
+    if (!formPhotos.value.length) {
+        errMsg.value = 'Agrega al menos una foto para tu anuncio.';
         return;
     }
     saving.value = true;
@@ -54,15 +189,25 @@ async function submit() {
             description: form.value.description,
             base_price: form.value.base_price === '' ? null : Number(form.value.base_price),
             price_type: form.value.price_type,
+            location_ids: form.value.location_ids,
         };
+        let serviceId;
         if (editing.value) {
             await store.updateService(editing.value.id, payload);
-            okMsg.value = 'Servicio actualizado.';
+            serviceId = editing.value.id;
+            await uploadPendingPhotos(serviceId);
+            await store.loadServices();
+            okMsg.value = 'Anuncio actualizado.';
         } else {
-            await store.createService(payload);
-            okMsg.value = 'Servicio creado.';
+            const created = await store.createService(payload);
+            serviceId = created.id;
+            await uploadPendingPhotos(serviceId);
+            await store.loadServices();
+            okMsg.value = 'Anuncio publicado con fotos.';
         }
+        resetPhotos();
         showForm.value = false;
+        editing.value = null;
     } catch (e) {
         errMsg.value = e.message;
     } finally {
@@ -71,8 +216,23 @@ async function submit() {
 }
 
 async function toggle(s) {
+    errMsg.value = '';
+    okMsg.value = '';
     try {
-        await store.toggleServiceActive(s.id, !s.is_active);
+        const nextActive = !s.is_active;
+        await store.toggleServiceActive(s.id, nextActive);
+        okMsg.value = nextActive ? 'Anuncio activado.' : 'Anuncio pausado.';
+    } catch (e) {
+        errMsg.value = e.message;
+    }
+}
+
+async function renew(s) {
+    errMsg.value = '';
+    okMsg.value = '';
+    try {
+        await store.renewService(s.id);
+        okMsg.value = 'Anuncio renovado con nueva fecha de vencimiento.';
     } catch (e) {
         errMsg.value = e.message;
     }
@@ -103,7 +263,8 @@ async function uploadImage(s, e) {
 }
 
 async function deleteImage(s, img) {
-    errMsg.value = ''; okMsg.value = '';
+    errMsg.value = '';
+    okMsg.value = '';
     try {
         await store.removeServiceImage(s.id, img.id);
         okMsg.value = 'Imagen eliminada.';
@@ -111,58 +272,175 @@ async function deleteImage(s, img) {
         errMsg.value = err?.message || 'No se pudo eliminar.';
     }
 }
+
+onMounted(async () => {
+    loadError.value = '';
+    try {
+        await Promise.all([
+            store.loadProfile(),
+            store.loadServices(),
+            catalog.ensureCategories(),
+            locStore.load(),
+        ]);
+    } catch (e) {
+        loadError.value = e?.message || 'No se pudo cargar la página de anuncios.';
+    }
+});
+
+onBeforeUnmount(() => {
+    revokePhotoUrls();
+});
+
+watch(showForm, (open) => {
+    if (!open) revokePhotoUrls();
+});
 </script>
 
 <template>
-    <div class="max-w-5xl mx-auto px-4 md:px-8 py-8">
+    <div class="max-w-6xl mx-auto px-4 md:px-8 py-8">
         <header class="mb-8 flex justify-between items-end gap-3 flex-wrap">
             <div>
-                <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mis servicios</h1>
-                <p class="text-slate-600 mt-1">Publica los servicios que ofreces. Aparecen en la búsqueda.</p>
+                <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mis anuncios</h1>
+                <p class="text-slate-600 mt-1">
+                    Publica tus anuncios. Duración por defecto: {{ store.defaultDurationDays }} días.
+                    Cupo activo: {{ store.servicesQuota.active }}/{{ store.servicesQuota.max }}.
+                </p>
             </div>
-            <AppButton variant="primary" @click="startCreate">+ Nuevo servicio</AppButton>
+            <AppButton variant="primary" @click="startCreate">+ Nuevo anuncio</AppButton>
         </header>
 
+        <AppAlert v-if="loadError" type="error" class="mb-4">{{ loadError }}</AppAlert>
         <AppAlert v-if="!store.profile && !store.loading" type="warning" class="mb-4">
-            Primero crea tu perfil de proveedor para poder publicar servicios.
+            Primero crea tu perfil de negocio para poder publicar anuncios.
         </AppAlert>
         <AppAlert v-if="errMsg" type="error" class="mb-4">{{ errMsg }}</AppAlert>
         <AppAlert v-if="okMsg" type="success" class="mb-4">{{ okMsg }}</AppAlert>
 
-        <form v-if="showForm" @submit.prevent="submit" class="rounded-2xl border border-slate-200 bg-white p-6 mb-6 space-y-4">
-            <h2 class="text-lg font-bold text-slate-900">{{ editing ? 'Editar servicio' : 'Nuevo servicio' }}</h2>
-            <label class="block">
-                <span class="mb-2 block text-sm font-bold text-slate-700">Categoría</span>
-                <select v-model="form.category_id" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#003874]">
-                    <option v-for="c in catalog.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-                </select>
-            </label>
-            <AppInput v-model="form.title" label="Título" placeholder="Instalación eléctrica residencial" required />
-            <label class="block">
-                <span class="mb-2 block text-sm font-bold text-slate-700">Descripción</span>
-                <textarea v-model="form.description" rows="4" required maxlength="2000"
-                    class="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-[#003874]"></textarea>
-            </label>
-            <div class="grid sm:grid-cols-2 gap-4">
-                <label class="block">
-                    <span class="mb-2 block text-sm font-bold text-slate-700">Tipo de precio</span>
-                    <select v-model="form.price_type" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#003874]">
-                        <option value="cotizar">A cotizar</option>
-                        <option value="desde">Desde…</option>
-                        <option value="fijo">Fijo</option>
-                    </select>
-                </label>
-                <AppInput v-model="form.base_price" label="Precio base (S/)" type="number" placeholder="150.00" />
+        <div v-if="showForm" class="rounded-2xl border border-slate-200 bg-white mb-6 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/80">
+                <h2 class="text-lg font-bold text-slate-900">{{ editing ? 'Editar anuncio' : 'Nuevo anuncio' }}</h2>
+                <p class="text-sm text-slate-600 mt-0.5">Completa los datos y revisa la vista previa antes de publicar.</p>
             </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <AppButton variant="ghost" type="button" @click="showForm = false">Cancelar</AppButton>
-                <AppButton variant="primary" type="submit" :loading="saving">{{ editing ? 'Guardar' : 'Crear' }}</AppButton>
+
+            <div class="grid lg:grid-cols-2 gap-0 lg:gap-8 p-6">
+                <form class="space-y-4 order-2 lg:order-1" @submit.prevent="submit">
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-700">Categoría</span>
+                        <select v-model="form.category_id" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#003874]">
+                            <option v-for="c in catalog.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+                        </select>
+                    </label>
+                    <AppInput v-model="form.title" label="Título" placeholder="Ej. Ferretería con delivery" required />
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-700">Descripción</span>
+                        <textarea
+                            v-model="form.description"
+                            rows="4"
+                            required
+                            maxlength="2000"
+                            placeholder="Describe tu negocio o servicio…"
+                            class="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-[#003874]"
+                        ></textarea>
+                    </label>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <label class="block">
+                            <span class="mb-2 block text-sm font-bold text-slate-700">Tipo de precio</span>
+                            <select v-model="form.price_type" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#003874]">
+                                <option value="cotizar">A cotizar</option>
+                                <option value="desde">Desde…</option>
+                                <option value="fijo">Fijo</option>
+                            </select>
+                        </label>
+                        <AppInput v-model="form.base_price" label="Precio base (S/)" type="number" placeholder="150.00" />
+                    </div>
+
+                    <div class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-700">
+                            Fotos del anuncio <span class="text-rose-600">*</span>
+                            <span class="text-slate-400 font-normal">({{ formPhotos.length }}/{{ MAX_PHOTOS }})</span>
+                        </span>
+                        <p class="text-xs text-slate-500 mb-3">La primera foto es la portada en búsqueda. JPG, PNG o WEBP · máx. 5 MB c/u.</p>
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <div
+                                v-for="(photo, idx) in formPhotos"
+                                :key="photo.key"
+                                class="relative group w-20 h-20"
+                            >
+                                <img :src="photo.url" alt="" class="w-full h-full object-cover rounded-lg ring-2 ring-slate-200" :class="idx === 0 ? 'ring-[#003874]' : ''" />
+                                <span
+                                    v-if="idx === 0"
+                                    class="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold uppercase bg-[#003874] text-white rounded-b-lg py-0.5"
+                                >Portada</span>
+                                <button
+                                    type="button"
+                                    class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-bold shadow opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition"
+                                    title="Quitar"
+                                    @click="removeFormPhoto(photo)"
+                                >×</button>
+                                <button
+                                    v-if="idx > 0"
+                                    type="button"
+                                    class="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold text-[#003874] bg-white border border-slate-200 rounded px-1 shadow-sm opacity-0 group-hover:opacity-100 transition whitespace-nowrap"
+                                    title="Usar como portada"
+                                    @click="setCover(idx)"
+                                >
+                                    Portada
+                                </button>
+                            </div>
+                            <label
+                                v-if="formPhotos.length < MAX_PHOTOS"
+                                class="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 hover:border-[#003874] hover:bg-[#003874]/5 flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-[#003874] transition"
+                            >
+                                <span class="material-symbols-outlined text-[22px]">add</span>
+                                <span class="text-[9px] font-bold mt-0.5">Agregar</span>
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    multiple
+                                    class="hidden"
+                                    @change="onPickPhotos"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div v-if="locStore.items.length" class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-700">Sedes donde aparece (vacío = todas)</span>
+                        <div class="flex flex-wrap gap-2">
+                            <label
+                                v-for="loc in locStore.items"
+                                :key="loc.id"
+                                class="inline-flex items-center gap-2 text-sm border border-slate-200 rounded-lg px-3 py-1.5"
+                            >
+                                <input v-model="form.location_ids" type="checkbox" :value="loc.id" />
+                                {{ loc.label }}
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <AppButton variant="ghost" type="button" @click="closeForm">Cancelar</AppButton>
+                        <AppButton variant="primary" type="submit" :loading="saving">
+                            {{ editing ? 'Guardar cambios' : 'Publicar anuncio' }}
+                        </AppButton>
+                    </div>
+                </form>
+
+                <aside class="order-1 lg:order-2 lg:sticky lg:top-24 self-start space-y-3">
+                    <p class="text-xs font-bold uppercase tracking-widest text-slate-500 hidden lg:block">
+                        Así lo verán en Busca PE
+                    </p>
+                    <ListingCardPreview :service="previewService" />
+                    <p v-if="categoryName" class="text-xs text-slate-500 text-center hidden lg:block">
+                        Categoría: <strong>{{ categoryName }}</strong>
+                    </p>
+                </aside>
             </div>
-        </form>
+        </div>
 
         <p v-if="store.servicesLoading" class="text-slate-500">Cargando…</p>
         <div v-else-if="!store.services.length" class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-            Aún no publicaste servicios.
+            Aún no publicaste anuncios.
         </div>
         <div v-else class="grid sm:grid-cols-2 gap-4">
             <article v-for="s in store.services" :key="s.id" class="rounded-2xl border border-slate-200 bg-white p-5">
@@ -173,31 +451,48 @@ async function deleteImage(s, img) {
                     </div>
                     <span
                         class="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full"
-                        :class="s.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'"
-                    >{{ s.is_active ? 'Activo' : 'Pausado' }}</span>
+                        :class="s.is_visible ? 'bg-emerald-100 text-emerald-800' : (s.is_expired ? 'bg-amber-100 text-amber-900' : 'bg-slate-200 text-slate-600')"
+                    >{{ s.is_visible ? 'Visible' : (s.is_expired ? 'Vencido' : 'Pausado') }}</span>
                 </div>
+                <p v-if="s.expires_at" class="text-xs text-slate-500 mt-1">
+                    <template v-if="s.is_expired">Venció el {{ new Date(s.expires_at).toLocaleDateString() }}</template>
+                    <template v-else-if="s.is_visible">Vence en {{ s.days_remaining }} día(s) · {{ new Date(s.expires_at).toLocaleDateString() }}</template>
+                    <template v-else>Pausado · vence {{ new Date(s.expires_at).toLocaleDateString() }}</template>
+                </p>
                 <p class="text-sm text-slate-600 mt-2 line-clamp-3">{{ s.description }}</p>
-                <p class="text-base font-black text-[#003874] mt-3"><Money :amount="s.base_price" /> <span class="text-xs text-slate-500 font-medium">({{ s.price_type }})</span></p>
+                <p class="text-base font-black text-[#003874] mt-3">
+                    <Money :amount="s.base_price" />
+                    <span class="text-xs text-slate-500 font-medium">({{ s.price_type }})</span>
+                </p>
 
                 <div class="mt-3">
-                    <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Fotos del servicio</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Fotos del anuncio</p>
                     <div class="flex flex-wrap gap-2">
                         <div v-for="img in s.images || []" :key="img.id" class="relative group w-16 h-16">
                             <img :src="img.url" alt="" class="w-full h-full object-cover rounded-lg ring-1 ring-slate-200" />
-                            <button type="button" @click="deleteImage(s, img)"
+                            <button
+                                type="button"
                                 class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition shadow"
-                                title="Eliminar">×</button>
+                                title="Eliminar"
+                                @click="deleteImage(s, img)"
+                            >×</button>
                         </div>
-                        <label class="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 hover:border-chamba-500 hover:bg-chamba-50/40 flex items-center justify-center cursor-pointer text-slate-400 hover:text-chamba-700 transition" title="Agregar foto">
+                        <label
+                            class="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 hover:border-[#003874] hover:bg-[#003874]/5 flex items-center justify-center cursor-pointer text-slate-400 hover:text-[#003874] transition"
+                            title="Agregar foto"
+                        >
                             <span class="material-symbols-outlined text-[20px]">add_photo_alternate</span>
                             <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="uploadImage(s, $event)" />
                         </label>
                     </div>
                 </div>
 
-                <div class="mt-4 flex gap-2">
+                <div class="mt-4 flex flex-wrap gap-2">
                     <AppButton variant="ghost" size="sm" @click="startEdit(s)">Editar</AppButton>
-                    <AppButton variant="outline" size="sm" @click="toggle(s)">{{ s.is_active ? 'Pausar' : 'Activar' }}</AppButton>
+                    <AppButton v-if="s.is_expired" variant="primary" size="sm" @click="renew(s)">Renovar</AppButton>
+                    <AppButton v-else variant="outline" size="sm" @click="toggle(s)">
+                        {{ s.is_active ? 'Pausar' : 'Activar' }}
+                    </AppButton>
                 </div>
             </article>
         </div>

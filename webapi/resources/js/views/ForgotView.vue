@@ -21,7 +21,7 @@ async function submit() {
         router.replace({
             name: 'login',
             query: {
-                flash: 'Si ese correo existe en Chamba, recibirás un enlace para crear una nueva contraseña.',
+                flash: 'Si ese correo existe en Busca PE, recibirás un enlace para crear una nueva contraseña.',
             },
         });
     } catch (e) {

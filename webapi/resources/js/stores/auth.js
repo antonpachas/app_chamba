@@ -26,6 +26,7 @@ export const useAuthStore = defineStore('auth', {
     state: () => ({
         token: getStoredToken(),
         user: loadStoredUser(),
+        entitlements: {},
         booted: false,
         loading: false,
     }),
@@ -54,6 +55,7 @@ export const useAuthStore = defineStore('auth', {
                 ? 'Admin'
                 : '',
         avatarUrl: (s) => s.user?.avatar_url || null,
+        showsAds: (s) => s.entitlements?.shows_ads !== false,
     },
     actions: {
         async bootstrap() {
@@ -62,6 +64,7 @@ export const useAuthStore = defineStore('auth', {
                 try {
                     const data = await api.get('/auth/me', { auth: true });
                     this.user = data.user || data;
+                    this.entitlements = data.entitlements || {};
                     persistUser(this.user);
                 } catch {
                     this.token = null;

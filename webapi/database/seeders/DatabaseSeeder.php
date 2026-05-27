@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // En producción los datos base (categorías, distritos, planes y settings)
-        // se siembran desde las migraciones. Este seeder queda como punto de extensión
-        // para futuros datos opcionales sin tocar las migraciones.
+        // se siembran desde las migraciones.
+        // Datos de anuncios demo: php artisan busca:refresh-demo-listings --force
     }
 }

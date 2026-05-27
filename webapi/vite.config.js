@@ -26,6 +26,17 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
     return {
         base: deriveBase(env),
+        experimental: {
+            // Misma build para local (/) y producción (/v1/chamba/): la URL real la arma app.blade.php.
+            renderBuiltUrl(filename, { hostType }) {
+                if (hostType === 'js') {
+                    return {
+                        runtime: `window.__chambaViteUrl(${JSON.stringify(filename)})`,
+                    };
+                }
+                return undefined;
+            },
+        },
         resolve: {
             alias: {
                 '@': path.resolve(__dirname, 'resources/js'),

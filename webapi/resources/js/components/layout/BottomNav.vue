@@ -3,8 +3,10 @@ import { computed } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { escrowEnabled } from '@/services/features';
+import { useProviderNotificationsStore } from '@/stores/providerNotifications';
 
 const auth = useAuthStore();
+const notifications = useProviderNotificationsStore();
 const route = useRoute();
 const escrow = escrowEnabled();
 
@@ -13,16 +15,19 @@ const items = computed(() => {
         return [
             { name: 'admin-dashboard', label: 'Panel', icon: 'dashboard' },
             { name: 'admin-subscriptions', label: 'Membresías', icon: 'workspace_premium' },
+            { name: 'admin-reports', label: 'Reportes', icon: 'analytics' },
+            { name: 'admin-ledger', label: 'Kardex', icon: 'account_balance' },
+            { name: 'admin-platform-ads', label: 'Ads', icon: 'campaign' },
+            { name: 'admin-settings', label: 'Config', icon: 'settings' },
             ...(escrow ? [
                 { name: 'admin-payments', label: 'Pagos', icon: 'receipt_long' },
             ] : []),
-            { name: 'account', label: 'Cuenta', icon: 'person' },
         ];
     }
     if (auth.isProveedor) {
         return [
             { name: 'provider-dashboard', label: 'Panel', icon: 'dashboard' },
-            { name: 'provider-services', label: 'Servicios', icon: 'home_repair_service' },
+            { name: 'provider-listings', label: 'Anuncios', icon: 'campaign' },
             { name: 'provider-requests', label: 'Solicitudes', icon: 'inbox' },
             { name: 'provider-subscription', label: 'Pro', icon: 'workspace_premium' },
         ];
@@ -51,10 +56,16 @@ const items = computed(() => {
             v-for="item in items"
             :key="item.name"
             :to="{ name: item.name }"
-            class="flex flex-col items-center px-2 py-1 no-underline"
+            class="flex flex-col items-center px-2 py-1 no-underline relative"
             :class="route.name === item.name ? 'text-[#003874]' : 'text-slate-400'"
         >
-            <span class="material-symbols-outlined text-[22px]">{{ item.icon }}</span>
+            <span class="relative">
+                <span class="material-symbols-outlined text-[22px]">{{ item.icon }}</span>
+                <span
+                    v-if="item.name === 'provider-requests' && notifications.unreadCount > 0"
+                    class="absolute -top-1 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-rose-600 text-white text-[9px] font-black flex items-center justify-center"
+                >{{ notifications.unreadCount > 9 ? '9+' : notifications.unreadCount }}</span>
+            </span>
             <span class="text-[10px] font-bold uppercase mt-0.5">{{ item.label }}</span>
         </RouterLink>
     </nav>

@@ -2,7 +2,7 @@
 
 return [
     'features' => [
-        'escrow' => env('CHAMBA_FEATURE_ESCROW', true),
+        'escrow' => env('CHAMBA_FEATURE_ESCROW', false),
         'subscriptions' => env('CHAMBA_FEATURE_SUBSCRIPTIONS', true),
     ],
 

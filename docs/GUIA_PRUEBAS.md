@@ -1,8 +1,17 @@
-# Chamba — Guía de pruebas
+# Busca PE — Guía de pruebas
 
-Modelo de monetización: **Freemium con membresías + Custodia (escrow) activa**.
-Comisión por servicio: **10%** (configurable en admin).
+> Rama `Jesus/BuscaPe`. Producto: **directorio de negocios** (buscar cerca → contactar). Sin custodia por defecto.
+
+Modelo de monetización: **Suscripciones** (cliente premium / negocio Pro) + **publicidad** (AdSense + banners admin).
 URL local: `http://localhost:8000/app`
+
+### Cambios clave Busca PE
+
+- **Anuncios** (antes “servicios”): API `GET /api/v1/listings/search`, panel `Mis anuncios`, vencen a los **5 días** (configurable en Admin → Configuración → Anuncios).
+- **Contactos**: estados `nuevo` → `visto` → `cerrado`. Límites: cliente free **3 contactos/mes**, negocio free **2 contactos recibidos/mes**.
+- **Ubicación**: GPS o selector departamento / provincia / distrito en búsqueda; sedes con lat/lng opcional.
+- **Admin**: Reportes, Kardex, Publicidad (`/admin/reportes`, `/admin/kardex`, `/admin/publicidad`).
+- **Cron en producción**: guía completa [`GUIA_CRON_CPANEL.md`](GUIA_CRON_CPANEL.md) · prueba rápida `public/_cron.php?token=...&task=all`
 
 > Para la lista completa de cambios de la fase 2 (custodia + sedes + evidencia + historial),
 > ver [`FASE2_CUSTODIA_SEDES.md`](./FASE2_CUSTODIA_SEDES.md).
@@ -30,7 +39,7 @@ URL local: `http://localhost:8000/app`
 | Audiencia | Free | Pago |
 |---|---|---|
 | **Proveedor** | 3 contactos/mes · Sin badge · Final de resultados | **Pro S/ 29/mes** · Ilimitado · Badge "Pro" · Top de búsqueda · WhatsApp visible · 20 servicios |
-| **Cliente** | Buscar y solicitar | **Premium S/ 9/mes** · Insignia "Verificado" · Soporte 24/7 · Garantía Chamba · Sin publicidad |
+| **Cliente** | Buscar y solicitar | **Premium S/ 9/mes** · Más contactos al mes · Sin publicidad en la app |
 
 ---
 

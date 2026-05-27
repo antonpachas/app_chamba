@@ -1,5 +1,5 @@
 /**
- * Cliente HTTP único para Chamba.
+ * Cliente HTTP único para Busca PE.
  * Adjunta el token Bearer si existe; lanza Error con `message` legible.
  */
 const TOKEN_KEY = 'chamba_web_token';

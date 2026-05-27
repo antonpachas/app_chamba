@@ -5,8 +5,15 @@ import StatusPill from '@/components/common/StatusPill.vue';
 import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import { escrowEnabled } from '@/services/features';
+import { useProviderNotificationsStore } from '@/stores/providerNotifications';
+import ListingPreviewModal from '@/components/listing/ListingPreviewModal.vue';
 
 const store = useProviderRequestsStore();
+const notifications = useProviderNotificationsStore();
+const previewListingId = ref(null);
+const previewOpen = ref(false);
+const escrow = escrowEnabled();
 const quoteOpen = ref(null);
 const quoteForm = ref({ amount: '', estimated_days: '', notes: '' });
 const evidenceOpenId = ref(null);
@@ -16,7 +23,16 @@ const busy = ref(null);
 const err = ref('');
 const ok = ref('');
 
-onMounted(() => store.load());
+onMounted(async () => {
+    await store.load();
+    await notifications.markAllRead();
+});
+
+function openListingPreview(serviceId) {
+    if (!serviceId) return;
+    previewListingId.value = Number(serviceId);
+    previewOpen.value = true;
+}
 
 function openQuote(id) {
     quoteOpen.value = id;
@@ -99,8 +115,10 @@ async function markDelivered(id) {
 <template>
     <div class="max-w-5xl mx-auto px-4 md:px-8 py-8">
         <header class="mb-8">
-            <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Solicitudes recibidas</h1>
-            <p class="text-slate-600 mt-1">Cotiza, marca avances, sube evidencia al entregar y cobra cuando el cliente confirme.</p>
+            <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Contactos recibidos</h1>
+            <p class="text-slate-600 mt-1">
+                {{ escrow ? 'Cotiza, marca avances y gestiona pagos en custodia.' : 'Personas que te contactaron por tus anuncios. Responde y cierra cuando termines.' }}
+            </p>
         </header>
 
         <AppAlert v-if="err" type="error" class="mb-4">{{ err }}</AppAlert>
@@ -115,14 +133,22 @@ async function markDelivered(id) {
                 <div class="flex flex-wrap justify-between items-start gap-3 mb-3">
                     <div class="min-w-0">
                         <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">#{{ r.id }} · {{ r.service?.category?.name || '—' }}</p>
-                        <h3 class="text-lg font-bold text-slate-900">{{ r.service?.title }}</h3>
+                        <h3 class="text-lg font-bold text-slate-900">
+                            <button
+                                v-if="r.service?.id"
+                                type="button"
+                                class="text-left hover:text-[#003874] hover:underline bg-transparent border-0 p-0 cursor-pointer font-bold"
+                                @click="openListingPreview(r.service.id)"
+                            >{{ r.service.title }}</button>
+                            <span v-else>—</span>
+                        </h3>
                         <p class="text-sm text-slate-600 mt-0.5">Cliente: <strong>{{ r.client?.name }}</strong></p>
                     </div>
                     <StatusPill :status="r.status" />
                 </div>
                 <p v-if="r.message" class="text-sm text-slate-700 bg-slate-50 rounded-lg p-3 mb-3 whitespace-pre-wrap">{{ r.message }}</p>
 
-                <div v-if="r.latest_quote" class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 mb-3">
+                <div v-if="escrow && r.latest_quote" class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 mb-3">
                     <div class="flex justify-between items-start gap-3 flex-wrap">
                         <div>
                             <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Tu última cotización</p>
@@ -132,11 +158,11 @@ async function markDelivered(id) {
                     </div>
                 </div>
 
-                <div v-if="r.active_payment" class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 mb-3">
+                <div v-if="escrow && r.active_payment" class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 mb-3">
                     <p class="text-xs font-bold uppercase tracking-wide text-emerald-800">Pago del cliente</p>
                     <p class="text-sm text-slate-700">
                         Bruto <strong><Money :amount="r.active_payment.amount" /></strong>
-                        · Comisión Chamba ({{ r.active_payment.commission_rate }}%)
+                        · Comisión Busca PE ({{ r.active_payment.commission_rate }}%)
                         <strong><Money :amount="r.active_payment.commission_amount" /></strong>
                         · Te corresponde <strong class="text-emerald-700"><Money :amount="r.active_payment.net_amount" /></strong>
                     </p>
@@ -150,7 +176,7 @@ async function markDelivered(id) {
                     >Ver captura del cliente</a>
                 </div>
 
-                <form v-if="quoteOpen === r.id" @submit.prevent="sendQuote(r.id)" class="rounded-xl border border-slate-200 p-4 mb-3 space-y-3">
+                <form v-if="escrow && quoteOpen === r.id" @submit.prevent="sendQuote(r.id)" class="rounded-xl border border-slate-200 p-4 mb-3 space-y-3">
                     <div class="grid sm:grid-cols-2 gap-3">
                         <label class="block">
                             <span class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1 block">Monto (S/)</span>
@@ -172,7 +198,7 @@ async function markDelivered(id) {
                 </form>
 
                 <!-- Evidencia: galería actual + uploader -->
-                <div v-if="(r.evidence?.length || 0) > 0" class="rounded-xl border border-slate-100 bg-white p-4 mb-3">
+                <div v-if="escrow && (r.evidence?.length || 0) > 0" class="rounded-xl border border-slate-100 bg-white p-4 mb-3">
                     <p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Evidencia subida</p>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         <div v-for="ev in r.evidence" :key="ev.id" class="relative">
@@ -191,7 +217,7 @@ async function markDelivered(id) {
                     </div>
                 </div>
 
-                <form v-if="evidenceOpenId === r.id" @submit.prevent="uploadEvidence(r.id)" class="rounded-xl border border-slate-200 p-4 mb-3 space-y-3">
+                <form v-if="escrow && evidenceOpenId === r.id" @submit.prevent="uploadEvidence(r.id)" class="rounded-xl border border-slate-200 p-4 mb-3 space-y-3">
                     <label class="block">
                         <span class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1 block">Fotos del trabajo</span>
                         <input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="onEvidencePick" class="text-sm" />
@@ -209,38 +235,46 @@ async function markDelivered(id) {
 
                 <!-- Acciones -->
                 <div class="flex flex-wrap gap-2">
-                    <AppButton v-if="['nuevo','contactado','cotizado'].includes(r.status)" size="sm" variant="primary" @click="openQuote(r.id)">
-                        {{ r.latest_quote ? 'Re-cotizar' : 'Cotizar' }}
-                    </AppButton>
-                    <AppButton v-if="r.status === 'nuevo'" size="sm" variant="ghost" :loading="busy === r.id" @click="setStatus(r.id, 'contactado')">Marcar contactado</AppButton>
-                    <AppButton v-if="r.status === 'en_custodia'" size="sm" variant="primary" :loading="busy === r.id" @click="setStatus(r.id, 'en_progreso')">Iniciar trabajo</AppButton>
-
-                    <AppButton
-                        v-if="['en_custodia','en_progreso'].includes(r.status)"
-                        size="sm"
-                        variant="ghost"
-                        @click="openEvidence(r.id)"
-                    >
-                        {{ (r.evidence?.length || 0) > 0 ? 'Agregar más evidencia' : 'Subir evidencia' }}
-                    </AppButton>
-                    <AppButton
-                        v-if="['en_custodia','en_progreso'].includes(r.status) && (r.evidence?.length || 0) > 0"
-                        size="sm"
-                        variant="primary"
-                        :loading="busy === r.id"
-                        @click="markDelivered(r.id)"
-                    >
-                        Marcar como entregado
-                    </AppButton>
-                    <span v-if="r.status === 'entregado'" class="text-xs text-emerald-700 font-semibold">
-                        Esperando confirmación del cliente.
-                        <span v-if="r.auto_release_at">
-                            Auto-libera el {{ new Date(r.auto_release_at).toLocaleDateString() }}.
+                    <template v-if="!escrow">
+                        <AppButton v-if="r.status === 'nuevo'" size="sm" variant="primary" :loading="busy === r.id" @click="setStatus(r.id, 'visto')">Marcar visto</AppButton>
+                        <AppButton v-if="['nuevo','visto'].includes(r.status)" size="sm" variant="ghost" :loading="busy === r.id" @click="setStatus(r.id, 'cerrado')">Cerrar</AppButton>
+                    </template>
+                    <template v-else>
+                        <AppButton v-if="['nuevo','contactado','cotizado'].includes(r.status)" size="sm" variant="primary" @click="openQuote(r.id)">
+                            {{ r.latest_quote ? 'Re-cotizar' : 'Cotizar' }}
+                        </AppButton>
+                        <AppButton v-if="r.status === 'nuevo'" size="sm" variant="ghost" :loading="busy === r.id" @click="setStatus(r.id, 'contactado')">Marcar contactado</AppButton>
+                        <AppButton v-if="r.status === 'en_custodia'" size="sm" variant="primary" :loading="busy === r.id" @click="setStatus(r.id, 'en_progreso')">Iniciar trabajo</AppButton>
+                        <AppButton
+                            v-if="['en_custodia','en_progreso'].includes(r.status)"
+                            size="sm"
+                            variant="ghost"
+                            @click="openEvidence(r.id)"
+                        >
+                            {{ (r.evidence?.length || 0) > 0 ? 'Agregar más evidencia' : 'Subir evidencia' }}
+                        </AppButton>
+                        <AppButton
+                            v-if="['en_custodia','en_progreso'].includes(r.status) && (r.evidence?.length || 0) > 0"
+                            size="sm"
+                            variant="primary"
+                            :loading="busy === r.id"
+                            @click="markDelivered(r.id)"
+                        >
+                            Marcar como entregado
+                        </AppButton>
+                        <span v-if="r.status === 'entregado'" class="text-xs text-emerald-700 font-semibold">
+                            Esperando confirmación del cliente.
                         </span>
-                    </span>
+                    </template>
                     <a v-if="r.client?.phone" :href="`tel:${String(r.client.phone).replace(/\\D/g,'')}`" class="rounded-lg border border-slate-200 hover:border-[#003874]/40 font-bold px-4 py-2 text-sm text-slate-800 no-underline">Llamar cliente</a>
                 </div>
             </article>
         </div>
+
+        <ListingPreviewModal
+            :open="previewOpen"
+            :listing-id="previewListingId"
+            @close="previewOpen = false"
+        />
     </div>
 </template>

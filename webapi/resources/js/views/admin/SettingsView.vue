@@ -15,6 +15,10 @@ const planDrafts = reactive({});
 const planLogsOpen = ref(null);
 
 const groupLabels = {
+    providers: 'Perfiles públicos de negocios',
+    listings: 'Anuncios (publicación)',
+    limits: 'Límites free / premium',
+    ads: 'Google AdSense y banners',
     payouts: 'Pagos de la plataforma',
     subscriptions: 'Suscripciones',
     escrow: 'Comisión (modo custodia)',
@@ -22,7 +26,7 @@ const groupLabels = {
     general: 'General',
 };
 
-const groupOrder = ['features', 'payouts', 'subscriptions', 'escrow', 'general'];
+const groupOrder = ['features', 'providers', 'listings', 'limits', 'ads', 'payouts', 'subscriptions', 'escrow', 'general'];
 
 const orderedGroups = computed(() => {
     const groups = store.settingsByGroup;

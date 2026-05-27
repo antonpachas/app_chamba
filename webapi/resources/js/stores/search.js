@@ -29,7 +29,12 @@ export const useSearchStore = defineStore('search', {
                 if (geo.selectedDistrictId != null) params.district_id = geo.selectedDistrictId;
                 const kw = this.keyword.trim();
                 if (kw) params.keyword = kw;
-                const r = await api.get('/services/search', { params });
+                if (geo.useGps && geo.userLat != null && geo.userLng != null) {
+                    params.user_lat = geo.userLat;
+                    params.user_lng = geo.userLng;
+                    params.radius_km = 25;
+                }
+                const r = await api.get('/listings/search', { params });
                 this.results = r.data || [];
             } catch (e) {
                 this.results = [];
@@ -38,8 +43,8 @@ export const useSearchStore = defineStore('search', {
                 this.loading = false;
             }
         },
-        findById(serviceId) {
-            const id = Number(serviceId);
+        findById(listingId) {
+            const id = Number(listingId);
             return this.results.find((row) => Number(row.service_id) === id) || null;
         },
     },

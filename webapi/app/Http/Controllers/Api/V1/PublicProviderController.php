@@ -4,25 +4,54 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\ProviderProfile;
+use App\Models\ProviderService;
 use App\Models\Review;
+use App\Services\ListingLifecycleService;
+use App\Services\ListingPresenterService;
 use App\Services\MediaStorageService;
 use Illuminate\Http\JsonResponse;
 
 final class PublicProviderController extends Controller
 {
+    public function __construct(
+        private readonly ListingLifecycleService $listings,
+        private readonly ListingPresenterService $presenter,
+    ) {}
+
     public function show(int $providerProfile): JsonResponse
     {
+        if (! (bool) chamba_setting('providers.public_profile_enabled', true)) {
+            return response()->json([
+                'message' => 'Los perfiles públicos de negocios no están disponibles.',
+            ], 404);
+        }
+
         $p = ProviderProfile::query()
             ->with([
                 'user:id,full_name,phone,avatar_path',
                 'district.province.department',
-                'providerServices' => fn ($q) => $q->where('is_active', 1),
-                'providerServices.category:id,name',
-                'providerServices.images',
             ])
             ->findOrFail($providerProfile);
 
+        $showContact = (bool) chamba_setting('providers.show_contact_on_public_profile', true);
         $media = app(MediaStorageService::class);
+        $isPro = $this->presenter->resolveIsPro((int) ($p->user_id ?? 0));
+
+        $listings = ProviderService::query()
+            ->with(['category', 'images', 'providerProfile.user', 'providerProfile.district.province.department'])
+            ->where('provider_profile_id', $p->id)
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->get()
+            ->filter(fn (ProviderService $s) => $this->listings->isVisible($s))
+            ->values();
+
+        $listingRows = $listings->map(function (ProviderService $s) use ($isPro) {
+            $row = $this->presenter->toSearchRow($s, $isPro);
+            $row['service_id'] = $s->id;
+
+            return $row;
+        });
 
         $reviews = Review::query()
             ->where('provider_profile_id', $p->id)
@@ -46,26 +75,16 @@ final class PublicProviderController extends Controller
                 'avg_rating' => $p->avg_rating,
                 'total_reviews' => $p->total_reviews,
                 'is_verified' => (bool) $p->is_verified,
+                'is_pro' => $isPro,
                 'avatar_url' => $media->publicUrl($p->user?->avatar_path),
-                'whatsapp' => $p->whatsapp,
-                'contact_phone' => $p->contact_phone,
+                'whatsapp' => $showContact ? $p->whatsapp : null,
+                'contact_phone' => $showContact ? $p->contact_phone : null,
                 'address_text' => $p->address_text,
-                'district' => $p->district?->only(['id', 'name']),
-                'province' => $p->district?->province?->only(['id', 'name']),
-                'department' => $p->district?->province?->department?->only(['id', 'name']),
-                'services' => $p->providerServices->map(fn ($s) => [
-                    'id' => $s->id,
-                    'title' => $s->title,
-                    'description' => $s->description,
-                    'base_price' => $s->base_price,
-                    'price_type' => $s->price_type,
-                    'category' => $s->category?->only(['id', 'name']),
-                    'images' => $s->images->map(fn ($i) => [
-                        'id' => $i->id,
-                        'url' => $media->publicUrl($i->path),
-                    ])->values(),
-                    'cover_image_url' => $s->images->isNotEmpty() ? $media->publicUrl($s->images->first()->path) : null,
-                ]),
+                'district_name' => $p->district?->name,
+                'province_name' => $p->district?->province?->name,
+                'department_name' => $p->district?->province?->department?->name,
+                'listings' => $listingRows,
+                'listings_count' => $listingRows->count(),
                 'reviews' => $reviews,
             ],
         ]);

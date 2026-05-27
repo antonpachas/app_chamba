@@ -6,8 +6,10 @@ import { useGeoStore } from '@/stores/geo';
 import { useSearchStore } from '@/stores/search';
 import { categoryStyleFor } from '@/components/common/CategoryIcon';
 import ServiceCard from '@/components/service/ServiceCard.vue';
+import AdSlot from '@/components/ads/AdSlot.vue';
 
 const route = useRoute();
+const geoErr = ref('');
 const router = useRouter();
 const catalog = useCatalogStore();
 const geo = useGeoStore();
@@ -33,18 +35,35 @@ watch(
 );
 
 async function onDepartment(e) {
+    geo.clearGps();
     await geo.setDepartment(e.target.value);
+    if (search.searched) void search.run();
 }
 async function onProvince(e) {
+    geo.clearGps();
     await geo.setProvince(e.target.value);
+    if (search.searched) void search.run();
 }
 function onDistrict(e) {
+    geo.clearGps();
     geo.setDistrict(e.target.value);
+    if (search.searched) void search.run();
 }
 
 function submitSearch() {
     search.setKeyword(localKeyword.value);
     void search.run();
+}
+
+async function nearMe() {
+    geoErr.value = '';
+    try {
+        geo.clearSelection();
+        await geo.useMyLocation();
+        await search.run();
+    } catch (e) {
+        geoErr.value = e.message;
+    }
 }
 
 function pickCategory(id) {
@@ -60,9 +79,11 @@ function clearCategory() {
 <template>
     <div class="max-w-7xl mx-auto px-4 md:px-8 pt-8 pb-12">
         <header class="mb-8 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-[#0b1c30] tracking-tight">Buscar servicios</h1>
-            <p class="text-slate-600 mt-2">Filtra por rubro, ubicación o palabras clave.</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-[#0b1c30] tracking-tight">Buscar anuncios</h1>
+            <p class="text-slate-600 mt-2">Negocios y profesionales cerca de ti.</p>
         </header>
+        <p v-if="geoErr" class="text-center text-sm text-red-600 mb-4">{{ geoErr }}</p>
+        <AdSlot placement="search" />
         <form
             @submit.prevent="submitSearch"
             class="w-full bg-white p-4 md:p-2 rounded-xl md:rounded-full shadow-lg border border-slate-100 flex flex-col md:flex-row items-center gap-3 md:gap-2 mb-10"
@@ -72,7 +93,7 @@ function clearCategory() {
                 <input
                     v-model="localKeyword"
                     type="search"
-                    placeholder="¿Qué servicio necesitas?"
+                    placeholder="¿Qué buscas? (ej. ferretería, disco)"
                     class="w-full border-none focus:ring-0 text-base placeholder:text-slate-400 bg-transparent outline-none min-w-0"
                 />
             </div>
@@ -106,12 +127,24 @@ function clearCategory() {
                 </select>
             </div>
             <button
+                type="button"
+                class="w-full md:w-auto shrink-0 rounded-full border border-[#003874]/30 bg-white px-5 py-3 text-sm font-bold text-[#003874] hover:bg-slate-50 transition-all"
+                title="Usar tu ubicación actual"
+                @click="nearMe"
+            >
+                Cerca de mí
+            </button>
+            <button
                 type="submit"
                 class="w-full md:w-auto shrink-0 bg-[#ff7a2b] text-[#602500] px-8 py-3 rounded-full font-bold hover:brightness-105 active:scale-[0.98] transition-all"
             >
                 Buscar
             </button>
         </form>
+        <p v-if="geo.useGps" class="text-center text-xs text-emerald-700 font-semibold -mt-6 mb-8">Buscando cerca de tu ubicación (GPS)</p>
+        <p v-else class="text-center text-xs text-slate-500 -mt-6 mb-8">
+            Filtra por departamento, provincia y distrito, o usa «Cerca de mí».
+        </p>
 
         <section class="mb-10">
             <div class="flex flex-wrap items-center gap-2">

@@ -66,8 +66,8 @@ function fmtDate(d) {
         <header class="mb-8 rounded-3xl bg-grad-warm text-white p-6 md:p-10 relative overflow-hidden">
             <div class="relative z-10">
                 <p class="text-xs font-bold uppercase tracking-widest text-white/80">Premium</p>
-                <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1">Chamba Premium para clientes</h1>
-                <p class="text-white/90 mt-1">Soporte prioritario, garantía Chamba y respuesta más rápida de proveedores.</p>
+                <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1">Busca PE Premium para clientes</h1>
+                <p class="text-white/90 mt-1">Más contactos al mes, sin anuncios y prioridad al contactar negocios.</p>
             </div>
             <div class="pointer-events-none absolute -bottom-20 -right-20 w-72 h-72 bg-[#7c3aed]/30 rounded-full blur-3xl"></div>
             <div class="pointer-events-none absolute -top-20 -left-20 w-72 h-72 bg-[#0ea5e9]/30 rounded-full blur-3xl"></div>
@@ -100,7 +100,7 @@ function fmtDate(d) {
                 <ul class="mt-5 space-y-2 text-sm text-slate-700">
                     <li class="flex gap-2"><span class="material-symbols-outlined text-emerald-600 text-[20px]">check</span> Buscar y solicitar servicios</li>
                     <li class="flex gap-2"><span class="material-symbols-outlined text-emerald-600 text-[20px]">check</span> Marcar favoritos</li>
-                    <li class="flex gap-2"><span class="material-symbols-outlined text-slate-400 text-[20px]">close</span> Sin garantía Chamba</li>
+                    <li class="flex gap-2"><span class="material-symbols-outlined text-slate-400 text-[20px]">close</span> Límite de contactos al mes</li>
                     <li class="flex gap-2"><span class="material-symbols-outlined text-slate-400 text-[20px]">close</span> Soporte estándar</li>
                 </ul>
             </article>
@@ -114,7 +114,7 @@ function fmtDate(d) {
                 <ul class="mt-5 space-y-2 text-sm text-white/95">
                     <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Insignia "Cliente Verificado" (te responden más rápido)</li>
                     <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Soporte prioritario 24/7</li>
-                    <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Garantía Chamba: si tu proveedor falla, te buscamos otro sin costo</li>
+                    <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Contactos ilimitados y experiencia sin publicidad</li>
                     <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Acceso anticipado a proveedores top</li>
                     <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Sin publicidad en la app</li>
                 </ul>

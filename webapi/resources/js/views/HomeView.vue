@@ -6,6 +6,7 @@ import { useGeoStore } from '@/stores/geo';
 import { useSearchStore } from '@/stores/search';
 import { categoryStyleFor } from '@/components/common/CategoryIcon';
 import ServiceCard from '@/components/service/ServiceCard.vue';
+import AdSlot from '@/components/ads/AdSlot.vue';
 
 const router = useRouter();
 const catalog = useCatalogStore();
@@ -22,12 +23,15 @@ onMounted(async () => {
 });
 
 async function onDepartment(e) {
+    geo.clearGps();
     await geo.setDepartment(e.target.value);
 }
 async function onProvince(e) {
+    geo.clearGps();
     await geo.setProvince(e.target.value);
 }
 function onDistrict(e) {
+    geo.clearGps();
     geo.setDistrict(e.target.value);
 }
 
@@ -49,15 +53,15 @@ function pickCategory(id) {
                 <div class="max-w-7xl mx-auto px-4 py-16 md:py-24 text-center flex flex-col items-center">
                     <span class="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest mb-6">
                         <span class="w-1.5 h-1.5 rounded-full bg-[#ff9c2b]"></span>
-                        Marketplace de servicios locales
+                        Directorio · Publicidad local en Perú
                     </span>
                     <h1 class="text-4xl md:text-6xl font-black leading-tight tracking-tight max-w-3xl">
-                        Encuentra al
-                        <span class="bg-gradient-to-r from-[#ff9c2b] via-[#ff7a2b] to-[#ff5e7e] bg-clip-text text-transparent">experto ideal</span>
-                        para tu hogar
+                        Encuentra el
+                        <span class="bg-gradient-to-r from-[#ff9c2b] via-[#ff7a2b] to-[#ff5e7e] bg-clip-text text-transparent">negocio que buscas</span>
+                        cerca de ti
                     </h1>
                     <p class="mt-5 text-base md:text-lg text-white/85 max-w-xl">
-                        Plomeros, electricistas, carpinteros y más. Compara, contacta y paga seguro con custodia Chamba.
+                        Ferreterías, discotecas, restaurantes, talleres y más. Explora anuncios por rubro y zona, y contacta directo al negocio.
                     </p>
                 </div>
             </div>
@@ -71,7 +75,7 @@ function pickCategory(id) {
                     <input
                         v-model="localKeyword"
                         type="search"
-                        placeholder="¿Qué servicio necesitas?"
+                        placeholder="¿Qué buscas? (ej. ferretería, disco, taller)"
                         class="w-full border-none focus:ring-0 text-base placeholder:text-slate-400 bg-transparent outline-none min-w-0"
                     />
                 </div>
@@ -114,6 +118,10 @@ function pickCategory(id) {
             </div>
         </section>
 
+        <div class="max-w-7xl mx-auto px-4 md:px-8 mt-10">
+            <AdSlot placement="home" />
+        </div>
+
         <section class="max-w-7xl mx-auto px-4 md:px-8 mt-16 mb-16">
             <div class="flex justify-between items-end mb-8 flex-wrap gap-4">
                 <div>
@@ -149,8 +157,8 @@ function pickCategory(id) {
         <section class="max-w-7xl mx-auto px-4 md:px-8 mb-16">
             <div class="flex justify-between items-end mb-8 gap-4">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-widest text-[#ff5e7e]">Top picks</p>
-                    <h2 class="text-2xl md:text-3xl font-bold text-[#0b1c30] tracking-tight">Servicios destacados</h2>
+                    <p class="text-xs font-bold uppercase tracking-widest text-[#ff5e7e]">Destacados</p>
+                    <h2 class="text-2xl md:text-3xl font-bold text-[#0b1c30] tracking-tight">Anuncios destacados</h2>
                 </div>
                 <RouterLink :to="{ name: 'search' }" class="text-[#003874] font-semibold text-sm hover:underline">
                     Ver todos
@@ -165,7 +173,7 @@ function pickCategory(id) {
                     :featured="idx < 2"
                 />
             </div>
-            <p v-else class="text-slate-500 text-sm">Aún no hay servicios disponibles.</p>
+            <p v-else class="text-slate-500 text-sm">Aún no hay anuncios disponibles.</p>
         </section>
 
         <section
@@ -174,22 +182,22 @@ function pickCategory(id) {
         >
             <div class="relative z-10">
                 <p class="text-center text-xs font-bold uppercase tracking-widest text-[#0ea5e9] mb-2">3 pasos</p>
-                <h2 class="text-2xl md:text-3xl font-bold text-center text-[#0b1c30] mb-12">¿Cómo funciona Chamba?</h2>
+                <h2 class="text-2xl md:text-3xl font-bold text-center text-[#0b1c30] mb-12">¿Cómo funciona Busca PE?</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
                     <div class="flex flex-col items-center text-center">
                         <div class="w-16 h-16 rounded-2xl bg-grad-brand text-white flex items-center justify-center font-black text-2xl mb-6 glow-blue">1</div>
-                        <h3 class="text-lg font-bold text-[#0b1c30] mb-2">Busca el servicio</h3>
-                        <p class="text-slate-600 text-sm">Explora categorías y encuentra profesionales por zona.</p>
+                        <h3 class="text-lg font-bold text-[#0b1c30] mb-2">Busca cerca de ti</h3>
+                        <p class="text-slate-600 text-sm">Elige departamento, provincia y distrito en el buscador, o usa tu ubicación (GPS).</p>
                     </div>
                     <div class="flex flex-col items-center text-center">
                         <div class="w-16 h-16 rounded-2xl bg-grad-violet text-white flex items-center justify-center font-black text-2xl mb-6 shadow-lg shadow-[#7c3aed]/30">2</div>
-                        <h3 class="text-lg font-bold text-[#0b1c30] mb-2">Compara y cotiza</h3>
-                        <p class="text-slate-600 text-sm">Revisa reputación y precio antes de contratar.</p>
+                        <h3 class="text-lg font-bold text-[#0b1c30] mb-2">Revisa el anuncio</h3>
+                        <p class="text-slate-600 text-sm">Mira fotos, sedes, horarios y valoraciones antes de decidir.</p>
                     </div>
                     <div class="flex flex-col items-center text-center">
                         <div class="w-16 h-16 rounded-2xl bg-grad-warm text-white flex items-center justify-center font-black text-2xl mb-6 glow-coral">3</div>
-                        <h3 class="text-lg font-bold text-[#0b1c30] mb-2">Paga con confianza</h3>
-                        <p class="text-slate-600 text-sm">Tu pago queda en custodia. Liberas cuando termina el trabajo.</p>
+                        <h3 class="text-lg font-bold text-[#0b1c30] mb-2">Contacta directo</h3>
+                        <p class="text-slate-600 text-sm">Envía tu solicitud y coordina con el negocio por WhatsApp, teléfono o como prefieran.</p>
                     </div>
                 </div>
                 <div class="mt-12 text-center">
@@ -204,6 +212,28 @@ function pickCategory(id) {
             <div class="pointer-events-none absolute -bottom-24 -right-24 w-72 h-72 bg-[#0ea5e9]/15 rounded-full blur-3xl"></div>
             <div class="pointer-events-none absolute -top-24 -left-24 w-72 h-72 bg-[#ff7a2b]/15 rounded-full blur-3xl"></div>
             <div class="pointer-events-none absolute top-1/2 -translate-y-1/2 right-1/3 w-64 h-64 bg-[#7c3aed]/10 rounded-full blur-3xl"></div>
+        </section>
+
+        <section class="mx-4 md:mx-8 max-w-[calc(100%-2rem)] md:max-w-7xl md:mx-auto mb-16 rounded-3xl bg-grad-hero text-white px-6 py-10 md:px-12 md:py-14 text-center shadow-xl shadow-[#003874]/20">
+            <p class="text-xs font-bold uppercase tracking-widest text-white/70 mb-2">Para negocios</p>
+            <h2 class="text-2xl md:text-3xl font-black tracking-tight">Publica tu anuncio en Busca PE</h2>
+            <p class="mt-3 text-white/90 max-w-lg mx-auto text-sm md:text-base">
+                Llega a quien busca en tu zona. Planes con más visibilidad y cupo de anuncios activos.
+            </p>
+            <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+                <RouterLink
+                    :to="{ name: 'login', query: { cuenta: 'proveedor' } }"
+                    class="inline-flex btn-grad-warm px-8 py-3 rounded-full font-bold no-underline active:scale-[0.99]"
+                >
+                    Publicar mi negocio
+                </RouterLink>
+                <RouterLink
+                    :to="{ name: 'register', query: { cuenta: 'proveedor' } }"
+                    class="inline-flex px-8 py-3 rounded-full font-bold border border-white/40 text-white hover:bg-white/10 no-underline transition"
+                >
+                    Crear cuenta gratis
+                </RouterLink>
+            </div>
         </section>
     </div>
 </template>

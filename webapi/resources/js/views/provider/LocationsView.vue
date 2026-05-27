@@ -13,6 +13,9 @@ const form = reactive({
     department_id: null,
     province_id: null,
     district_id: null,
+    ubigeo: '',
+    latitude: '',
+    longitude: '',
     is_primary: false,
 });
 const departments = ref([]);
@@ -44,11 +47,19 @@ async function onDeptChange() {
 async function onProvChange() {
     districts.value = [];
     form.district_id = null;
+    form.ubigeo = '';
     if (!form.province_id) return;
     try {
         const r = await api.get('/geo/districts', { params: { province_id: form.province_id } });
         districts.value = r.data || [];
     } catch { /* noop */ }
+}
+
+function onDistrictChange() {
+    const d = districts.value.find((row) => Number(row.id) === Number(form.district_id));
+    form.ubigeo = d?.ubigeo ? String(d.ubigeo) : '';
+    if (d?.latitude != null && form.latitude === '') form.latitude = d.latitude;
+    if (d?.longitude != null && form.longitude === '') form.longitude = d.longitude;
 }
 
 function startNew() {
@@ -58,6 +69,9 @@ function startNew() {
     form.department_id = null;
     form.province_id = null;
     form.district_id = null;
+    form.ubigeo = '';
+    form.latitude = '';
+    form.longitude = '';
     form.is_primary = false;
     err.value = ''; ok.value = '';
 }
@@ -69,6 +83,9 @@ async function startEdit(loc) {
     form.department_id = loc.department_id || null;
     form.province_id = loc.province_id || null;
     form.district_id = loc.district_id || null;
+    form.ubigeo = loc.ubigeo || '';
+    form.latitude = loc.latitude ?? '';
+    form.longitude = loc.longitude ?? '';
     form.is_primary = !!loc.is_primary;
     err.value = ''; ok.value = '';
     if (form.department_id) {
@@ -95,6 +112,9 @@ async function submit() {
             district_id: form.district_id,
             department_id: form.department_id || null,
             province_id: form.province_id || null,
+            ubigeo: form.ubigeo || null,
+            latitude: form.latitude === '' ? null : Number(form.latitude),
+            longitude: form.longitude === '' ? null : Number(form.longitude),
             is_primary: form.is_primary,
         };
         if (editing.value === 'new') {
@@ -182,13 +202,26 @@ async function remove(id) {
                 </label>
                 <label class="block">
                     <span class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1 block">Distrito <span class="text-rose-600">*</span></span>
-                    <select v-model="form.district_id" required :disabled="!districts.length"
+                    <select v-model="form.district_id" required :disabled="!districts.length" @change="onDistrictChange"
                         class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#003874] disabled:bg-slate-50">
                         <option :value="null">— Selecciona —</option>
                         <option v-for="d in districts" :key="d.id" :value="d.id">{{ d.name }}</option>
                     </select>
                 </label>
             </div>
+            <div class="grid sm:grid-cols-2 gap-3">
+                <label class="block">
+                    <span class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1 block">Latitud (opcional)</span>
+                    <input v-model="form.latitude" type="number" step="any" placeholder="-12.046"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#003874]" />
+                </label>
+                <label class="block">
+                    <span class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1 block">Longitud (opcional)</span>
+                    <input v-model="form.longitude" type="number" step="any" placeholder="-77.043"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#003874]" />
+                </label>
+            </div>
+            <p class="text-xs text-slate-500">El código ubigeo se asigna automáticamente al elegir el distrito.</p>
             <label class="block">
                 <span class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1 block">Dirección (opcional)</span>
                 <input v-model="form.address_text" maxlength="255" placeholder="Av. ..., piso ..."

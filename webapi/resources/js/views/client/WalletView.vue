@@ -13,11 +13,11 @@ onMounted(() => store.loadPayments());
     <div class="max-w-5xl mx-auto px-4 md:px-8 py-8">
         <header class="mb-8">
             <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mis pagos</h1>
-            <p class="text-slate-600 mt-1">Histórico de pagos hechos en Chamba.</p>
+            <p class="text-slate-600 mt-1">Histórico de pagos hechos en Busca PE.</p>
         </header>
 
         <div v-if="store.platformPayoutInfo" class="rounded-2xl border border-slate-200 bg-white p-6 mb-8">
-            <p class="text-xs font-bold uppercase tracking-wide text-[#003874] mb-2">Cuentas para pagar a Chamba</p>
+            <p class="text-xs font-bold uppercase tracking-wide text-[#003874] mb-2">Cuentas para pagar a Busca PE</p>
             <ul class="text-sm text-slate-700 space-y-1">
                 <li><strong>Yape/Plin:</strong> {{ store.platformPayoutInfo.yape }}</li>
                 <li><strong>{{ store.platformPayoutInfo.bank_name }}:</strong> {{ store.platformPayoutInfo.bank_account }} · {{ store.platformPayoutInfo.bank_holder }}</li>
