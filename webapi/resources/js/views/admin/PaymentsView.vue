@@ -71,6 +71,7 @@ async function reject(id) {
                         <th class="text-right px-4 py-3">Comisión</th>
                         <th class="text-right px-4 py-3">Neto</th>
                         <th class="text-left px-4 py-3">Método/Ref</th>
+                        <th class="text-left px-4 py-3">Comprobante</th>
                         <th class="text-left px-4 py-3">Estado</th>
                         <th class="text-right px-4 py-3">Acciones</th>
                     </tr>
@@ -85,6 +86,12 @@ async function reject(id) {
                         <td class="px-4 py-3 text-right text-red-700"><Money :amount="p.commission_amount" /></td>
                         <td class="px-4 py-3 text-right text-emerald-700"><Money :amount="p.net_amount" /></td>
                         <td class="px-4 py-3 text-xs">{{ p.payment_method }} · {{ p.payment_reference || '—' }}</td>
+                        <td class="px-4 py-3">
+                            <a v-if="p.proof_image_url" :href="p.proof_image_url" target="_blank" rel="noopener">
+                                <img :src="p.proof_image_url" alt="Comprobante" class="h-16 w-16 object-cover rounded border border-slate-200" />
+                            </a>
+                            <span v-else class="text-xs text-slate-400">—</span>
+                        </td>
                         <td class="px-4 py-3"><StatusPill :status="p.status" /></td>
                         <td class="px-4 py-3 text-right">
                             <div v-if="p.status === 'pendiente_revision'" class="flex justify-end gap-1">

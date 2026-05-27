@@ -2,12 +2,28 @@
 
 return [
     'features' => [
-        'escrow' => env('CHAMBA_FEATURE_ESCROW', false),
+        'escrow' => env('CHAMBA_FEATURE_ESCROW', true),
         'subscriptions' => env('CHAMBA_FEATURE_SUBSCRIPTIONS', true),
     ],
 
     'commission' => [
-        'default_rate' => env('CHAMBA_COMMISSION_RATE', 15.00),
+        'default_rate' => env('CHAMBA_COMMISSION_RATE', 10.00),
+    ],
+
+    'escrow' => [
+        'commission_percent' => env('CHAMBA_ESCROW_COMMISSION_PERCENT', 10.00),
+        'auto_release_days' => env('CHAMBA_ESCROW_AUTO_RELEASE_DAYS', 7),
+        'evidence_min_photos' => env('CHAMBA_ESCROW_EVIDENCE_MIN_PHOTOS', 1),
+        'dispute_window_days' => env('CHAMBA_ESCROW_DISPUTE_WINDOW_DAYS', 7),
+    ],
+
+    'provider_locations' => [
+        'max_free' => env('CHAMBA_LOCATIONS_MAX_FREE', 1),
+        'max_pro' => env('CHAMBA_LOCATIONS_MAX_PRO', 5),
+    ],
+
+    'payments' => [
+        'proof_required' => env('CHAMBA_PAYMENT_PROOF_REQUIRED', true),
     ],
 
     'payouts' => [

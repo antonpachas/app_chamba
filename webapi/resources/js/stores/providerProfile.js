@@ -59,8 +59,10 @@ export const useProviderProfileStore = defineStore('providerProfile', {
             return r.data;
         },
         async addServiceImage(serviceId, file) {
+            const { resizeImageFile } = await import('@/services/imageResize');
+            const ready = await resizeImageFile(file, { maxDimension: 1600 });
             const fd = new FormData();
-            fd.append('image', file);
+            fd.append('image', ready);
             const r = await api.post(`/provider/services/${serviceId}/images`, fd, { auth: true });
             this.services = this.services.map((s) => {
                 if (s.id !== serviceId) return s;

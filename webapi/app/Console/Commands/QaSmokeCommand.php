@@ -31,6 +31,10 @@ class QaSmokeCommand extends Command
                 }
 
                 $prov = \App\Models\User::where('email', 'proveedor@gmail.com')->firstOrFail();
+                // Forzar trial Pro fresh: si ya era Pro active, bajamos a Free primero para que el trial se aplique.
+                if ($existing = $prov->activeSubscription()) {
+                    $svc->downgradeToFree($existing);
+                }
                 $svc->startProviderTrial($prov);
 
                 \App\Models\ContactEvent::where('provider_user_id', $prov->id)
@@ -100,15 +104,20 @@ class QaSmokeCommand extends Command
                 return 'contactos_mes='.$r['usage']['contacts_this_month'].'/'.$r['usage']['free_contacts_limit'];
             });
 
-            // 5. Cliente registra pago Premium → admin confirma
-            $paymentId = $this->step('Cliente paga premium', function () use ($clientToken) {
-                $r = $this->post('/subscriptions/pay', [
+            // Generamos imágenes temporales en este punto porque varios pasos las usan.
+            $tmpJpg = $this->makeTestImageJpeg();
+            $tmpPng = $this->makeTestImagePng();
+
+            // 5. Cliente registra pago Premium con comprobante obligatorio → admin confirma
+            $paymentId = $this->step('Cliente paga premium con comprobante', function () use ($clientToken, $tmpPng) {
+                $r = $this->upload('/subscriptions/pay', 'proof', $tmpPng, 'proof.png', 'image/png', $clientToken, [
                     'plan_code' => 'client_premium',
                     'payment_method' => 'yape',
                     'payment_reference' => 'QA-CLI-'.time(),
-                ], $clientToken);
+                ]);
                 $this->assert(($r['data']['status'] ?? null) === 'pendiente_revision', 'status != pendiente_revision');
-                return 'pago id='.$r['data']['id'];
+                $this->assert(! empty($r['data']['proof_image_path'] ?? null), 'sin proof_image_path');
+                return 'pago id='.$r['data']['id'].' proof='.$r['data']['proof_image_path'];
             });
 
             $this->step('Admin ve el pago en /admin/subscriptions/payments', function () use ($adminToken) {
@@ -117,7 +126,7 @@ class QaSmokeCommand extends Command
                 return count($r['data']).' pago(s) pendientes';
             });
 
-            $confirmId = (int) explode('=', (string) $paymentId)[1];
+            $confirmId = (int) explode('=', explode(' ', (string) $paymentId)[1])[1];
             $this->step('Admin confirma pago', function () use ($adminToken, $confirmId) {
                 $r = $this->post("/admin/subscriptions/payments/{$confirmId}/confirm", [], $adminToken);
                 $this->assert(($r['data']['status'] ?? null) === 'confirmado', 'no confirmado');
@@ -289,10 +298,7 @@ class QaSmokeCommand extends Command
                 return 'restaurado='.$originalPrice;
             });
 
-            // 11. Subida de archivos al FTP (avatar, comprobante, imagen de servicio)
-            $tmpJpg = $this->makeTestImageJpeg();
-            $tmpPng = $this->makeTestImagePng();
-
+            // 11. Subida de archivos al FTP (avatar e imagen de servicio)
             $this->step('Cliente sube avatar (JPG)', function () use ($clientToken, $tmpJpg) {
                 $r = $this->upload('/me/avatar', 'avatar', $tmpJpg, 'avatar.jpg', 'image/jpeg', $clientToken);
                 $this->assert(! empty($r['data']['avatar_path'] ?? null), 'sin avatar_path');
@@ -306,22 +312,10 @@ class QaSmokeCommand extends Command
                 return $r['user']['avatar_url'];
             });
 
-            $this->step('Cliente envía pago Premium con comprobante', function () use ($clientToken, $tmpPng) {
-                $r = $this->upload('/subscriptions/pay', 'proof', $tmpPng, 'proof.png', 'image/png', $clientToken, [
-                    'plan_code' => 'client_premium',
-                    'payment_method' => 'yape',
-                    'payment_reference' => 'QA-PROOF-'.time(),
-                ]);
-                $this->assert(($r['data']['status'] ?? null) === 'pendiente_revision', 'status invalido');
-                $this->assert(! empty($r['data']['proof_image_path'] ?? null), 'sin proof_image_path');
-                $this->assert(str_starts_with($r['data']['proof_image_path'], 'payments/'), 'path no empieza con payments/');
-                return 'pago id='.$r['data']['id'].' proof='.$r['data']['proof_image_path'];
-            });
-
-            $this->step('Admin ve el comprobante en pagos pendientes', function () use ($adminToken) {
-                $r = $this->get('/admin/subscriptions/payments?status=pendiente_revision', $adminToken);
+            $this->step('Admin ve los comprobantes en suscripciones', function () use ($adminToken) {
+                $r = $this->get('/admin/subscriptions/payments?status=confirmado', $adminToken);
                 $hasProof = collect($r['data'] ?? [])->contains(fn ($p) => ! empty($p['proof_image_url']));
-                $this->assert($hasProof, 'ningún pago muestra proof_image_url');
+                $this->assert($hasProof, 'ningún pago confirmado muestra proof_image_url');
                 return 'admin ve los comprobantes';
             });
 
@@ -362,6 +356,161 @@ class QaSmokeCommand extends Command
                 });
             }
 
+            // 12. Sedes del proveedor (Fase 2)
+            $this->step('Proveedor lista sedes (límite por plan)', function () use ($providerToken) {
+                $r = $this->get('/provider/locations', $providerToken);
+                $this->assert(isset($r['max_locations']), 'sin max_locations');
+                return 'max='.$r['max_locations'].' actuales='.($r['active_count'] ?? 0);
+            });
+
+            // Tomamos un distrito real
+            $district = \App\Models\District::query()->first();
+            if ($district) {
+                $createdLocId = $this->step('Proveedor intenta crear segunda sede (depende del plan)', function () use ($providerToken, $district) {
+                    $r = \Illuminate\Support\Facades\Http::withToken($providerToken)
+                        ->acceptJson()
+                        ->post($this->base.'/provider/locations', [
+                            'label' => 'Sede QA '.substr((string) microtime(true), -4),
+                            'district_id' => $district->id,
+                            'is_primary' => false,
+                        ]);
+                    // Puede dar 201 (Pro en trial) o 422 (Free con 1 sede ya)
+                    if ($r->status() === 201) {
+                        return 'creada id='.$r->json('data.id');
+                    }
+                    if ($r->status() === 422) {
+                        return 'bloqueada por límite ('.$r->json('message').')';
+                    }
+                    $this->assert(false, 'esperaba 201 o 422, devolvió '.$r->status());
+                    return '';
+                });
+
+                if (is_string($createdLocId) && str_starts_with($createdLocId, 'creada id=')) {
+                    $locId = (int) explode('=', $createdLocId)[1];
+                    $this->step('Proveedor elimina la sede de prueba', function () use ($providerToken, $locId) {
+                        $r = \Illuminate\Support\Facades\Http::withToken($providerToken)
+                            ->acceptJson()
+                            ->delete($this->base."/provider/locations/{$locId}");
+                        $this->assert($r->successful(), 'no se pudo borrar: '.$r->status());
+                        return 'borrada';
+                    });
+                }
+            }
+
+            // 13. Búsqueda multi-sede: si filtra por district_id existe campo matched_by_location
+            $this->step('Búsqueda incluye campo matched_by_location cuando filtra distrito', function () use ($district) {
+                if (! $district) return 'sin distritos para probar';
+                $r = $this->get('/services/search?district_id='.$district->id);
+                $rows = $r['data'] ?? [];
+                $hasFlag = collect($rows)->contains(fn ($x) => array_key_exists('matched_by_location', $x));
+                // No es obligatorio que haya resultados con matched_by_location, solo que el endpoint funcione.
+                return count($rows).' resultados; matched_by_location_present='.($hasFlag ? 'sí' : 'no');
+            });
+
+            // 14. Flujo escrow completo
+            if ($providerSvc) {
+                $newReqId = $this->step('Cliente crea solicitud para flujo escrow', function () use ($clientToken, $providerSvc) {
+                    $r = $this->post('/client/service-requests', [
+                        'provider_service_id' => $providerSvc->id,
+                        'message' => 'QA escrow flow',
+                        'contact_channel' => 'whatsapp',
+                    ], $clientToken);
+                    $id = $r['service_request_id'] ?? ($r['data']['id'] ?? null);
+                    $this->assert($id !== null, 'sin id de solicitud: '.json_encode($r));
+                    return (string) $id;
+                });
+
+                if ($newReqId) {
+                    $quoteId = $this->step('Proveedor envía cotización', function () use ($providerToken, $newReqId) {
+                        $r = $this->post('/provider/quotes', [
+                            'service_request_id' => (int) $newReqId,
+                            'amount' => 100.00,
+                            'estimated_days' => 3,
+                            'notes' => 'QA quote',
+                        ], $providerToken);
+                        $id = $r['data']['id'] ?? null;
+                        $this->assert($id !== null, 'sin id de cotización: '.json_encode($r));
+                        return (string) $id;
+                    });
+
+                    if ($quoteId) {
+                        $this->step('Cliente acepta cotización', function () use ($clientToken, $quoteId) {
+                            $r = $this->patch('/client/quotes/'.(int) $quoteId, ['decision' => 'aceptar'], $clientToken);
+                            $this->assert(($r['data']['status'] ?? null) === 'aceptada', 'no quedó aceptada');
+                            return 'aceptada';
+                        });
+
+                        $servicePaymentId = $this->step('Cliente paga el servicio con comprobante', function () use ($clientToken, $quoteId, $tmpPng) {
+                            $r = $this->upload('/client/payments', 'proof', $tmpPng, 'pago.png', 'image/png', $clientToken, [
+                                'service_quote_id' => (int) $quoteId,
+                                'payment_method' => 'yape',
+                                'payment_reference' => 'QA-ESC-'.time(),
+                            ]);
+                            $id = $r['data']['id'] ?? null;
+                            $this->assert($id !== null, 'sin id de pago');
+                            $this->assert(! empty($r['data']['proof_image_url'] ?? null), 'sin proof_image_url');
+                            return (string) $id;
+                        });
+
+                        if ($servicePaymentId) {
+                            $this->step('Admin confirma el pago (en_custodia)', function () use ($adminToken, $servicePaymentId) {
+                                $r = $this->post('/admin/payments/'.(int) $servicePaymentId.'/confirm', [], $adminToken);
+                                $this->assert(($r['data']['status'] ?? null) === 'en_custodia', 'no quedó en custodia');
+                                return 'en_custodia';
+                            });
+
+                            $this->step('Proveedor sube evidencia del trabajo', function () use ($providerToken, $newReqId, $tmpJpg) {
+                                $r = \Illuminate\Support\Facades\Http::withToken($providerToken)
+                                    ->acceptJson()
+                                    ->attach('photos[]', file_get_contents($tmpJpg), 'evidence.jpg', ['Content-Type' => 'image/jpeg'])
+                                    ->post($this->base."/provider/service-requests/{$newReqId}/evidence");
+                                $this->assert($r->status() === 201, 'esperaba 201, devolvió '.$r->status().' - '.$r->body());
+                                $items = $r->json('data') ?? [];
+                                $this->assert(count($items) > 0, 'sin evidencia subida');
+                                return count($items).' evidencia(s) subidas';
+                            });
+
+                            $this->step('Proveedor marca trabajo como entregado', function () use ($providerToken, $newReqId) {
+                                $r = $this->post("/provider/service-requests/{$newReqId}/deliver", [], $providerToken);
+                                $this->assert(($r['data']['status'] ?? null) === 'entregado', 'no quedó entregado');
+                                return 'entregado, auto_release_at='.($r['data']['auto_release_at'] ?? '—');
+                            });
+
+                            $this->step('Cliente confirma trabajo terminado → pago liberado', function () use ($clientToken, $servicePaymentId) {
+                                $r = $this->post("/client/payments/{$servicePaymentId}/confirm-completed", [], $clientToken);
+                                $this->assert(($r['data']['status'] ?? null) === 'liberado', 'no quedó liberado');
+                                return 'liberado';
+                            });
+
+                            $this->step('Wallet del proveedor refleja balance', function () use ($providerToken) {
+                                $r = $this->get('/provider/wallet', $providerToken);
+                                $balance = (float) ($r['data']['wallet']['balance'] ?? 0);
+                                $this->assert($balance > 0, 'balance debería ser > 0');
+                                return "balance=S/{$balance}";
+                            });
+                        }
+                    }
+                }
+            }
+
+            // 15. Historial unificado del cliente
+            $this->step('Cliente GET /client/history mezcla membresía + servicios', function () use ($clientToken) {
+                $r = $this->get('/client/history', $clientToken);
+                $kinds = collect($r['data'] ?? [])->pluck('kind')->unique()->values()->all();
+                $this->assert(count($r['data'] ?? []) > 0, 'historial vacío');
+                return count($r['data']).' items; tipos: '.implode(',', $kinds);
+            });
+
+            // 16. Settings nuevos de fase 2 visibles
+            $this->step('Admin ve settings nuevos (escrow.commission_percent, locations)', function () use ($adminToken) {
+                $r = $this->get('/admin/settings', $adminToken);
+                $keys = collect($r['data'] ?? [])->pluck('key')->all();
+                foreach (['escrow.commission_percent', 'escrow.auto_release_days', 'provider.locations.max_free', 'provider.locations.max_pro'] as $k) {
+                    $this->assert(in_array($k, $keys, true), "falta setting {$k}");
+                }
+                return 'settings fase 2 OK';
+            });
+
             @unlink($tmpJpg);
             @unlink($tmpPng);
 
@@ -395,7 +544,7 @@ class QaSmokeCommand extends Command
         }
     }
 
-    private function assert(bool $cond, string $msg): void
+    private function assert(mixed $cond, string $msg): void
     {
         if (! $cond) throw new \RuntimeException($msg);
     }
@@ -433,6 +582,15 @@ class QaSmokeCommand extends Command
         if ($token) $req = $req->withToken($token);
         $r = $req->put($this->base.$path, $payload);
         $this->assert($r->successful(), "PUT {$path}: HTTP {$r->status()} - ".$r->body());
+        return $r->json() ?? [];
+    }
+
+    private function patch(string $path, array $payload, ?string $token = null): array
+    {
+        $req = Http::acceptJson();
+        if ($token) $req = $req->withToken($token);
+        $r = $req->patch($this->base.$path, $payload);
+        $this->assert($r->successful(), "PATCH {$path}: HTTP {$r->status()} - ".$r->body());
         return $r->json() ?? [];
     }
 

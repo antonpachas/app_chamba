@@ -104,12 +104,14 @@ final class SubscriptionController extends Controller
 
     public function pay(Request $request): JsonResponse
     {
+        $proofRequired = (bool) chamba_setting('payments.proof_required', config('chamba.payments.proof_required', true));
+
         $data = $request->validate([
             'plan_code' => 'required|string|exists:subscription_plans,code',
             'payment_method' => 'nullable|in:yape,plin,transferencia',
             'payment_reference' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:500',
-            'proof' => 'nullable|file|max:5120',
+            'proof' => ($proofRequired ? 'required' : 'nullable').'|file|max:5120',
         ]);
 
         try {

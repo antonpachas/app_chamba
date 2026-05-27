@@ -89,6 +89,12 @@ const routes = [
         meta: { layout: 'default', requiresAuth: true, role: 'cliente', title: 'Mi membresía' },
     },
     {
+        path: '/cliente/historial',
+        name: 'client-history',
+        component: () => import('@/views/client/HistoryView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'cliente', title: 'Historial de pagos' },
+    },
+    {
         path: '/proveedor/panel',
         name: 'provider-dashboard',
         component: () => import('@/views/provider/DashboardView.vue'),
@@ -105,6 +111,12 @@ const routes = [
         name: 'provider-services',
         component: () => import('@/views/provider/ServicesView.vue'),
         meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Mis servicios' },
+    },
+    {
+        path: '/proveedor/sedes',
+        name: 'provider-locations',
+        component: () => import('@/views/provider/LocationsView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Mis sedes' },
     },
     {
         path: '/proveedor/solicitudes',

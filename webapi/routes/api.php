@@ -21,11 +21,14 @@ use App\Http\Controllers\Api\V1\Client\ServiceRequestController;
 use App\Http\Controllers\Api\V1\Client\ServiceRequestListController as ClientServiceRequestListController;
 use App\Http\Controllers\Api\V1\GeoController;
 use App\Http\Controllers\Api\V1\MediaController;
+use App\Http\Controllers\Api\V1\Client\HistoryController as ClientHistoryController;
 use App\Http\Controllers\Api\V1\Provider\DashboardController;
+use App\Http\Controllers\Api\V1\Provider\LocationController as ProviderLocationController;
 use App\Http\Controllers\Api\V1\Provider\ProfileController;
 use App\Http\Controllers\Api\V1\Provider\QuoteController as ProviderQuoteController;
 use App\Http\Controllers\Api\V1\Provider\ServiceController;
 use App\Http\Controllers\Api\V1\Provider\ServiceImageController;
+use App\Http\Controllers\Api\V1\Provider\ServiceRequestDeliveryController as ProviderRequestDeliveryController;
 use App\Http\Controllers\Api\V1\Provider\ServiceRequestListController as ProviderServiceRequestListController;
 use App\Http\Controllers\Api\V1\Provider\WalletController;
 use App\Http\Controllers\Api\V1\PublicProviderController;
@@ -49,13 +52,19 @@ Route::prefix('v1')->group(function (): void {
 
     Route::get('media/avatars/{name}', [MediaController::class, 'show'])
         ->defaults('folder', 'avatars')
+        ->name('media.avatars')
         ->where('name', '[A-Za-z0-9_.-]+');
     Route::get('media/services/{name}', [MediaController::class, 'show'])
         ->defaults('folder', 'services')
+        ->name('media.services')
         ->where('name', '[A-Za-z0-9_.-]+');
+    // payments: el backend solo genera URLs firmadas (TemporarySignedRoute) para
+    // usuarios autorizados. La firma incluye expiración (24h) y reemplaza la
+    // necesidad de Bearer token: así <img src="..."> funciona en el navegador.
     Route::get('media/payments/{name}', [MediaController::class, 'show'])
         ->defaults('folder', 'payments')
-        ->middleware('auth:sanctum')
+        ->name('media.payments')
+        ->middleware('signed')
         ->where('name', '[A-Za-z0-9_.-]+');
 
     Route::middleware('auth:sanctum')->group(function (): void {
@@ -87,7 +96,18 @@ Route::prefix('v1')->group(function (): void {
             Route::get('service-requests', [ProviderServiceRequestListController::class, 'index']);
             Route::patch('service-requests/{serviceRequest}/status', [ProviderServiceRequestListController::class, 'updateStatus']);
 
+            // Entrega del trabajo con evidencia (fotos) + transición a "entregado"
+            Route::post('service-requests/{serviceRequest}/evidence', [ProviderRequestDeliveryController::class, 'uploadEvidence']);
+            Route::delete('service-requests/{serviceRequest}/evidence/{evidence}', [ProviderRequestDeliveryController::class, 'deleteEvidence']);
+            Route::post('service-requests/{serviceRequest}/deliver', [ProviderRequestDeliveryController::class, 'markDelivered']);
+
             Route::post('quotes', [ProviderQuoteController::class, 'store']);
+
+            // Sedes / direcciones del proveedor
+            Route::get('locations', [ProviderLocationController::class, 'index']);
+            Route::post('locations', [ProviderLocationController::class, 'store']);
+            Route::put('locations/{location}', [ProviderLocationController::class, 'update']);
+            Route::delete('locations/{location}', [ProviderLocationController::class, 'destroy']);
 
             Route::get('wallet', [WalletController::class, 'show']);
             Route::patch('wallet', [WalletController::class, 'update']);
@@ -104,6 +124,10 @@ Route::prefix('v1')->group(function (): void {
             Route::get('payments', [ClientPaymentController::class, 'index']);
             Route::post('payments', [ClientPaymentController::class, 'store']);
             Route::post('payments/{payment}/confirm-completed', [ClientPaymentController::class, 'confirmCompleted']);
+            Route::post('payments/{payment}/dispute', [ClientPaymentController::class, 'dispute']);
+
+            // Historial unificado: membresía + servicios contratados
+            Route::get('history', [ClientHistoryController::class, 'index']);
 
             Route::post('reviews', [ReviewController::class, 'store']);
 

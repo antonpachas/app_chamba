@@ -70,8 +70,10 @@ return [
             'passive' => env('CHAMBA_FTP_PASSIVE', true),
             'ssl' => env('CHAMBA_FTP_SSL', false),
             'timeout' => (int) env('CHAMBA_FTP_TIMEOUT', 20),
-            'throw' => false,
-            'report' => false,
+            // throw=true para que MediaStorageService capture el error real
+            // (credenciales, permisos, conexión) en lugar de retornar false silencioso.
+            'throw' => true,
+            'report' => true,
         ],
 
     ],

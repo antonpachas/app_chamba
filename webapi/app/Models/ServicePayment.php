@@ -24,6 +24,7 @@ class ServicePayment extends Model
         'confirmed_at',
         'released_at',
         'notes',
+        'proof_image_path',
     ];
 
     protected function casts(): array

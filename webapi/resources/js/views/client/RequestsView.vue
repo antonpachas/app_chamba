@@ -9,7 +9,10 @@ import AppAlert from '@/components/ui/AppAlert.vue';
 const store = useClientRequestsStore();
 const busyId = ref(null);
 const payOpenId = ref(null);
-const payForm = ref({ payment_method: 'yape', payment_reference: '', notes: '' });
+const payForm = ref({ payment_method: 'yape', payment_reference: '', notes: '', proof: null });
+const proofPreviewUrl = ref('');
+const disputeOpenId = ref(null);
+const disputeReason = ref('');
 const localError = ref('');
 const localOk = ref('');
 
@@ -31,12 +34,24 @@ async function decide(quoteId, decision) {
 
 function openPay(reqId) {
     payOpenId.value = reqId;
-    payForm.value = { payment_method: 'yape', payment_reference: '', notes: '' };
+    payForm.value = { payment_method: 'yape', payment_reference: '', notes: '', proof: null };
+    proofPreviewUrl.value = '';
     localError.value = '';
     localOk.value = '';
 }
 
+function onProofPick(event) {
+    const file = event.target.files?.[0] || null;
+    payForm.value.proof = file;
+    if (proofPreviewUrl.value) URL.revokeObjectURL(proofPreviewUrl.value);
+    proofPreviewUrl.value = file ? URL.createObjectURL(file) : '';
+}
+
 async function submitPay(quoteId) {
+    if (store.proofRequired && !payForm.value.proof) {
+        localError.value = 'Adjunta la captura de la transferencia para registrar el pago.';
+        return;
+    }
     busyId.value = quoteId;
     localError.value = '';
     localOk.value = '';
@@ -57,6 +72,29 @@ async function confirmCompleted(paymentId) {
     try {
         await store.confirmCompleted(paymentId);
         localOk.value = 'Confirmaste la finalización. Pago liberado al proveedor.';
+    } catch (e) {
+        localError.value = e.message;
+    } finally {
+        busyId.value = null;
+    }
+}
+
+function openDispute(paymentId) {
+    disputeOpenId.value = paymentId;
+    disputeReason.value = '';
+}
+
+async function submitDispute(paymentId) {
+    if ((disputeReason.value || '').trim().length < 10) {
+        localError.value = 'Describe el problema con al menos 10 caracteres.';
+        return;
+    }
+    busyId.value = paymentId;
+    localError.value = '';
+    try {
+        await store.disputePayment(paymentId, disputeReason.value.trim());
+        disputeOpenId.value = null;
+        localOk.value = 'Disputa registrada. Un administrador la revisará.';
     } catch (e) {
         localError.value = e.message;
     } finally {
@@ -176,6 +214,27 @@ async function confirmCompleted(paymentId) {
                         <span class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Notas (opcional)</span>
                         <textarea v-model="payForm.notes" rows="2" maxlength="500" class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#003874]"></textarea>
                     </label>
+                    <label class="block text-sm">
+                        <span class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">
+                            Captura de la transferencia
+                            <span v-if="store.proofRequired" class="text-rose-600">*</span>
+                        </span>
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            @change="onProofPick"
+                            class="w-full text-sm"
+                        />
+                        <p v-if="store.proofRequired" class="text-xs text-slate-500 mt-1">
+                            Adjunta la captura del Yape/Plin o de la transferencia. Máx 5 MB.
+                        </p>
+                        <img
+                            v-if="proofPreviewUrl"
+                            :src="proofPreviewUrl"
+                            alt="Vista previa"
+                            class="mt-2 max-h-48 rounded-lg border border-slate-200"
+                        />
+                    </label>
                     <div class="flex justify-end gap-2">
                         <AppButton variant="ghost" size="sm" type="button" @click="payOpenId = null">Cancelar</AppButton>
                         <AppButton variant="primary" size="sm" type="submit" :loading="busyId === r.latest_quote.id">
@@ -197,20 +256,92 @@ async function confirmCompleted(paymentId) {
                         </div>
                         <StatusPill :status="r.payment.status" />
                     </div>
-                    <div v-if="r.payment.status === 'en_custodia'" class="mt-4">
-                        <p class="text-sm text-slate-700 mb-3">
+                    <a
+                        v-if="r.payment.proof_image_url"
+                        :href="r.payment.proof_image_url"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-block mt-3 text-xs text-[#003874] underline"
+                    >Ver mi captura del pago</a>
+                    <div v-if="r.payment.status === 'en_custodia'" class="mt-4 space-y-3">
+                        <p class="text-sm text-slate-700">
                             Cuando el proveedor termine el trabajo y estés conforme, libera el pago.
+                            Si algo no está bien, abre una disputa.
                         </p>
-                        <AppButton
-                            variant="primary"
-                            size="sm"
-                            :loading="busyId === r.payment.id"
-                            @click="confirmCompleted(r.payment.id)"
+                        <div class="flex flex-wrap gap-2">
+                            <AppButton
+                                variant="primary"
+                                size="sm"
+                                :loading="busyId === r.payment.id"
+                                @click="confirmCompleted(r.payment.id)"
+                            >
+                                Confirmar trabajo terminado
+                            </AppButton>
+                            <AppButton variant="ghost" size="sm" @click="openDispute(r.payment.id)">
+                                Reportar problema
+                            </AppButton>
+                        </div>
+                        <form
+                            v-if="disputeOpenId === r.payment.id"
+                            @submit.prevent="submitDispute(r.payment.id)"
+                            class="rounded-lg border border-rose-200 bg-rose-50/50 p-3 space-y-2"
                         >
-                            Confirmar trabajo terminado
-                        </AppButton>
+                            <textarea
+                                v-model="disputeReason"
+                                rows="3"
+                                maxlength="500"
+                                placeholder="Describe qué falló (mínimo 10 caracteres)…"
+                                class="w-full rounded-md border border-rose-200 bg-white px-3 py-2 text-sm outline-none focus:border-rose-500"
+                            ></textarea>
+                            <div class="flex justify-end gap-2">
+                                <AppButton variant="ghost" size="sm" type="button" @click="disputeOpenId = null">Cancelar</AppButton>
+                                <AppButton variant="primary" size="sm" type="submit" :loading="busyId === r.payment.id">
+                                    Enviar disputa
+                                </AppButton>
+                            </div>
+                        </form>
                     </div>
                 </div>
+
+                <!-- Evidencia del trabajo entregada por el proveedor -->
+                <div v-if="(r.evidence?.length || 0) > 0" class="rounded-xl border border-slate-100 bg-white p-4 mb-4">
+                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
+                        Evidencia entregada por el proveedor
+                    </p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        <a
+                            v-for="ev in r.evidence"
+                            :key="ev.id"
+                            :href="ev.url"
+                            target="_blank"
+                            rel="noopener"
+                            class="block"
+                        >
+                            <img :src="ev.url" :alt="ev.caption || 'Evidencia'"
+                                class="w-full h-24 object-cover rounded-md border border-slate-200" />
+                        </a>
+                    </div>
+                    <p v-if="r.delivered_at" class="text-xs text-slate-500 mt-2">
+                        Entregado el {{ new Date(r.delivered_at).toLocaleString() }}.
+                        <span v-if="r.auto_release_at">
+                            Si no respondes, el pago se libera automáticamente el
+                            {{ new Date(r.auto_release_at).toLocaleDateString() }}.
+                        </span>
+                    </p>
+                </div>
+
+                <!-- Timeline -->
+                <details v-if="(r.timeline?.length || 0) > 0" class="rounded-xl border border-slate-100 bg-white p-4 mb-4">
+                    <summary class="text-xs font-bold uppercase tracking-wide text-slate-500 cursor-pointer">
+                        Historial ({{ r.timeline.length }} eventos)
+                    </summary>
+                    <ul class="mt-2 space-y-1 text-xs text-slate-600">
+                        <li v-for="ev in r.timeline" :key="ev.id" class="flex gap-2">
+                            <span class="text-slate-400 shrink-0">{{ new Date(ev.created_at).toLocaleString() }}</span>
+                            <span><strong>{{ ev.actor_role || 'sistema' }}</strong>: {{ ev.from_status || '—' }} → {{ ev.to_status }}{{ ev.note ? ' · ' + ev.note : '' }}</span>
+                        </li>
+                    </ul>
+                </details>
 
                 <div class="flex flex-wrap gap-2 text-sm">
                     <a

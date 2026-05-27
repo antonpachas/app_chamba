@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { api } from '@/services/api';
+import { resizeImageFile } from '@/services/imageResize';
 import StatusPill from '@/components/common/StatusPill.vue';
 import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
@@ -13,6 +14,7 @@ const err = ref('');
 const ok = ref('');
 const busy = ref(null);
 const refForm = ref({});
+const proofFiles = ref({});
 
 async function load() {
     loading.value = true; err.value = '';
@@ -24,10 +26,20 @@ async function load() {
 }
 onMounted(load);
 
+function onProofChange(id, ev) {
+    proofFiles.value[id] = ev.target.files?.[0] || null;
+}
+
 async function pay(id) {
     busy.value = id; err.value = ''; ok.value = '';
     try {
-        await api.post(`/admin/withdrawals/${id}/pay`, { payout_reference: refForm.value[id] || null }, { auth: true });
+        const fd = new FormData();
+        if (refForm.value[id]) fd.append('payout_reference', refForm.value[id]);
+        if (proofFiles.value[id]) {
+            const ready = await resizeImageFile(proofFiles.value[id], { maxDimension: 1600 });
+            fd.append('proof', ready);
+        }
+        await api.post(`/admin/withdrawals/${id}/pay`, fd, { auth: true });
         ok.value = 'Retiro marcado como pagado.';
         await load();
     } catch (e) { err.value = e.message; }
@@ -81,10 +93,17 @@ async function pay(id) {
                             </div>
                             <div v-else>{{ w.provider?.yape_phone }}</div>
                         </td>
-                        <td class="px-4 py-3"><StatusPill :status="w.status" /></td>
+                        <td class="px-4 py-3">
+                            <StatusPill :status="w.status" />
+                            <a v-if="w.proof_image_url" :href="w.proof_image_url" target="_blank" rel="noopener"
+                                class="block mt-1 text-[10px] text-[#003874] underline">Ver comprobante</a>
+                        </td>
                         <td class="px-4 py-3 text-right">
                             <div v-if="w.status === 'solicitado'" class="flex flex-col gap-1 items-end">
                                 <input v-model="refForm[w.id]" placeholder="Referencia" class="rounded-lg border border-slate-200 px-2 py-1 text-xs w-40" />
+                                <input type="file" accept="image/jpeg,image/png,image/webp"
+                                    @change="onProofChange(w.id, $event)"
+                                    class="text-[10px] w-40" />
                                 <AppButton size="sm" variant="primary" :loading="busy === w.id" @click="pay(w.id)">Marcar pagado</AppButton>
                             </div>
                         </td>

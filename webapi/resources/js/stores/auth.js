@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { api, getStoredToken, setStoredToken } from '@/services/api';
+import { resizeImageFile } from '@/services/imageResize';
 
 const USER_KEY = 'chamba_web_user';
 
@@ -117,8 +118,9 @@ export const useAuthStore = defineStore('auth', {
             return api.post('/auth/reset-password', payload);
         },
         async uploadAvatar(file) {
+            const ready = await resizeImageFile(file, { maxDimension: 1024 });
             const fd = new FormData();
-            fd.append('avatar', file);
+            fd.append('avatar', ready);
             const r = await api.post('/me/avatar', fd, { auth: true });
             if (this.user && r?.data) {
                 this.user = {

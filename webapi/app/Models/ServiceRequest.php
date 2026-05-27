@@ -9,13 +9,36 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ServiceRequest extends Model
 {
+    /** Estados completos del ciclo escrow + flujo libre. Útil para validaciones server-side. */
+    public const STATUSES = [
+        'nuevo','contactado','cotizado','aceptado',
+        'pagado_pendiente','en_custodia','en_progreso',
+        'entregado','terminado','confirmado','cancelado','disputado','reembolsado','cerrado',
+    ];
+
     protected $fillable = [
         'client_user_id',
         'provider_service_id',
         'message',
         'contact_channel',
         'status',
+        'delivered_at',
+        'client_confirmed_at',
+        'auto_release_at',
+        'disputed_at',
+        'cancelled_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'delivered_at' => 'datetime',
+            'client_confirmed_at' => 'datetime',
+            'auto_release_at' => 'datetime',
+            'disputed_at' => 'datetime',
+            'cancelled_at' => 'datetime',
+        ];
+    }
 
     public function client(): BelongsTo
     {
@@ -46,5 +69,15 @@ class ServiceRequest extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(ServicePayment::class);
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(ServiceRequestEvent::class)->orderBy('created_at');
+    }
+
+    public function evidence(): HasMany
+    {
+        return $this->hasMany(ServiceRequestEvidence::class)->orderBy('sort_order');
     }
 }

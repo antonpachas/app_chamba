@@ -42,4 +42,14 @@ class ProviderProfile extends Model
     {
         return $this->hasMany(ProviderService::class);
     }
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(ProviderLocation::class)->orderByDesc('is_primary')->orderBy('label');
+    }
+
+    public function activeLocations(): HasMany
+    {
+        return $this->hasMany(ProviderLocation::class)->where('is_active', 1)->orderByDesc('is_primary')->orderBy('label');
+    }
 }

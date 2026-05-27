@@ -34,6 +34,7 @@ const navLinks = computed(() => {
         return [
             { name: 'provider-dashboard', label: 'Panel' },
             { name: 'provider-services', label: 'Mis servicios' },
+            { name: 'provider-locations', label: 'Mis sedes' },
             { name: 'provider-requests', label: 'Solicitudes' },
             { name: 'provider-subscription', label: 'Mi plan' },
             ...(escrow ? [{ name: 'provider-wallet', label: 'Ingresos' }] : []),
@@ -43,8 +44,8 @@ const navLinks = computed(() => {
         return [
             { name: 'search', label: 'Buscar servicios' },
             { name: 'client-requests', label: 'Mis solicitudes' },
+            { name: 'client-history', label: 'Historial' },
             { name: 'client-favorites', label: 'Favoritos' },
-            ...(escrow ? [{ name: 'client-wallet', label: 'Mis pagos' }] : []),
         ];
     }
     return [

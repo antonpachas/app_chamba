@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -55,12 +56,23 @@ class MediaStorageService
         }
 
         if (! $file->isValid()) {
-            throw new RuntimeException('Archivo inválido: '.$file->getErrorMessage());
+            // Mensajes amigables para los errores típicos de php.ini.
+            $err = $file->getError();
+            $msg = match ($err) {
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'La imagen pesa más de lo que acepta el servidor. Intenta una más pequeña (máx '.ini_get('upload_max_filesize').').',
+                UPLOAD_ERR_PARTIAL => 'La subida se interrumpió. Probá de nuevo.',
+                UPLOAD_ERR_NO_FILE => 'No se recibió ningún archivo.',
+                UPLOAD_ERR_NO_TMP_DIR => 'El servidor no tiene carpeta temporal configurada.',
+                UPLOAD_ERR_CANT_WRITE => 'El servidor no pudo guardar el archivo.',
+                UPLOAD_ERR_EXTENSION => 'Una extensión PHP bloqueó la subida.',
+                default => 'Archivo inválido: '.$file->getErrorMessage(),
+            };
+            throw new RuntimeException($msg);
         }
 
         $maxKb = (int) ($opts['max_kb'] ?? config('chamba.media.max_kb', env('CHAMBA_MEDIA_MAX_KB', 5120)));
         if ($file->getSize() > $maxKb * 1024) {
-            throw new RuntimeException("La imagen pesa más de {$maxKb} KB.");
+            throw new RuntimeException("La imagen pesa más de {$maxKb} KB. Probá una versión más pequeña.");
         }
 
         $tmp = $file->getRealPath();
@@ -78,9 +90,36 @@ class MediaStorageService
         $ext = self::ALLOWED_MIMES[$mime];
         $path = $folder.'/'.date('Ymd').'_'.Str::random(24).'.'.$ext;
 
-        $ok = Storage::disk($this->disk)->put($path, $clean);
+        $disk = Storage::disk($this->disk);
+
+        // Aseguramos que la carpeta remota exista; algunos servidores FTP no la
+        // crean automáticamente al hacer put() y falla silenciosamente.
+        try {
+            $disk->makeDirectory($folder);
+        } catch (\Throwable) {
+            // Si ya existe, makeDirectory puede arrojar; lo ignoramos.
+        }
+
+        try {
+            $ok = $disk->put($path, $clean);
+        } catch (\Throwable $e) {
+            throw new RuntimeException('Error al subir al FTP: '.$e->getMessage());
+        }
         if (! $ok) {
-            throw new RuntimeException('No se pudo subir la imagen al servidor.');
+            throw new RuntimeException(
+                'No se pudo subir la imagen al servidor FTP. '
+                .'Verifica credenciales y permisos de escritura en "'.$folder.'/".'
+            );
+        }
+
+        // Forzar permisos 0644: por defecto algunos servidores FTP guardan los
+        // archivos como 0600 (solo el dueño puede leer), lo que hace que
+        // Storage::exists() / Storage::get() retorne false al servirlo después,
+        // disparando un 404 al consumir media/avatars/{name}.
+        try {
+            $disk->setVisibility($path, 'public');
+        } catch (\Throwable) {
+            // SITE CHMOD puede no estar soportado; no es fatal.
         }
 
         return $path;
@@ -100,17 +139,41 @@ class MediaStorageService
     }
 
     /**
-     * Construye una URL pública o proxy para mostrar la imagen.
-     * Si CHAMBA_FTP_PUBLIC_URL está configurado, usa esa base directa.
-     * En caso contrario, usa el endpoint proxy /api/v1/media/{path}.
+     * Construye una URL para mostrar la imagen en el navegador.
+     *
+     *   - avatars/*, services/*: URL pública directa (CHAMBA_FTP_PUBLIC_URL si está
+     *     definido, sino proxy público sin auth).
+     *   - payments/*: URL firmada con expiración (24h por defecto). El frontend la
+     *     usa directamente en <img src="...">; la firma reemplaza al Bearer token.
+     *
+     * Esto es crítico para que las capturas de pago se vean en el cliente: los
+     * tags <img> NO envían Bearer token, por eso usamos signed URLs en lugar de
+     * proteger con auth:sanctum.
      */
     public function publicUrl(?string $path): ?string
     {
         if (! $path) return null;
 
+        $parts = explode('/', ltrim($path, '/'), 2);
+        $folder = $parts[0] ?? '';
+        $name = $parts[1] ?? '';
+
+        // CDN/HTTP directo del FTP solo para carpetas públicas (avatars, services).
         $base = (string) env('CHAMBA_FTP_PUBLIC_URL', '');
-        if ($base !== '') {
+        if ($base !== '' && in_array($folder, ['avatars', 'services'], true)) {
             return rtrim($base, '/').'/'.ltrim($path, '/');
+        }
+
+        if ($folder === 'payments' && $name !== '') {
+            return URL::temporarySignedRoute(
+                'media.payments',
+                now()->addHours(24),
+                ['name' => $name],
+            );
+        }
+
+        if (in_array($folder, ['avatars', 'services'], true) && $name !== '') {
+            return URL::route('media.'.$folder, ['name' => $name]);
         }
 
         return url('/api/v1/media/'.ltrim($path, '/'));

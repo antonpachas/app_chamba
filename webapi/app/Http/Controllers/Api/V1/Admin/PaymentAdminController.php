@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ServicePayment;
 use App\Models\WalletWithdrawal;
+use App\Services\MediaStorageService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,10 @@ use Throwable;
 
 final class PaymentAdminController extends Controller
 {
-    public function __construct(private readonly PaymentService $payments) {}
+    public function __construct(
+        private readonly PaymentService $payments,
+        private readonly MediaStorageService $media,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -44,6 +48,8 @@ final class PaymentAdminController extends Controller
                 'released_at' => $p->released_at,
                 'created_at' => $p->created_at,
                 'notes' => $p->notes,
+                'proof_image_path' => $p->proof_image_path,
+                'proof_image_url' => $this->media->publicUrl($p->proof_image_path),
                 'client' => $p->client?->only(['id', 'full_name', 'email', 'phone']),
                 'provider' => [
                     'profile_id' => $p->providerProfile?->id,
@@ -97,6 +103,8 @@ final class PaymentAdminController extends Controller
                 'created_at' => $w->created_at,
                 'paid_at' => $w->paid_at,
                 'notes' => $w->notes,
+                'proof_image_path' => $w->proof_image_path,
+                'proof_image_url' => $this->media->publicUrl($w->proof_image_path),
                 'provider' => [
                     'profile_id' => $w->providerProfile?->id,
                     'name' => $w->providerProfile?->business_name ?: $w->providerProfile?->user?->full_name,
@@ -114,13 +122,31 @@ final class PaymentAdminController extends Controller
         $data = $request->validate([
             'payout_reference' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:500',
+            'proof' => 'nullable|file|max:5120',
         ]);
         $w = WalletWithdrawal::query()->findOrFail($withdrawal);
         try {
-            $this->payments->adminPayWithdrawal($w, $data['payout_reference'] ?? null, $data['notes'] ?? null);
+            $proofPath = null;
+            if ($request->hasFile('proof')) {
+                $proofPath = $this->media->storeImage(
+                    $request->file('proof'),
+                    MediaStorageService::FOLDER_PAYMENT,
+                    ['max_w' => 1600, 'max_h' => 1600],
+                );
+            }
+            $this->payments->adminPayWithdrawal(
+                $w,
+                $data['payout_reference'] ?? null,
+                $data['notes'] ?? null,
+                $proofPath ? ['proof_image_path' => $proofPath] : [],
+            );
         } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
-        return response()->json(['data' => $w->fresh()]);
+        return response()->json([
+            'data' => array_merge($w->fresh()->toArray(), [
+                'proof_image_url' => $this->media->publicUrl($w->fresh()->proof_image_path),
+            ]),
+        ]);
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ServicePayment;
 use App\Models\ServiceQuote;
 use App\Models\ServiceRequest;
+use App\Services\MediaStorageService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,10 @@ use Throwable;
 
 final class PaymentController extends Controller
 {
-    public function __construct(private readonly PaymentService $payments) {}
+    public function __construct(
+        private readonly PaymentService $payments,
+        private readonly MediaStorageService $media,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -36,6 +40,8 @@ final class PaymentController extends Controller
                 'paid_at' => $p->paid_at,
                 'confirmed_at' => $p->confirmed_at,
                 'released_at' => $p->released_at,
+                'proof_image_path' => $p->proof_image_path,
+                'proof_image_url' => $this->media->publicUrl($p->proof_image_path),
                 'service_title' => $p->serviceRequest?->providerService?->title,
                 'provider_name' => $p->providerProfile?->business_name ?: $p->providerProfile?->user?->full_name,
                 'created_at' => $p->created_at,
@@ -46,16 +52,20 @@ final class PaymentController extends Controller
                 'bank_account' => chamba_setting('payouts.platform_bank_account', config('chamba.payouts.platform_bank_account')),
                 'bank_holder' => chamba_setting('payouts.platform_bank_holder', config('chamba.payouts.platform_bank_holder')),
             ],
+            'proof_required' => (bool) chamba_setting('payments.proof_required', config('chamba.payments.proof_required', true)),
         ]);
     }
 
     public function store(Request $request): JsonResponse
     {
+        $proofRequired = (bool) chamba_setting('payments.proof_required', config('chamba.payments.proof_required', true));
+
         $data = $request->validate([
             'service_quote_id' => 'required|integer|exists:service_quotes,id',
             'payment_method' => 'required|in:yape,plin,transferencia,otro',
             'payment_reference' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:500',
+            'proof' => ($proofRequired ? 'required' : 'nullable').'|file|max:5120',
         ]);
 
         $quote = ServiceQuote::query()->findOrFail($data['service_quote_id']);
@@ -65,18 +75,32 @@ final class PaymentController extends Controller
         }
 
         try {
+            $proofPath = null;
+            if ($request->hasFile('proof')) {
+                $proofPath = $this->media->storeImage(
+                    $request->file('proof'),
+                    MediaStorageService::FOLDER_PAYMENT,
+                    ['max_w' => 1600, 'max_h' => 1600],
+                );
+            }
+
             $payment = $this->payments->registerClientPayment(
                 $sr,
                 $quote,
                 $data['payment_method'],
                 $data['payment_reference'] ?? null,
                 $data['notes'] ?? null,
+                ['proof_image_path' => $proofPath],
             );
         } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json(['data' => $payment], 201);
+        return response()->json([
+            'data' => array_merge($payment->toArray(), [
+                'proof_image_url' => $this->media->publicUrl($payment->proof_image_path),
+            ]),
+        ], 201);
     }
 
     public function confirmCompleted(Request $request, int $payment): JsonResponse
@@ -86,11 +110,31 @@ final class PaymentController extends Controller
             ->findOrFail($payment);
 
         try {
-            $this->payments->clientConfirmCompleted($p);
+            $this->payments->clientConfirmCompleted($p, $request->user()->id);
         } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
+        return response()->json(['data' => $p->fresh()]);
+    }
+
+    /**
+     * Cliente reporta disputa sobre un pago en custodia.
+     */
+    public function dispute(Request $request, int $payment): JsonResponse
+    {
+        $data = $request->validate([
+            'reason' => 'required|string|min:10|max:500',
+        ]);
+        $p = ServicePayment::query()
+            ->where('client_user_id', $request->user()->id)
+            ->findOrFail($payment);
+
+        try {
+            $this->payments->clientReportDispute($p, $data['reason'], $request->user()->id);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
         return response()->json(['data' => $p->fresh()]);
     }
 }

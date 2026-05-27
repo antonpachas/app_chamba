@@ -1,0 +1,201 @@
+---
+description: Deploy de Chamba en jaapsystem.com (LiteSpeed, subdirectorio /v1/chamba/, estructura aplanada). Lecciones aprendidas de incidentes pasados.
+alwaysApply: true
+---
+
+# Deploy de Chamba a producción (jaapsystem.com)
+
+## Contexto del hosting
+
+- **Servidor**: LiteSpeed (PHP 8.3, SAPI litespeed)
+- **Estructura**: aplanada → Laravel y `public/` viven en el mismo directorio
+  - Document root: `/home/jaapsyst/public_html`
+  - App root: `/home/jaapsyst/public_html/v1/chamba`
+  - URL base: `https://jaapsystem.com/v1/chamba`
+- **Sin acceso SSH**. Todo se hace por File Manager + scripts PHP utilitarios.
+- Existe un **WordPress en `/public_html/`** con su propio `.htaccess` con reglas que pueden interferir.
+- `mod_dir` no está disponible → `DirectorySlash Off` se ignora.
+- `AcceptPathInfo` en `.htaccess` **NO es respetado** por LiteSpeed.
+
+## Gotcha crítica: baseUrl en estructura aplanada
+
+Cuando el `.htaccess` raíz reescribe `/v1/chamba/api/foo` → `public/index.php`, Symfony detecta:
+- `SCRIPT_NAME = /v1/chamba/public/index.php`
+- `REQUEST_URI = /v1/chamba/api/foo`
+
+`/public/` no aparece en REQUEST_URI, así que `Request::prepareBaseUrl()` no encuentra prefijo común y devuelve `''`. Laravel busca la ruta literal `/v1/chamba/api/foo` (no existe) y devuelve **404**.
+
+**Síntoma clásico**: `/v1/chamba/app/loquesea` (path de 2+ segmentos) responde, pero `/v1/chamba/app` (1 segmento) da 404. Cualquier `/v1/chamba/api/*` también falla.
+
+### Fix obligatorio en `webapi/public/index.php`
+
+Justo después de `define('LARAVEL_START', ...)` debe estar:
+
+```php
+$prefix = getenv('APP_PATH_PREFIX');
+if ($prefix === false || $prefix === '') {
+    $envPath = __DIR__ . '/../.env';
+    if (is_file($envPath)) {
+        $env = @file_get_contents($envPath);
+        if ($env && preg_match('/^APP_URL\s*=\s*"?([^"\r\n]+)"?/m', $env, $m)) {
+            $parsed = parse_url(trim($m[1]));
+            if (!empty($parsed['path'])) {
+                $prefix = trim($parsed['path'], '/');
+            }
+        }
+    }
+}
+$prefix = is_string($prefix) ? trim($prefix, '/') : '';
+if ($prefix !== '' && isset($_SERVER['REQUEST_URI'])) {
+    $base = '/' . $prefix;
+    $req  = $_SERVER['REQUEST_URI'];
+    if (strncmp($req, $base . '/public/', strlen($base) + 8) !== 0) {
+        $fakeScript = $base . '/index.php';
+        $_SERVER['SCRIPT_NAME']     = $fakeScript;
+        $_SERVER['PHP_SELF']        = $fakeScript;
+        $_SERVER['SCRIPT_FILENAME'] = __FILE__;
+    }
+}
+```
+
+Esto hace creer al framework que el script vive en `/v1/chamba/index.php` (sin `public/`). Symfony calcula `baseUrl=/v1/chamba` y `pathInfo=/api/foo` correctamente, **y las URLs generadas (`url()`, `route()`, signed URLs) siguen incluyendo el prefijo `/v1/chamba/`**.
+
+## Gotcha: Vite `base` en subdirectorio
+
+Sin `base` en `vite.config.js`, los **chunks lazy-loaded** (vistas del Vue Router cargadas con `import()` dinámico) se piden como `https://host/build/assets/...` SIN prefijo, dando 404 en producción.
+
+**Síntoma**: la app carga, pero al navegar a una vista lazy (ej. Dashboard, Provider Profile) salen 404 en DevTools/Network sobre URLs `/build/assets/*.js` sin prefijo.
+
+**Fix obligatorio**: `vite.config.js` debe derivar `base` de `APP_URL` del `.env`:
+
+```javascript
+import { defineConfig, loadEnv } from 'vite';
+
+export default defineConfig(({ mode }) => {
+    const env = loadEnv(mode, process.cwd(), '');
+    let base = '/';
+    if (env.APP_URL) {
+        try {
+            const u = new URL(env.APP_URL);
+            const p = u.pathname.endsWith('/') ? u.pathname : u.pathname + '/';
+            base = p === '//' ? '/' : p;
+        } catch {}
+    }
+    return { base, /* ...resto */ };
+});
+```
+
+`APP_URL=https://jaapsystem.com/v1/chamba` en `.env.production` → `base = '/v1/chamba/'` → chunks van a `/v1/chamba/build/assets/...`.
+
+Vue Router también debe tener el mismo prefijo en `createWebHistory('/v1/chamba/app/')`.
+
+## Gotcha: inyección de defaults() en controller
+
+En Laravel 11 + LiteSpeed, los `defaults('folder','...')` declarados en una ruta **no se inyectan automáticamente** como argumento del método del controller cuando el orden de los parámetros no coincide con los placeholders de la URL.
+
+**Síntoma**: rutas con `defaults()` reciben el argumento vacío y abortan; el resto de rutas `/api/v1/*` funciona normal.
+
+**Fix**: en los controllers, leer el valor desde el Request en vez de aceptarlo como argumento:
+
+```php
+public function show(Request $request, string $name, ?string $folder = null): Response
+{
+    $folder = $folder
+        ?: (string) ($request->route()?->defaults['folder'] ?? '')
+        ?: (string) ($request->route()?->parameter('folder') ?? '');
+    // ...
+}
+```
+
+Aplica especialmente a `app/Http/Controllers/Api/V1/MediaController.php` con sus rutas `media/avatars/{name}`, `media/services/{name}`, `media/payments/{name}` que usan `defaults('folder','...')` para compartir el método `show()`.
+
+## `.htaccess` raíz mínimo viable (`webapi/.htaccess`)
+
+```apache
+<IfModule mod_rewrite.c>
+    Options -MultiViews -Indexes
+
+    <IfModule mod_dir.c>
+        DirectorySlash Off
+    </IfModule>
+
+    RewriteEngine On
+    RewriteBase /v1/chamba/
+
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    RewriteRule ^public/ - [L]
+
+    RewriteCond %{DOCUMENT_ROOT}/v1/chamba/public/$1 -f
+    RewriteRule ^(.+)$ public/$1 [L]
+
+    RewriteRule ^app/$ /v1/chamba/app [L,R=301]
+
+    RewriteRule ^(.*)$ public/index.php [L]
+</IfModule>
+
+DirectoryIndex public/index.php
+```
+
+**NO uses `RewriteRule ^(.*)$ public/index.php/$1 [L,QSA]`** (PATH_INFO). LiteSpeed no respeta `AcceptPathInfo` desde `.htaccess` y rompe el routing.
+
+## Reglas de oro al generar un ZIP de deploy
+
+1. **El ZIP debe ser autosuficiente y completo** (no incrementales). Incluir:
+   - Todo el código fuente PHP (`app/`, `bootstrap/`, `config/`, `database/`, `resources/`, `routes/`)
+   - `vendor/` **optimizado para producción**: `composer install --no-dev --optimize-autoloader`
+   - `public/` con `build/` ya generado (`npm run build`)
+   - `storage/` con skeleton vacío (`app/`, `framework/cache/data`, `framework/sessions`, `framework/views`, `logs`)
+   - `.htaccess` raíz (validar que existe en el zip — los dotfiles a veces se filtran)
+   - `.env` pre-configurado (usar `.env.production` como base)
+   - `public/index.php` con el patch del strip de prefijo (validar antes de zippear)
+   - Scripts utilitarios en `public/`: `_reset.php`, `_migrate.php`, `_fix_htaccess.php`
+
+2. **Paths en el ZIP**: usar forward slashes (`/`), no backslashes. El extractor de cPanel a veces respeta literalmente y crea carpetas raras.
+
+3. **Validar localmente antes de entregar**: ejecutar `webapi/build-deploy-zip.ps1` que:
+   - Genera el zip
+   - Lo extrae a un temp
+   - Verifica que `webapi/public/index.php` contenga el marker `Fix de baseUrl para deploys en subdirectorio`
+   - Simula requests E2E a `/app` y `/api/v1/categories` esperando HTTP 200
+
+4. **Variables del `.env` críticas**:
+   - `APP_URL=https://jaapsystem.com/v1/chamba` (el patch lee el path de aquí como `APP_PATH_PREFIX`)
+   - `APP_ENV=production`, `APP_DEBUG=false`
+   - `SESSION_PATH=/v1/chamba`, `SESSION_COOKIE=chamba_session`, `SESSION_SECURE_COOKIE=true`
+   - `SANCTUM_STATEFUL_DOMAINS=jaapsystem.com`
+
+5. **Frontend (Vite + Vue Router)** debe estar configurado con base `/v1/chamba/app/` (verificar `vite.config.js` y el router).
+
+## Procedimiento de deploy estándar (sin SSH)
+
+Documentado en `webapi/DEPLOY.md`. Resumen:
+
+1. Limpiar `/public_html/v1/chamba/` en File Manager (si es deploy limpio).
+2. Subir `chamba_full.zip` y extraer ahí mismo.
+3. Abrir `https://jaapsystem.com/v1/chamba/public/_migrate.php?token=<TOKEN>` para correr migraciones.
+4. Abrir `https://jaapsystem.com/v1/chamba/public/_reset.php` para limpiar caches.
+5. Si las URLs `/app` o `/api/*` dan 404 → abrir `https://jaapsystem.com/v1/chamba/public/_fix_htaccess.php` (escribe `.htaccess` correcto y patcha `public/index.php`).
+6. Probar `https://jaapsystem.com/v1/chamba/app` en navegador.
+7. **BORRAR** todos los `_*.php` de `public/` cuando termine.
+
+## Troubleshooting express
+
+| Síntoma | Causa probable | Fix |
+|---|---|---|
+| 404 en `/v1/chamba/app` pero 200 en `/v1/chamba/app/algo` | baseUrl mal detectada por Symfony | Patch en `public/index.php` |
+| 404 en TODO `/v1/chamba/api/*` | Mismo problema de baseUrl | Patch en `public/index.php` |
+| 403 en `/v1/chamba/app/` (con slash) | `mod_dir` falta + carpeta física `app/` colisiona | `.htaccess` con `RewriteRule ^app/$ /v1/chamba/app [L,R=301]` antes del rewrite general |
+| 500 "Please provide a valid cache path" | Falta `storage/framework/views` y subcarpetas | `_reset.php` recrea el skeleton |
+| 500 sin más info | `vendor/` o `.env` faltan | Reextrayer el zip completo |
+| `public/index.php` directo carga el SPA pero `/app` no | `.htaccess` raíz no se aplica/está mal | `_fix_htaccess.php` lo reescribe |
+
+## Scripts utilitarios de servidor (siempre incluir en `webapi/public/`)
+
+- `_fix_htaccess.php` — Reescribe `.htaccess`, parcha `index.php`, limpia caches, verifica URLs.
+- `_migrate.php` — Corre migraciones por HTTP (protegido por `CHAMBA_SETUP_TOKEN`).
+- `_reset.php` — Limpia caches, recrea `storage/` skeleton.
+- `_diag.php` — Diagnóstico de servidor, permisos, logs.
+
+Todos deben validar `CHAMBA_SETUP_TOKEN` cuando hagan operaciones destructivas.

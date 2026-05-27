@@ -52,11 +52,16 @@ export const useSubscriptionStore = defineStore('subscription', {
             }
         },
         async pay(payload) {
+            const { resizeImageFile } = await import('@/services/imageResize');
             const fd = new FormData();
             for (const [k, v] of Object.entries(payload)) {
                 if (v === null || v === undefined) continue;
-                if (k === 'proof' && v instanceof File) fd.append('proof', v);
-                else fd.append(k, String(v));
+                if (k === 'proof' && v instanceof File) {
+                    const ready = await resizeImageFile(v, { maxDimension: 1600 });
+                    fd.append('proof', ready);
+                } else {
+                    fd.append(k, String(v));
+                }
             }
             await api.post('/subscriptions/pay', fd, { auth: true });
             await this.loadMine();

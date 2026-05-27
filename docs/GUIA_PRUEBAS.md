@@ -1,7 +1,11 @@
 # Chamba — Guía de pruebas
 
-Modelo de monetización: **Freemium con membresías** (escrow desactivado por feature flag).
+Modelo de monetización: **Freemium con membresías + Custodia (escrow) activa**.
+Comisión por servicio: **10%** (configurable en admin).
 URL local: `http://localhost:8000/app`
+
+> Para la lista completa de cambios de la fase 2 (custodia + sedes + evidencia + historial),
+> ver [`FASE2_CUSTODIA_SEDES.md`](./FASE2_CUSTODIA_SEDES.md).
 
 ---
 

@@ -17,8 +17,8 @@ Route::redirect('/', '/app');
 
 /**
  * SPA Vue. Cualquier sub-ruta dentro de /app la maneja vue-router.
- * Usamos {any?} con where(...) para no chocar con /api/* (que está en routes/api.php).
+ * Registramos /app y /app/{any} por separado para que también acepte la
+ * variante con trailing slash sin depender solo del rewrite de Apache.
  */
-Route::view('/app/{any?}', 'chamba.app')
-    ->where('any', '.*')
-    ->name('chamba.app');
+Route::view('/app', 'chamba.app')->name('chamba.app');
+Route::view('/app/{any}', 'chamba.app')->where('any', '.*');

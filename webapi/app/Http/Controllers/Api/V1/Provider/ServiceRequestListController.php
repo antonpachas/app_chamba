@@ -5,11 +5,18 @@ namespace App\Http\Controllers\Api\V1\Provider;
 use App\Http\Controllers\Controller;
 use App\Models\ProviderService;
 use App\Models\ServiceRequest;
+use App\Services\MediaStorageService;
+use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class ServiceRequestListController extends Controller
 {
+    public function __construct(
+        private readonly PaymentService $payments,
+        private readonly MediaStorageService $media,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $profile = $request->user()->providerProfile;
@@ -29,6 +36,8 @@ final class ServiceRequestListController extends Controller
                 'providerService.category:id,name',
                 'quotes',
                 'payments',
+                'evidence',
+                'events',
             ])
             ->orderByDesc('created_at')
             ->limit(100)
@@ -47,6 +56,9 @@ final class ServiceRequestListController extends Controller
                     'message' => $r->message,
                     'contact_channel' => $r->contact_channel,
                     'created_at' => $r->created_at,
+                    'delivered_at' => $r->delivered_at,
+                    'auto_release_at' => $r->auto_release_at,
+                    'disputed_at' => $r->disputed_at,
                     'service' => $r->providerService ? [
                         'id' => $r->providerService->id,
                         'title' => $r->providerService->title,
@@ -60,7 +72,24 @@ final class ServiceRequestListController extends Controller
                         'phone' => $r->client->phone,
                     ] : null,
                     'latest_quote' => $latestQuote?->only(['id', 'amount', 'currency', 'estimated_days', 'notes', 'status', 'created_at']),
-                    'active_payment' => $activePayment?->only(['id', 'status', 'amount', 'net_amount', 'commission_amount', 'commission_rate', 'payment_method']),
+                    'active_payment' => $activePayment ? array_merge(
+                        $activePayment->only(['id', 'status', 'amount', 'net_amount', 'commission_amount', 'commission_rate', 'payment_method']),
+                        ['proof_image_url' => $this->media->publicUrl($activePayment->proof_image_path)],
+                    ) : null,
+                    'evidence' => $r->evidence->map(fn ($e) => [
+                        'id' => $e->id,
+                        'url' => $this->media->publicUrl($e->path),
+                        'caption' => $e->caption,
+                        'sort_order' => $e->sort_order,
+                    ])->values(),
+                    'timeline' => $r->events->map(fn ($e) => [
+                        'id' => $e->id,
+                        'from_status' => $e->from_status,
+                        'to_status' => $e->to_status,
+                        'actor_role' => $e->actor_role,
+                        'note' => $e->note,
+                        'created_at' => $e->created_at,
+                    ])->values(),
                 ];
             }),
         ]);
@@ -68,17 +97,24 @@ final class ServiceRequestListController extends Controller
 
     public function updateStatus(Request $request, int $serviceRequest): JsonResponse
     {
+        // Máquina de estados del lado proveedor.
+        // Transiciones que requieren evidencia (entregado) o que cambian dinero (confirmado, liberado)
+        // se hacen por endpoints especializados (deliver, dispute, confirm).
         $allowedTransitions = [
             'nuevo' => ['contactado', 'cancelado'],
             'contactado' => ['cotizado', 'cancelado'],
+            'cotizado' => ['cancelado'],
             'aceptado' => ['en_progreso', 'cancelado'],
             'en_custodia' => ['en_progreso'],
-            'en_progreso' => ['terminado', 'cancelado'],
+            'en_progreso' => ['cancelado'], // terminado/entregado se hace por endpoint deliver con evidencia
+            'entregado' => [],
             'terminado' => [],
+            'disputado' => [],
         ];
 
         $data = $request->validate([
             'status' => 'required|string',
+            'note' => 'nullable|string|max:500',
         ]);
 
         $profile = $request->user()->providerProfile;
@@ -98,7 +134,15 @@ final class ServiceRequestListController extends Controller
             ], 422);
         }
 
-        $sr->update(['status' => $next]);
+        $payload = ['status' => $next];
+        if ($next === 'cancelado') {
+            $payload['cancelled_at'] = now();
+        }
+        $sr->update($payload);
+
+        $this->payments->logRequestEvent(
+            $sr, $current, $next, $request->user()->id, 'proveedor', $data['note'] ?? null,
+        );
         return response()->json(['data' => ['id' => $sr->id, 'status' => $sr->status]]);
     }
 }

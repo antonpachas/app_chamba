@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\V1\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\ServiceRequest;
+use App\Services\MediaStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class ServiceRequestListController extends Controller
 {
+    public function __construct(private readonly MediaStorageService $media) {}
+
     public function index(Request $request): JsonResponse
     {
         $rows = ServiceRequest::query()
@@ -26,6 +29,8 @@ final class ServiceRequestListController extends Controller
 
         $rows->loadMissing('quotes');
         $rows->loadMissing('payment');
+        $rows->loadMissing('evidence');
+        $rows->loadMissing('events');
 
         return response()->json([
             'data' => $rows->map(function (ServiceRequest $r) {
@@ -38,6 +43,9 @@ final class ServiceRequestListController extends Controller
                     'message' => $r->message,
                     'contact_channel' => $r->contact_channel,
                     'created_at' => $r->created_at,
+                    'delivered_at' => $r->delivered_at,
+                    'auto_release_at' => $r->auto_release_at,
+                    'disputed_at' => $r->disputed_at,
                     'service' => $svc ? [
                         'id' => $svc->id,
                         'title' => $svc->title,
@@ -54,7 +62,25 @@ final class ServiceRequestListController extends Controller
                         'contact_phone' => $prof->contact_phone,
                     ] : null,
                     'latest_quote' => $latestQuote?->only(['id', 'amount', 'currency', 'estimated_days', 'notes', 'status', 'created_at']),
-                    'payment' => $r->payment?->only(['id', 'status', 'amount', 'payment_method', 'payment_reference', 'paid_at', 'confirmed_at', 'released_at']),
+                    'payment' => $r->payment ? array_merge(
+                        $r->payment->only(['id', 'status', 'amount', 'commission_amount', 'net_amount', 'payment_method', 'payment_reference', 'paid_at', 'confirmed_at', 'released_at']),
+                        ['proof_image_url' => $this->media->publicUrl($r->payment->proof_image_path)],
+                    ) : null,
+                    'evidence' => $r->evidence->map(fn ($e) => [
+                        'id' => $e->id,
+                        'url' => $this->media->publicUrl($e->path),
+                        'caption' => $e->caption,
+                        'sort_order' => $e->sort_order,
+                        'created_at' => $e->created_at,
+                    ])->values(),
+                    'timeline' => $r->events->map(fn ($e) => [
+                        'id' => $e->id,
+                        'from_status' => $e->from_status,
+                        'to_status' => $e->to_status,
+                        'actor_role' => $e->actor_role,
+                        'note' => $e->note,
+                        'created_at' => $e->created_at,
+                    ])->values(),
                 ];
             }),
         ]);

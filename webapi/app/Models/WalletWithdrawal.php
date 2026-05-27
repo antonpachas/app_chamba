@@ -15,6 +15,7 @@ class WalletWithdrawal extends Model
         'status',
         'notes',
         'paid_at',
+        'proof_image_path',
     ];
 
     protected function casts(): array

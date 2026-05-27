@@ -9,6 +9,9 @@ import AppAlert from '@/components/ui/AppAlert.vue';
 const store = useProviderRequestsStore();
 const quoteOpen = ref(null);
 const quoteForm = ref({ amount: '', estimated_days: '', notes: '' });
+const evidenceOpenId = ref(null);
+const evidenceFiles = ref([]);
+const evidenceCaption = ref('');
 const busy = ref(null);
 const err = ref('');
 const ok = ref('');
@@ -44,13 +47,60 @@ async function setStatus(id, status) {
         err.value = e.message;
     } finally { busy.value = null; }
 }
+
+function openEvidence(id) {
+    evidenceOpenId.value = id;
+    evidenceFiles.value = [];
+    evidenceCaption.value = '';
+    err.value = ''; ok.value = '';
+}
+function onEvidencePick(event) {
+    evidenceFiles.value = Array.from(event.target.files || []);
+}
+async function uploadEvidence(id) {
+    if (!evidenceFiles.value.length) {
+        err.value = 'Selecciona al menos una foto.';
+        return;
+    }
+    busy.value = id;
+    err.value = ''; ok.value = '';
+    try {
+        await store.uploadEvidence(id, evidenceFiles.value, evidenceCaption.value || null);
+        evidenceFiles.value = [];
+        evidenceCaption.value = '';
+        ok.value = 'Evidencia subida.';
+    } catch (e) {
+        err.value = e.message;
+    } finally { busy.value = null; }
+}
+async function deleteEvidence(reqId, evId) {
+    busy.value = evId;
+    err.value = '';
+    try {
+        await store.deleteEvidence(reqId, evId);
+    } catch (e) {
+        err.value = e.message;
+    } finally { busy.value = null; }
+}
+async function markDelivered(id) {
+    if (!confirm('¿Marcar como entregado? El cliente recibirá una notificación y tendrá unos días para confirmar o disputar.')) return;
+    busy.value = id;
+    err.value = '';
+    try {
+        await store.markDelivered(id);
+        ok.value = 'Trabajo marcado como entregado. Esperando confirmación del cliente.';
+        evidenceOpenId.value = null;
+    } catch (e) {
+        err.value = e.message;
+    } finally { busy.value = null; }
+}
 </script>
 
 <template>
     <div class="max-w-5xl mx-auto px-4 md:px-8 py-8">
         <header class="mb-8">
             <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Solicitudes recibidas</h1>
-            <p class="text-slate-600 mt-1">Cotiza, marca avances y cobra cuando termines el trabajo.</p>
+            <p class="text-slate-600 mt-1">Cotiza, marca avances, sube evidencia al entregar y cobra cuando el cliente confirme.</p>
         </header>
 
         <AppAlert v-if="err" type="error" class="mb-4">{{ err }}</AppAlert>
@@ -91,6 +141,13 @@ async function setStatus(id, status) {
                         · Te corresponde <strong class="text-emerald-700"><Money :amount="r.active_payment.net_amount" /></strong>
                     </p>
                     <StatusPill :status="r.active_payment.status" class="mt-2" />
+                    <a
+                        v-if="r.active_payment.proof_image_url"
+                        :href="r.active_payment.proof_image_url"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-block mt-2 text-xs text-[#003874] underline"
+                    >Ver captura del cliente</a>
                 </div>
 
                 <form v-if="quoteOpen === r.id" @submit.prevent="sendQuote(r.id)" class="rounded-xl border border-slate-200 p-4 mb-3 space-y-3">
@@ -114,13 +171,73 @@ async function setStatus(id, status) {
                     </div>
                 </form>
 
+                <!-- Evidencia: galería actual + uploader -->
+                <div v-if="(r.evidence?.length || 0) > 0" class="rounded-xl border border-slate-100 bg-white p-4 mb-3">
+                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Evidencia subida</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        <div v-for="ev in r.evidence" :key="ev.id" class="relative">
+                            <a :href="ev.url" target="_blank" rel="noopener">
+                                <img :src="ev.url" :alt="ev.caption || 'Evidencia'"
+                                    class="w-full h-24 object-cover rounded-md border border-slate-200" />
+                            </a>
+                            <button
+                                v-if="!['entregado','confirmado','cerrado'].includes(r.status)"
+                                type="button"
+                                class="absolute top-1 right-1 rounded-full bg-white/90 border border-rose-300 text-rose-700 text-xs px-2 py-0.5"
+                                :disabled="busy === ev.id"
+                                @click="deleteEvidence(r.id, ev.id)"
+                            >Quitar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <form v-if="evidenceOpenId === r.id" @submit.prevent="uploadEvidence(r.id)" class="rounded-xl border border-slate-200 p-4 mb-3 space-y-3">
+                    <label class="block">
+                        <span class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1 block">Fotos del trabajo</span>
+                        <input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="onEvidencePick" class="text-sm" />
+                        <p class="text-xs text-slate-500 mt-1">Hasta 10 fotos por subida. Mín. 1 para marcar como entregado.</p>
+                    </label>
+                    <label class="block">
+                        <span class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1 block">Descripción (opcional)</span>
+                        <input v-model="evidenceCaption" maxlength="255" class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#003874]" />
+                    </label>
+                    <div class="flex justify-end gap-2">
+                        <AppButton variant="ghost" type="button" @click="evidenceOpenId = null">Cerrar</AppButton>
+                        <AppButton variant="primary" type="submit" :loading="busy === r.id">Subir fotos</AppButton>
+                    </div>
+                </form>
+
+                <!-- Acciones -->
                 <div class="flex flex-wrap gap-2">
                     <AppButton v-if="['nuevo','contactado','cotizado'].includes(r.status)" size="sm" variant="primary" @click="openQuote(r.id)">
                         {{ r.latest_quote ? 'Re-cotizar' : 'Cotizar' }}
                     </AppButton>
                     <AppButton v-if="r.status === 'nuevo'" size="sm" variant="ghost" :loading="busy === r.id" @click="setStatus(r.id, 'contactado')">Marcar contactado</AppButton>
                     <AppButton v-if="r.status === 'en_custodia'" size="sm" variant="primary" :loading="busy === r.id" @click="setStatus(r.id, 'en_progreso')">Iniciar trabajo</AppButton>
-                    <AppButton v-if="r.status === 'en_progreso'" size="sm" variant="primary" :loading="busy === r.id" @click="setStatus(r.id, 'terminado')">Marcar terminado</AppButton>
+
+                    <AppButton
+                        v-if="['en_custodia','en_progreso'].includes(r.status)"
+                        size="sm"
+                        variant="ghost"
+                        @click="openEvidence(r.id)"
+                    >
+                        {{ (r.evidence?.length || 0) > 0 ? 'Agregar más evidencia' : 'Subir evidencia' }}
+                    </AppButton>
+                    <AppButton
+                        v-if="['en_custodia','en_progreso'].includes(r.status) && (r.evidence?.length || 0) > 0"
+                        size="sm"
+                        variant="primary"
+                        :loading="busy === r.id"
+                        @click="markDelivered(r.id)"
+                    >
+                        Marcar como entregado
+                    </AppButton>
+                    <span v-if="r.status === 'entregado'" class="text-xs text-emerald-700 font-semibold">
+                        Esperando confirmación del cliente.
+                        <span v-if="r.auto_release_at">
+                            Auto-libera el {{ new Date(r.auto_release_at).toLocaleDateString() }}.
+                        </span>
+                    </span>
                     <a v-if="r.client?.phone" :href="`tel:${String(r.client.phone).replace(/\\D/g,'')}`" class="rounded-lg border border-slate-200 hover:border-[#003874]/40 font-bold px-4 py-2 text-sm text-slate-800 no-underline">Llamar cliente</a>
                 </div>
             </article>
