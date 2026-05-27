@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { escrowEnabled } from '@/services/features';
+import { asset } from '@/utils/asset';
 
 const auth = useAuthStore();
 const route = useRoute();
@@ -60,7 +61,7 @@ const navLinks = computed(() => {
         <nav class="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4 justify-between">
             <div class="flex items-center gap-6 lg:gap-10 min-w-0">
                 <RouterLink :to="{ name: 'home' }" class="flex items-center gap-2 shrink-0 no-underline">
-                    <img src="/img/chamba-icon.png" alt="" class="w-10 h-10 rounded-xl shadow-md shadow-[#003874]/15 ring-1 ring-slate-200" />
+                    <img :src="asset('img/chamba-icon.png')" alt="" class="w-10 h-10 rounded-xl shadow-md shadow-[#003874]/15 ring-1 ring-slate-200" />
                     <span class="text-2xl font-black tracking-tighter text-grad-brand">Chamba</span>
                 </RouterLink>
                 <div class="hidden md:flex items-center gap-6">

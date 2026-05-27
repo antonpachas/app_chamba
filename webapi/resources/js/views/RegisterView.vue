@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import { asset } from '@/utils/asset';
 
 const route = useRoute();
 const router = useRouter();
@@ -62,7 +63,7 @@ async function submit() {
             <div class="px-8 pt-10 pb-2">
                 <div class="flex items-center justify-center gap-3 mb-6">
                     <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl overflow-hidden shadow-lg shadow-[#003874]/25 ring-1 ring-slate-200">
-                        <img src="/img/chamba-icon.png" alt="" class="h-14 w-14" />
+                        <img :src="asset('img/chamba-icon.png')" alt="" class="h-14 w-14" />
                     </div>
                     <span class="text-2xl font-black tracking-tight text-grad-brand">Chamba</span>
                 </div>

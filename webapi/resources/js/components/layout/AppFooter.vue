@@ -1,5 +1,6 @@
 <script setup>
 import { RouterLink } from 'vue-router';
+import { asset } from '@/utils/asset';
 
 const year = new Date().getFullYear();
 </script>
@@ -9,7 +10,7 @@ const year = new Date().getFullYear();
         <div class="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
             <div>
                 <div class="flex items-center gap-2 mb-4">
-                    <img src="/img/chamba-icon.png" alt="" class="w-9 h-9 rounded-lg shadow-md shadow-[#003874]/15 ring-1 ring-slate-200" />
+                    <img :src="asset('img/chamba-icon.png')" alt="" class="w-9 h-9 rounded-lg shadow-md shadow-[#003874]/15 ring-1 ring-slate-200" />
                     <span class="text-2xl font-black tracking-tighter text-grad-brand">Chamba</span>
                 </div>
                 <p class="text-slate-600 text-sm leading-relaxed">

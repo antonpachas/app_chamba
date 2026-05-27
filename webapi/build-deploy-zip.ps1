@@ -142,6 +142,44 @@ Detalles en .cursor/rules/deploy-jaapsystem.mdc (Gotcha: comparación estricta d
 "@
 }
 
+# Validar que NO queden rutas absolutas /img/, /build/, /assets/, /storage/ en componentes Vue
+$srcVueFiles = Get-ChildItem -Path "$staging\resources\js" -Recurse -File -Include *.vue,*.js -ErrorAction SilentlyContinue
+$badAbsoluteRefs = @()
+foreach ($f in $srcVueFiles) {
+    $content = Get-Content $f.FullName -Raw -ErrorAction SilentlyContinue
+    if ($content -and $content -match '(?:src|href)="/(?:img|build|assets|storage)/') {
+        $badAbsoluteRefs += $f.FullName.Substring($staging.Length + 1)
+    }
+}
+if ($badAbsoluteRefs.Count -gt 0) {
+    $list = ($badAbsoluteRefs -join "`n  - ")
+    throw @"
+Encontradas referencias absolutas a /img/, /build/, /assets/ o /storage/ en el SPA.
+En subdirectorio (/v1/chamba/) apuntan al dominio raíz y dan 404.
+Usa el helper @/utils/asset y :src="asset('img/foo.png')".
+Archivos:
+  - $list
+Detalles en .cursor/rules/deploy-jaapsystem.mdc (Gotcha: rutas absolutas en SPA).
+"@
+}
+
+# Validar que el manifest dinámico está registrado y el estático fue eliminado
+if (Test-Path "$staging\public\site.webmanifest") {
+    throw @"
+public/site.webmanifest existe como archivo estático. Apache lo servirá antes que la ruta
+dinámica de Laravel y sus icons/start_url darán 404 en subdirectorio.
+Bórralo y deja solo Route::get('/site.webmanifest', ...) en routes/web.php.
+"@
+}
+$webRoutes = Get-Content "$staging\routes\web.php" -Raw
+if ($webRoutes -notmatch "site\.webmanifest") {
+    throw @"
+routes/web.php no registra la ruta dinámica /site.webmanifest.
+Sin ella, el manifest devuelve 404 y los icons del PWA no se cargan correctamente.
+Detalles en .cursor/rules/deploy-jaapsystem.mdc (Gotcha: rutas absolutas en SPA).
+"@
+}
+
 # Validar que vite.config.js deriva el base de APP_URL (chunks lazy-loaded)
 $viteConfig = Get-Content "vite.config.js" -Raw
 if ($viteConfig -notmatch "loadEnv|deriveBase") {

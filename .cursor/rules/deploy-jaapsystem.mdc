@@ -78,6 +78,19 @@ Bug específico ya corregido: `ServiceImageController::authorize()` en `app/Http
 
 Si aparece un 403/404 misterioso al "dueño legítimo" de un recurso, busca primero `!==` y `!=` en comparaciones de IDs.
 
+## Gotcha: rutas absolutas en SPA (subdirectorio)
+
+El SPA vive en `https://jaapsystem.com/v1/chamba/`. Cualquier referencia a `/img/...`, `/build/...`, `/assets/...`, `/storage/...` apuntará al **dominio raíz** (`https://jaapsystem.com/img/...`) y dará 404.
+
+**Patrones obligatorios:**
+
+- En componentes Vue: `import { asset } from '@/utils/asset'` y usar `:src="asset('img/foo.png')"`. Nunca `src="/img/..."`.
+- En blade: usar `{{ asset('img/foo.png') }}` o `{{ route('nombre.ruta') }}` (ambos respetan `APP_URL`). Nunca rutas hardcodeadas.
+- El `site.webmanifest` se sirve dinámicamente desde `routes/web.php` (`Route::get('/site.webmanifest', ...)`) para que `start_url`, `scope` e `icons` salgan con URLs absolutas correctas.
+- El archivo estático `public/site.webmanifest` NO debe existir (sino Apache lo sirve antes que la ruta).
+
+Si aparece un 404 a una ruta tipo `/img/...` o `/build/...` sin el prefijo `/v1/chamba/`, busca el origen con `rg 'src="/img|src="/build'` y reemplaza por el helper.
+
 ## Gotcha: Vite `base` en subdirectorio
 
 Sin `base` en `vite.config.js`, los **chunks lazy-loaded** (vistas del Vue Router cargadas con `import()` dinámico) se piden como `https://host/build/assets/...` SIN prefijo, dando 404 en producción.

@@ -16,6 +16,32 @@ Route::redirect('/portada', '/app', 302);
 Route::redirect('/', '/app');
 
 /**
+ * site.webmanifest dinámico. Sirve el manifest con URLs absolutas que
+ * respetan APP_URL (necesario en deploys en subdirectorio: /v1/chamba/...).
+ * Si lo dejamos como JSON estático, las rutas `/img/...` y `/app` apuntan
+ * al dominio raíz y dan 404 dentro de un subdirectorio.
+ */
+Route::get('/site.webmanifest', function () {
+    return response()->json([
+        'name' => 'Chamba — Servicios locales',
+        'short_name' => 'Chamba',
+        'description' => 'Encuentra al experto ideal para tu hogar.',
+        'start_url' => url('/app'),
+        'scope' => url('/app'),
+        'display' => 'standalone',
+        'orientation' => 'portrait',
+        'background_color' => '#f8f9ff',
+        'theme_color' => '#003874',
+        'lang' => 'es-PE',
+        'icons' => [
+            ['src' => asset('img/chamba-icon.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => asset('img/chamba-icon.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => asset('img/chamba-icon.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+        ],
+    ])->header('Content-Type', 'application/manifest+json');
+})->name('chamba.manifest');
+
+/**
  * SPA Vue. Cualquier sub-ruta dentro de /app la maneja vue-router.
  * Registramos /app y /app/{any} por separado para que también acepte la
  * variante con trailing slash sin depender solo del rewrite de Apache.

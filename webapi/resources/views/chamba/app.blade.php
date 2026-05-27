@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/chamba-icon.png') }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('img/chamba-icon.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/chamba-icon.png') }}">
-    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
+    <link rel="manifest" href="{{ route('chamba.manifest') }}">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Chamba">
