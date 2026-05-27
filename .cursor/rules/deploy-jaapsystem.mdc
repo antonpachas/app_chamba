@@ -60,6 +60,24 @@ if ($prefix !== '' && isset($_SERVER['REQUEST_URI'])) {
 
 Esto hace creer al framework que el script vive en `/v1/chamba/index.php` (sin `public/`). Symfony calcula `baseUrl=/v1/chamba` y `pathInfo=/api/foo` correctamente, **y las URLs generadas (`url()`, `route()`, signed URLs) siguen incluyendo el prefijo `/v1/chamba/`**.
 
+## Gotcha: comparación estricta de IDs (MariaDB devuelve strings)
+
+En MariaDB con PDO, las foreign keys (BIGINT) a veces vuelven como `string`. La comparación estricta (`!==`) entre el ID del usuario logueado (int) y un FK del modelo (string) da `true` y aborta con 403/404 al usuario legítimo.
+
+**Patrón obligatorio** en todo controller que verifique propiedad de un recurso:
+
+```php
+// ❌ MAL — falla en producción con MariaDB
+if ($model->user_id !== $request->user()->id) abort(403);
+
+// ✓ BIEN — siempre cast a int
+if ((int) $model->user_id !== (int) $request->user()->id) abort(403);
+```
+
+Bug específico ya corregido: `ServiceImageController::authorize()` en `app/Http/Controllers/Api/V1/Provider/ServiceImageController.php`.
+
+Si aparece un 403/404 misterioso al "dueño legítimo" de un recurso, busca primero `!==` y `!=` en comparaciones de IDs.
+
 ## Gotcha: Vite `base` en subdirectorio
 
 Sin `base` en `vite.config.js`, los **chunks lazy-loaded** (vistas del Vue Router cargadas con `import()` dinámico) se piden como `https://host/build/assets/...` SIN prefijo, dando 404 en producción.

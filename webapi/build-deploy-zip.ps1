@@ -92,7 +92,7 @@ if (Test-Path "$staging\bootstrap\cache") {
 }
 
 # Copiar scripts utilitarios de servidor
-foreach ($script in @('_reset.php','_migrate.php','_fix_htaccess.php','_fix_media_404.php','_diag.php')) {
+foreach ($script in @('_reset.php','_migrate.php','_fix_htaccess.php','_fix_media_404.php','_fix_service_403.php','_diag.php','_diag_service.php')) {
     $src = "public\$script"
     if (Test-Path $src) { Copy-Item $src "$staging\public\$script" -Force }
 }
@@ -128,6 +128,17 @@ MediaController::show() depende del argumento `$folder` inyectado por defaults()
 En Laravel 11 + LiteSpeed esa inyección NO ocurre y todas las imágenes dan 404.
 Aplica el patch que lee `$folder` desde `$request->route()->defaults['folder']`.
 Detalles en .cursor/rules/deploy-jaapsystem.mdc
+"@
+}
+
+# Validar que ServiceImageController usa cast a int (gotcha MariaDB string FK)
+$svcImgCtrl = Get-Content "$staging\app\Http\Controllers\Api\V1\Provider\ServiceImageController.php" -Raw
+if ($svcImgCtrl -notmatch "\(int\)\s*\`$request->user\(\)->id") {
+    throw @"
+ServiceImageController::authorize() compara IDs sin cast a int.
+En MariaDB las FK pueden volver como string ('7' !== 7 → 403 al dueño legítimo).
+Aplica el patch que castea ambos IDs a (int) antes de comparar.
+Detalles en .cursor/rules/deploy-jaapsystem.mdc (Gotcha: comparación estricta de IDs).
 "@
 }
 

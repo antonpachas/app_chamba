@@ -4,13 +4,10 @@
  * --------------------------------------------------------------------
  * Sube a:  /v1/chamba/public/_diag_service.php
  *
- * Uso:    https://jaapsystem.com/v1/chamba/public/_diag_service.php?id=4
- *
- * Muestra:
- *   - Datos del servicio
- *   - El provider_profile dueño + su user (email)
- *   - Tu user logueado (si pasas tu email con &my=tucorreo)
- *   - Si el authorize() pasaría o fallaría con 403
+ * Uso:
+ *   ?id=5            → muestra info del servicio
+ *   ?id=5&my=correo  → además compara con tu user
+ *   ?listusers=1     → lista los users con provider_profile (para identificar el tuyo)
  *
  * BORRA cuando termines.
  */
@@ -31,13 +28,50 @@ use Illuminate\Support\Facades\DB;
 echo "CHAMBA · Diagnóstico de servicio\n";
 echo str_repeat('=', 70) . "\n\n";
 
+function safe_get($obj, $prop, $default = '(n/a)') {
+    if (!is_object($obj)) return $default;
+    return $obj->{$prop} ?? $default;
+}
+
+// ── Modo: listar users con provider_profile ─────────────────────────
+if (($_GET['listusers'] ?? '') === '1') {
+    echo "[USUARIOS PROVEEDOR]\n";
+    $rows = DB::table('users')
+        ->leftJoin('provider_profiles', 'provider_profiles.user_id', '=', 'users.id')
+        ->whereNotNull('provider_profiles.id')
+        ->orderBy('users.id')
+        ->get([
+            'users.id as user_id',
+            'users.email',
+            'provider_profiles.id as profile_id',
+            'provider_profiles.full_name',
+        ]);
+    foreach ($rows as $r) {
+        echo "  USER #{$r->user_id} <{$r->email}>  →  PROFILE #{$r->profile_id} ({$r->full_name})\n";
+
+        // Sus servicios
+        $svcs = DB::table('provider_services')
+            ->where('provider_profile_id', $r->profile_id)
+            ->orderBy('id')
+            ->get(['id', 'title', 'is_active']);
+        if (count($svcs) === 0) {
+            echo "    (sin servicios)\n";
+        } else {
+            foreach ($svcs as $s) {
+                echo "    · servicio #{$s->id}: {$s->title} " . ($s->is_active ? '[activo]' : '[inactivo]') . "\n";
+            }
+        }
+    }
+    exit;
+}
+
 $serviceId = (int) ($_GET['id'] ?? 4);
 $myEmail   = (string) ($_GET['my'] ?? '');
 
 // 1) Servicio
 $svc = DB::table('provider_services')->where('id', $serviceId)->first();
 if (! $svc) {
-    echo "✗ No existe servicio con id={$serviceId}\n";
+    echo "✗ No existe servicio con id={$serviceId}\n\n";
     echo "Últimos 10 servicios en BD:\n";
     foreach (DB::table('provider_services')->orderByDesc('id')->limit(10)->get(['id','provider_profile_id','title']) as $s) {
         echo "  · #{$s->id} (provider_profile_id={$s->provider_profile_id}) {$s->title}\n";
@@ -45,52 +79,56 @@ if (! $svc) {
     exit;
 }
 
-echo "[SERVICIO]\n";
-foreach ((array) $svc as $k => $v) {
-    if (in_array($k, ['title','provider_profile_id','category_id','is_active','created_at','updated_at'], true)) {
-        echo "  {$k}: " . (is_scalar($v) ? $v : json_encode($v)) . "\n";
-    }
-}
+echo "[SERVICIO #{$serviceId}]\n";
+echo "  title              : " . safe_get($svc, 'title') . "\n";
+echo "  provider_profile_id: " . safe_get($svc, 'provider_profile_id') . "\n";
+echo "  is_active          : " . safe_get($svc, 'is_active') . "\n";
+echo "  created_at         : " . safe_get($svc, 'created_at') . "\n";
 
 // 2) Provider profile dueño
 $prof = DB::table('provider_profiles')->where('id', $svc->provider_profile_id)->first();
 echo "\n[PROVIDER PROFILE dueño]\n";
 if (! $prof) {
-    echo "  ✗ provider_profile_id={$svc->provider_profile_id} NO existe ← este es el problema\n";
-} else {
-    echo "  id: {$prof->id}\n";
-    echo "  user_id: " . ($prof->user_id ?? '(null)') . "\n";
-    echo "  full_name: " . ($prof->full_name ?? '(sin nombre)') . "\n";
+    echo "  ✗ provider_profile_id={$svc->provider_profile_id} NO existe\n";
+    exit;
+}
+echo "  id        : " . safe_get($prof, 'id') . "\n";
+echo "  user_id   : " . safe_get($prof, 'user_id') . "\n";
+echo "  full_name : " . safe_get($prof, 'full_name', '(sin nombre)') . "\n";
 
-    // 3) User dueño
-    $owner = DB::table('users')->where('id', $prof->user_id)->first();
-    echo "\n[USER dueño del provider profile]\n";
-    if (! $owner) {
-        echo "  ✗ user_id={$prof->user_id} NO existe ← problema de integridad\n";
-    } else {
-        echo "  id: {$owner->id}\n";
-        echo "  email: {$owner->email}\n";
-        echo "  name: {$owner->name}\n";
-        echo "  role: " . ($owner->role ?? '(sin role)') . "\n";
-    }
+// 3) User dueño
+$owner = DB::table('users')->where('id', $prof->user_id)->first();
+echo "\n[USER dueño del provider profile]\n";
+if (! $owner) {
+    echo "  ✗ user_id={$prof->user_id} NO existe (FK rota)\n";
+} else {
+    // Listamos solo columnas seguras
+    $cols = DB::getSchemaBuilder()->getColumnListing('users');
+    echo "  id    : " . safe_get($owner, 'id') . "\n";
+    echo "  email : " . safe_get($owner, 'email') . "\n";
+    if (in_array('full_name', $cols, true))   echo "  full_name : " . safe_get($owner, 'full_name', '(sin nombre)') . "\n";
+    if (in_array('name', $cols, true))        echo "  name      : " . safe_get($owner, 'name', '(sin nombre)') . "\n";
+    if (in_array('role', $cols, true))        echo "  role      : " . safe_get($owner, 'role', '(sin role)') . "\n";
+    if (in_array('user_type', $cols, true))   echo "  user_type : " . safe_get($owner, 'user_type', '(n/a)') . "\n";
 }
 
-// 4) Tu usuario (si pasaste email)
+// 4) Tu usuario
 if ($myEmail) {
     $me = DB::table('users')->where('email', $myEmail)->first();
     echo "\n[TU USUARIO con email={$myEmail}]\n";
     if (! $me) {
         echo "  ✗ No existe usuario con ese email\n";
     } else {
-        echo "  id: {$me->id}\n";
-        echo "  role: " . ($me->role ?? '(sin role)') . "\n";
+        $cols = DB::getSchemaBuilder()->getColumnListing('users');
+        echo "  id    : " . safe_get($me, 'id') . "\n";
+        if (in_array('full_name', $cols, true)) echo "  full_name : " . safe_get($me, 'full_name', '(sin nombre)') . "\n";
+        if (in_array('name', $cols, true))      echo "  name      : " . safe_get($me, 'name', '(sin nombre)') . "\n";
+        if (in_array('role', $cols, true))      echo "  role      : " . safe_get($me, 'role', '(sin role)') . "\n";
 
-        // ¿Tienes provider_profile?
         $myProf = DB::table('provider_profiles')->where('user_id', $me->id)->first();
         if ($myProf) {
             echo "  provider_profile_id: {$myProf->id}\n";
 
-            // Servicios tuyos
             $tuyos = DB::table('provider_services')
                 ->where('provider_profile_id', $myProf->id)
                 ->orderByDesc('id')
@@ -99,27 +137,28 @@ if ($myEmail) {
             echo "\n[TUS SERVICIOS] (" . count($tuyos) . ")\n";
             foreach ($tuyos as $s) echo "  · #{$s->id} {$s->title}\n";
         } else {
-            echo "  provider_profile: NO TIENES (no eres proveedor)\n";
+            echo "  provider_profile: NO TIENES (no eres proveedor con esta cuenta)\n";
         }
 
-        // Veredicto
-        echo "\n[VEREDICTO authorize()]\n";
-        if (! $prof) {
-            echo "  ✗ El servicio {$serviceId} no tiene provider_profile válido.\n";
-        } elseif ($prof->user_id === $me->id) {
-            echo "  ✓ Eres dueño del servicio {$serviceId}. NO debería dar 403.\n";
-            echo "  Si igual da 403, quizás el header Authorization no llega o el token está expirado.\n";
-        } elseif ($me->role === 'admin') {
-            echo "  ✓ Eres admin. Tienes permiso aunque no seas dueño.\n";
+        echo "\n[VEREDICTO authorize() para subir foto al servicio #{$serviceId}]\n";
+        $myRole = safe_get($me, 'role', '');
+        if ($prof->user_id == $me->id) {
+            echo "  ✓ Eres el dueño. NO debería dar 403.\n";
+            echo "  Si igual da 403: 1) cierra sesión y vuelve a entrar (token nuevo).\n";
+            echo "                   2) ctrl+F5 para recargar JS bundle.\n";
+        } elseif ($myRole === 'admin') {
+            echo "  ✓ Eres admin: el código permite subir aunque no seas dueño.\n";
         } else {
-            echo "  ✗ El servicio {$serviceId} pertenece a USER#{$prof->user_id} (no a vos USER#{$me->id}).\n";
-            echo "  → Por eso da 403. Solo puedes subir imágenes a TUS servicios.\n";
+            echo "  ✗ El servicio #{$serviceId} pertenece al USER#{$prof->user_id} ({$owner->email}).\n";
+            echo "    Tu user es #{$me->id} ({$me->email}).\n";
+            echo "    Por eso da 403.\n";
         }
     }
 } else {
-    echo "\nPara verificar tu autorización, abre con tu email:\n";
+    echo "\n→ Para diagnóstico completo abre con tu email:\n";
     echo "  ?id={$serviceId}&my=tu@correo.com\n";
+    echo "→ O lista todos los proveedores y sus servicios:\n";
+    echo "  ?listusers=1\n";
 }
 
-echo "\n";
-echo "BORRA _diag_service.php cuando termines.\n";
+echo "\nBORRA _diag_service.php cuando termines.\n";

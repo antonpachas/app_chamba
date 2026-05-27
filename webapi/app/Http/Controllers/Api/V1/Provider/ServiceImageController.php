@@ -66,8 +66,11 @@ final class ServiceImageController extends Controller
 
     private function authorize(Request $request, ProviderService $service): void
     {
-        $userId = $request->user()->id;
-        $ownerId = $service->providerProfile?->user_id;
+        // Comparar siempre con cast a int. En producción con MariaDB las foreign keys
+        // pueden volver como string y la comparación estricta (!==) las trataría como
+        // distintas, causando 403 al dueño legítimo.
+        $userId = (int) $request->user()->id;
+        $ownerId = (int) ($service->providerProfile?->user_id ?? 0);
         if ($ownerId !== $userId && $request->user()->role !== 'admin') {
             abort(403);
         }
