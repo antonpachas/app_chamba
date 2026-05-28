@@ -141,7 +141,7 @@ async function doLogout() {
             </div>
 
             <div class="lg:col-span-5 flex flex-col gap-3">
-                <RouterLink v-if="auth.isCliente" :to="{ name: 'search' }" class="rounded-full btn-grad-primary text-center no-underline py-3.5 px-6">Buscar anuncios</RouterLink>
+                <RouterLink v-if="auth.isCliente" :to="{ name: 'home' }" class="rounded-full btn-grad-primary text-center no-underline py-3.5 px-6">Explorar anuncios</RouterLink>
                 <RouterLink v-if="auth.isCliente" :to="{ name: 'client-requests' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Mis solicitudes</RouterLink>
                 <RouterLink v-if="auth.isCliente" :to="{ name: 'client-favorites' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Mis favoritos</RouterLink>
                 <RouterLink v-if="auth.isCliente || auth.isProveedor" :to="{ name: 'support' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Soporte / ayuda</RouterLink>
@@ -156,6 +156,7 @@ async function doLogout() {
 
                 <RouterLink v-if="auth.user?.role === 'admin'" :to="{ name: 'admin-dashboard' }" class="rounded-full btn-grad-primary text-center no-underline py-3.5 px-6">Panel admin</RouterLink>
                 <RouterLink v-if="auth.user?.role === 'admin'" :to="{ name: 'admin-support' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Casos de soporte</RouterLink>
+                <RouterLink v-if="auth.user?.role === 'admin'" :to="{ name: 'admin-ledger' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Kardex (ingresos / egresos)</RouterLink>
                 <RouterLink v-if="auth.user?.role === 'admin'" :to="{ name: 'admin-subscriptions' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Membresías</RouterLink>
                 <RouterLink v-if="auth.user?.role === 'admin' && escrow" :to="{ name: 'admin-payments' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Pagos en custodia</RouterLink>
                 <RouterLink v-if="auth.user?.role === 'admin' && escrow" :to="{ name: 'admin-withdrawals' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Retiros</RouterLink>

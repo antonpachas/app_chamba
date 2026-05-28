@@ -50,13 +50,18 @@ const phoneLabel = computed(() => {
     return formatPhoneDisplay(p.whatsapp || p.contact_phone) || '';
 });
 
-const showContact = computed(() => !!(waUrl.value || telUrl.value));
+const showLoginCta = computed(
+    () => !auth.isAuthenticated && !!profile.value?.contact_requires_login,
+);
+const showContact = computed(
+    () => !showLoginCta.value && !!(waUrl.value || telUrl.value),
+);
 
 onMounted(async () => {
     loading.value = true;
     error.value = '';
     try {
-        const r = await api.get(`/providers/${id.value}`);
+        const r = await api.get(`/providers/${id.value}`, { auth: true });
         profile.value = r.data || null;
     } catch (e) {
         profile.value = null;
@@ -83,7 +88,7 @@ onMounted(async () => {
         <AppAlert v-else-if="error" type="error">{{ error }}</AppAlert>
 
         <template v-else-if="profile">
-            <GuestBrowseBanner v-if="!auth.isAuthenticated || profile.guest_preview" compact class="mb-6" />
+            <GuestBrowseBanner v-if="!auth.isAuthenticated" compact class="mb-6" />
             <header class="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm mb-10">
                 <div class="bg-grad-hero px-6 md:px-10 py-8 md:py-10 text-white">
                     <div class="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
@@ -135,7 +140,26 @@ onMounted(async () => {
                     <p v-if="profile.address_text" class="text-sm text-slate-600">
                         <strong>Dirección:</strong> {{ profile.address_text }}
                     </p>
-                    <div v-if="showContact" class="pt-2 space-y-3">
+                    <div v-if="showLoginCta" class="pt-2 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="text-sm text-slate-600">
+                            Inicia sesión para ver teléfono y WhatsApp de este negocio.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <RouterLink
+                                :to="{ name: 'login', query: { next: route.fullPath } }"
+                                class="inline-flex rounded-xl bg-[#003874] text-white font-bold px-5 py-2.5 text-sm no-underline"
+                            >
+                                Iniciar sesión
+                            </RouterLink>
+                            <RouterLink
+                                :to="{ name: 'register', query: { next: route.fullPath } }"
+                                class="inline-flex rounded-xl border-2 border-[#003874]/30 text-[#003874] font-bold px-5 py-2.5 text-sm no-underline"
+                            >
+                                Crear cuenta
+                            </RouterLink>
+                        </div>
+                    </div>
+                    <div v-else-if="showContact" class="pt-2 space-y-3">
                         <p v-if="phoneLabel" class="text-sm font-semibold text-slate-700 flex items-center gap-2">
                             <span class="material-symbols-outlined text-[#003874]">call</span>
                             {{ phoneLabel }}
@@ -174,7 +198,7 @@ onMounted(async () => {
                             <span class="text-slate-500 font-semibold text-lg">({{ profile.listings_count }})</span>
                         </h2>
                     </div>
-                    <RouterLink :to="{ name: 'search' }" class="text-sm font-bold text-[#003874] hover:underline no-underline">
+                    <RouterLink :to="{ name: 'home' }" class="text-sm font-bold text-[#003874] hover:underline no-underline">
                         Buscar más negocios
                     </RouterLink>
                 </div>

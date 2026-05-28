@@ -16,7 +16,7 @@ const items = computed(() => {
             { name: 'admin-dashboard', label: 'Panel', icon: 'dashboard' },
             { name: 'admin-users', label: 'Usuarios', icon: 'group' },
             { name: 'admin-moderation', label: 'Moderar', icon: 'gavel' },
-            { name: 'admin-support', label: 'Soporte', icon: 'support_agent' },
+            { name: 'admin-ledger', label: 'Kardex', icon: 'account_balance' },
             { name: 'account', label: 'Cuenta', icon: 'person' },
         ];
     }
@@ -30,15 +30,14 @@ const items = computed(() => {
     }
     if (auth.isCliente) {
         return [
-            { name: 'search', label: 'Buscar', icon: 'search' },
+            { name: 'home', label: 'Explorar', icon: 'search' },
             { name: 'client-favorites', label: 'Fav', icon: 'favorite' },
             { name: 'client-requests', label: 'Chat', icon: 'forum' },
             { name: 'account', label: 'Cuenta', icon: 'person' },
         ];
     }
     return [
-        { name: 'home', label: 'Inicio', icon: 'home' },
-        { name: 'search', label: 'Buscar', icon: 'search' },
+        { name: 'home', label: 'Explorar', icon: 'search' },
         { name: 'login', label: 'Entrar', icon: 'login' },
     ];
 });

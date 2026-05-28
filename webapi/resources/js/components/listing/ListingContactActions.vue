@@ -1,5 +1,7 @@
 <script setup>
 import { computed } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import {
     buildListingWhatsAppUrl,
     buildTelUrl,
@@ -13,14 +15,47 @@ const props = defineProps({
     showPhone: { type: Boolean, default: true },
 });
 
+const auth = useAuthStore();
+const route = useRoute();
+
+const showLoginCta = computed(() => {
+    if (auth.isAuthenticated) {
+        return false;
+    }
+    return !!props.service?.contact_requires_login || !!props.service?.guest_preview;
+});
+
+const hasContact = computed(() => !showLoginCta.value && hasListingContact(props.service));
+
 const waUrl = computed(() => buildListingWhatsAppUrl(props.service));
 const telUrl = computed(() => buildTelUrl(props.service));
 const phoneLabel = computed(() => listingContactPhoneDisplay(props.service));
-const hasContact = computed(() => hasListingContact(props.service));
 </script>
 
 <template>
-    <div v-if="hasContact" :class="compact ? 'space-y-2' : 'space-y-3'">
+    <div v-if="showLoginCta" :class="compact ? 'space-y-2' : 'space-y-3'" @click.stop>
+        <p class="text-slate-600 leading-snug" :class="compact ? 'text-xs' : 'text-sm'">
+            <span class="material-symbols-outlined text-[#003874] align-middle text-base mr-1">lock</span>
+            Inicia sesión para ver el teléfono y escribir por WhatsApp con un mensaje sobre este anuncio en Busca PE.
+        </p>
+        <div class="flex flex-wrap gap-2">
+            <RouterLink
+                :to="{ name: 'login', query: { next: route.fullPath } }"
+                class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#003874] hover:bg-[#08458b] text-white font-bold no-underline transition-colors"
+                :class="compact ? 'px-3 py-2 text-xs flex-1' : 'px-5 py-3 text-sm flex-1'"
+            >
+                Iniciar sesión
+            </RouterLink>
+            <RouterLink
+                :to="{ name: 'register', query: { next: route.fullPath } }"
+                class="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[#003874]/30 text-[#003874] font-bold no-underline hover:bg-slate-50"
+                :class="compact ? 'px-3 py-2 text-xs' : 'px-5 py-3 text-sm'"
+            >
+                Crear cuenta
+            </RouterLink>
+        </div>
+    </div>
+    <div v-else-if="hasContact" :class="compact ? 'space-y-2' : 'space-y-3'">
         <p
             v-if="showPhone && phoneLabel"
             class="flex items-center gap-2 text-slate-700"

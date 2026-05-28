@@ -52,7 +52,9 @@ const priceFooter = computed(() => {
     return { label, value, cta };
 });
 
-const showContact = computed(() => hasListingContact(props.service));
+const showContact = computed(
+    () => hasListingContact(props.service) || !!props.service?.contact_requires_login,
+);
 </script>
 
 <template>

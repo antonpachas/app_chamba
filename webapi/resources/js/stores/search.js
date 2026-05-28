@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { api } from '@/services/api';
+import { api, getStoredToken } from '@/services/api';
 import { useGeoStore } from '@/stores/geo';
 
 export const useSearchStore = defineStore('search', {
@@ -19,6 +19,9 @@ export const useSearchStore = defineStore('search', {
         setCategory(id) {
             this.selectedCategoryId = id ? Number(id) : null;
         },
+        clearGuestState() {
+            this.guestMeta = null;
+        },
         async run() {
             const geo = useGeoStore();
             this.loading = true;
@@ -35,9 +38,10 @@ export const useSearchStore = defineStore('search', {
                     params.user_lng = geo.userLng;
                     params.radius_km = 25;
                 }
-                const r = await api.get('/listings/search', { params });
+                const r = await api.get('/listings/search', { params, auth: true });
                 this.results = r.data || [];
-                this.guestMeta = r.meta?.guest_preview ? r.meta : null;
+                this.guestMeta =
+                    !getStoredToken() && r.meta?.guest_preview ? r.meta : null;
             } catch (e) {
                 this.results = [];
                 this.guestMeta = null;

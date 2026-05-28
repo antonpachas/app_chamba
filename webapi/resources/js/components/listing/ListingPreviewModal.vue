@@ -32,7 +32,7 @@ watch(
         loading.value = true;
         error.value = '';
         try {
-            const r = await api.get(`/listings/${id}`);
+            const r = await api.get(`/listings/${id}`, { auth: true });
             listing.value = r.data || null;
             if (!listing.value) error.value = 'No se pudo cargar el anuncio.';
         } catch (e) {
@@ -49,7 +49,11 @@ function close() {
     emit('close');
 }
 
-const showContact = computed(() => hasListingContact(listing.value));
+const showContact = computed(
+    () =>
+        listing.value &&
+        (hasListingContact(listing.value) || !!listing.value.contact_requires_login),
+);
 
 const coverImage = computed(() => {
     const l = listing.value;

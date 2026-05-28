@@ -18,8 +18,8 @@ import AppButton from '@/components/ui/AppButton.vue';
                 <RouterLink :to="{ name: 'home' }" class="no-underline">
                     <AppButton variant="primary">Ir al inicio</AppButton>
                 </RouterLink>
-                <RouterLink :to="{ name: 'search' }" class="no-underline">
-                    <AppButton variant="outline">Buscar anuncios</AppButton>
+                <RouterLink :to="{ name: 'home' }" class="no-underline">
+                    <AppButton variant="outline">Explorar anuncios</AppButton>
                 </RouterLink>
             </div>
         </div>

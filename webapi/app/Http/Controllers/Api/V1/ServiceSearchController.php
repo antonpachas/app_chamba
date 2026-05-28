@@ -104,7 +104,7 @@ final class ServiceSearchController extends Controller
         }
 
         $searchEvent = SearchEvent::create([
-            'user_id' => $request->user()?->id,
+            'user_id' => $request->user('sanctum')?->id,
             'category_id' => $categoryId,
             'query' => $keyword,
             'district_id' => $districtId,
@@ -116,7 +116,7 @@ final class ServiceSearchController extends Controller
             'created_at' => now(),
         ]);
 
-        $this->trackSearchImpressions($rows, (int) ($request->user()?->id ?? 0), (int) $searchEvent->id);
+        $this->trackSearchImpressions($rows, (int) ($request->user('sanctum')?->id ?? 0), (int) $searchEvent->id);
 
         $meta = [];
         if ($request->user('sanctum') === null) {

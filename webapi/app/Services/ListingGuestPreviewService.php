@@ -25,6 +25,7 @@ final class ListingGuestPreviewService
     public function scrubRow(array $row): array
     {
         $row['guest_preview'] = true;
+        $row = $this->scrubContact($row);
 
         foreach (['description', 'service_description'] as $key) {
             if (! array_key_exists($key, $row) || $row[$key] === null) {
@@ -35,6 +36,24 @@ final class ListingGuestPreviewService
             if ($full !== '' && mb_strlen($full) > $this->maxDescriptionChars()) {
                 $row['description_truncated'] = true;
             }
+        }
+
+        return $row;
+    }
+
+    /**
+     * Oculta teléfono/WhatsApp a visitantes; marca si hay contacto tras iniciar sesión.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    public function scrubContact(array $row): array
+    {
+        $hadContact = ! empty($row['whatsapp']) || ! empty($row['contact_phone']);
+        $row['whatsapp'] = null;
+        $row['contact_phone'] = null;
+        if ($hadContact) {
+            $row['contact_requires_login'] = true;
         }
 
         return $row;

@@ -34,7 +34,7 @@ function goHowItWorks(event) {
                 <h4 class="font-bold mb-4 uppercase text-[11px] tracking-[0.2em] text-white/60">Explorar</h4>
                 <ul class="space-y-2.5 text-sm text-white/85">
                     <li>
-                        <RouterLink :to="{ name: 'search' }" class="hover:text-white transition no-underline">Buscar anuncios</RouterLink>
+                        <RouterLink :to="{ name: 'home' }" class="hover:text-white transition no-underline">Explorar anuncios</RouterLink>
                     </li>
                     <li>
                         <a href="#como-funciona" class="hover:text-white transition cursor-pointer no-underline" @click="goHowItWorks">Cómo funciona</a>

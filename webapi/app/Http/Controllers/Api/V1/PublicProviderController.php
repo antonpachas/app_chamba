@@ -50,7 +50,8 @@ final class PublicProviderController extends Controller
         ]);
 
         $isGuest = $request->user('sanctum') === null;
-        $showContact = (bool) chamba_setting('providers.show_contact_on_public_profile', true);
+        $showContact = ! $isGuest && (bool) chamba_setting('providers.show_contact_on_public_profile', true);
+        $profileHasContact = ! empty($p->whatsapp) || ! empty($p->contact_phone);
         $media = app(MediaStorageService::class);
         $isPro = $this->presenter->resolveIsPro((int) ($p->user_id ?? 0));
 
@@ -91,6 +92,7 @@ final class PublicProviderController extends Controller
                 'description' => $isGuest ? $this->guestPreview->truncate($p->description) : $p->description,
                 'description_truncated' => $isGuest && $p->description && mb_strlen((string) $p->description) > $this->guestPreview->maxDescriptionChars(),
                 'guest_preview' => $isGuest,
+                'contact_requires_login' => $isGuest && $profileHasContact,
                 'avg_rating' => $p->avg_rating,
                 'total_reviews' => $p->total_reviews,
                 'is_verified' => (bool) $p->is_verified,

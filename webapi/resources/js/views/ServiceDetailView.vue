@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { useSearchStore } from '@/stores/search';
 import { useAuthStore } from '@/stores/auth';
@@ -66,7 +66,11 @@ const mapSrc = computed(() => {
     return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${minlon},${minlat},${maxlon},${maxlat}`)}&layer=mapnik&marker=${encodeURIComponent(`${lat.value},${lng.value}`)}`;
 });
 
-const hasContact = computed(() => hasListingContact(service.value));
+const hasContact = computed(
+    () =>
+        !!service.value &&
+        (hasListingContact(service.value) || !!service.value.contact_requires_login),
+);
 
 const providerProfileId = computed(() => {
     const pid = service.value?.provider_profile_id;
@@ -77,36 +81,49 @@ const showProviderProfileLink = computed(
     () => providerPublicProfileEnabled() && providerProfileId.value != null,
 );
 
-const isGuestPreview = computed(() => !auth.isAuthenticated || !!service.value?.guest_preview);
+const isGuestPreview = computed(() => !auth.isAuthenticated);
 
 async function loadListing() {
     loading.value = true;
     error.value = '';
     service.value = null;
     try {
-        const res = await api.get(`/listings/${id.value}`);
-        if (res.data) {
-            service.value = res.data;
-            return;
+        try {
+            const res = await api.get(`/listings/${id.value}`, { auth: true });
+            if (res.data) {
+                service.value = res.data;
+                return;
+            }
+        } catch (e) {
+            if (e.status && e.status !== 404) {
+                error.value = e.message || 'No se pudo cargar el anuncio.';
+                return;
+            }
         }
-    } catch (e) {
-        if (e.status && e.status !== 404) {
-            error.value = e.message || 'No se pudo cargar el anuncio.';
-            return;
+        if (!auth.isAuthenticated) {
+            const cached = search.findById(id.value);
+            if (cached) {
+                service.value = cached;
+                error.value = '';
+                return;
+            }
+        }
+        if (!error.value) {
+            error.value = 'No encontramos este anuncio.';
         }
     } finally {
         loading.value = false;
     }
-    const cached = search.findById(id.value);
-    if (cached) {
-        service.value = cached;
-        error.value = '';
-        return;
-    }
-    if (!error.value) {
-        error.value = 'No encontramos este anuncio.';
-    }
 }
+
+watch(
+    () => auth.isAuthenticated,
+    async (loggedIn) => {
+        if (loggedIn && service.value?.guest_preview) {
+            await loadListing();
+        }
+    },
+);
 
 async function loadReviewable() {
     reviewableRequest.value = null;
@@ -168,7 +185,7 @@ function goLogin() {
                 ← Volver
             </button>
             <span class="text-slate-400">·</span>
-            <RouterLink :to="{ name: 'search' }" class="text-slate-600 hover:text-[#003874]">Resultados</RouterLink>
+            <RouterLink :to="{ name: 'home' }" class="text-slate-600 hover:text-[#003874]">Explorar</RouterLink>
         </div>
 
         <div v-if="loading" class="py-20 text-center text-slate-500 font-medium">Cargando…</div>
@@ -294,8 +311,7 @@ function goLogin() {
                         </div>
                         <h2 class="text-base font-bold text-[#0b1c30] mb-2">Solicitud en la plataforma</h2>
                         <p class="text-sm text-slate-600 mb-4">
-                            Ya puedes escribir por WhatsApp arriba. Si prefieres dejar registro en Busca PE, inicia sesión como
-                            <strong>cliente</strong> para enviar una solicitud y valorar.
+                            Inicia sesión como <strong>cliente</strong> para ver teléfono/WhatsApp, enviar solicitudes y valorar.
                         </p>
                         <AppButton variant="primary" block @click="goLogin">Iniciar sesión</AppButton>
                         <RouterLink

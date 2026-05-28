@@ -33,6 +33,7 @@ const navLinks = computed(() => {
             { name: 'admin-subscriptions', label: 'Membresías' },
             { name: 'admin-system', label: 'Sistema' },
             { name: 'admin-support', label: 'Soporte' },
+            { name: 'admin-ledger', label: 'Kardex' },
             { name: 'admin-settings', label: 'Config' },
             ...(escrow ? [
                 { name: 'admin-payments', label: 'Pagos' },
@@ -50,14 +51,13 @@ const navLinks = computed(() => {
     }
     if (auth.isCliente) {
         return [
-            { name: 'search', label: 'Buscar' },
+            { name: 'home', label: 'Explorar' },
             { name: 'client-favorites', label: 'Favoritos' },
             { name: 'client-requests', label: 'Solicitudes' },
         ];
     }
     return [
-        { name: 'home', label: 'Inicio' },
-        { name: 'search', label: 'Buscar' },
+        { name: 'home', label: 'Explorar' },
         { name: 'home', label: 'Cómo funciona', hash: '#como-funciona' },
     ];
 });
@@ -71,7 +71,7 @@ function isLinkActive(link) {
     if (link.hash) {
         return route.name === 'home' && route.hash === link.hash;
     }
-    if (link.name === 'home') {
+    if (link.name === 'home' && !link.hash) {
         return route.name === 'home' && !route.hash;
     }
     return route.name === link.name;

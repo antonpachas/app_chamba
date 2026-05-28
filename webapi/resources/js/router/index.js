@@ -18,14 +18,9 @@ const routes = [
     {
         path: '/',
         name: 'home',
-        component: () => import('@/views/HomeView.vue'),
-        meta: { layout: 'default', title: 'Inicio' },
-    },
-    {
-        path: '/buscar',
-        name: 'search',
+        alias: '/buscar',
         component: () => import('@/views/SearchView.vue'),
-        meta: { layout: 'default', title: 'Buscar anuncios' },
+        meta: { layout: 'default', title: 'Explorar' },
     },
     {
         path: '/anuncio/:id',

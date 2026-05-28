@@ -16,7 +16,7 @@ const route = useRoute();
     >
         <p class="font-bold" :class="compact ? 'text-xs' : 'text-sm'">Explorando sin cuenta</p>
         <p class="mt-1 text-sky-900/90 leading-snug">
-            Puedes ver fotos, precio, rubro, zona y contactar por WhatsApp. La descripción completa y las solicitudes en plataforma requieren cuenta de cliente.
+            Puedes ver fotos, precio, rubro y zona. Teléfono, WhatsApp y descripción completa requieren iniciar sesión.
             <span v-if="meta?.guest_limited" class="block mt-1 font-medium">
                 Vista previa: {{ meta.guest_limit }} de {{ meta.guest_total }} anuncios en esta búsqueda.
             </span>
