@@ -450,10 +450,19 @@ watch(showForm, (open) => {
                         <h3 class="text-base font-bold text-slate-900 mt-1 truncate">{{ s.title }}</h3>
                     </div>
                     <span
+                        v-if="s.admin_hidden"
+                        class="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full bg-rose-100 text-rose-800"
+                        title="Oculto por moderación de la plataforma"
+                    >Oculto por admin</span>
+                    <span
+                        v-else
                         class="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full"
                         :class="s.is_visible ? 'bg-emerald-100 text-emerald-800' : (s.is_expired ? 'bg-amber-100 text-amber-900' : 'bg-slate-200 text-slate-600')"
                     >{{ s.is_visible ? 'Visible' : (s.is_expired ? 'Vencido' : 'Pausado') }}</span>
                 </div>
+                <p v-if="s.admin_hidden_reason" class="text-xs text-rose-700 mt-2 bg-rose-50 rounded-lg px-3 py-2">
+                    {{ s.admin_hidden_reason }}
+                </p>
                 <p v-if="s.expires_at" class="text-xs text-slate-500 mt-1">
                     <template v-if="s.is_expired">Venció el {{ new Date(s.expires_at).toLocaleDateString() }}</template>
                     <template v-else-if="s.is_visible">Vence en {{ s.days_remaining }} día(s) · {{ new Date(s.expires_at).toLocaleDateString() }}</template>
@@ -489,8 +498,8 @@ watch(showForm, (open) => {
 
                 <div class="mt-4 flex flex-wrap gap-2">
                     <AppButton variant="ghost" size="sm" @click="startEdit(s)">Editar</AppButton>
-                    <AppButton v-if="s.is_expired" variant="primary" size="sm" @click="renew(s)">Renovar</AppButton>
-                    <AppButton v-else variant="outline" size="sm" @click="toggle(s)">
+                    <AppButton v-if="s.is_expired && !s.admin_hidden" variant="primary" size="sm" @click="renew(s)">Renovar</AppButton>
+                    <AppButton v-else-if="!s.admin_hidden" variant="outline" size="sm" @click="toggle(s)">
                         {{ s.is_active ? 'Pausar' : 'Activar' }}
                     </AppButton>
                 </div>

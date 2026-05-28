@@ -8,6 +8,7 @@ import AppAlert from '@/components/ui/AppAlert.vue';
 import { escrowEnabled } from '@/services/features';
 import { useProviderNotificationsStore } from '@/stores/providerNotifications';
 import ListingPreviewModal from '@/components/listing/ListingPreviewModal.vue';
+import RequestConversation from '@/components/requests/RequestConversation.vue';
 
 const store = useProviderRequestsStore();
 const notifications = useProviderNotificationsStore();
@@ -98,6 +99,10 @@ async function deleteEvidence(reqId, evId) {
         err.value = e.message;
     } finally { busy.value = null; }
 }
+function requestClosed(r) {
+    return ['cerrado', 'cancelado'].includes(r.status);
+}
+
 async function markDelivered(id) {
     if (!confirm('¿Marcar como entregado? El cliente recibirá una notificación y tendrá unos días para confirmar o disputar.')) return;
     busy.value = id;
@@ -117,7 +122,7 @@ async function markDelivered(id) {
         <header class="mb-8">
             <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Contactos recibidos</h1>
             <p class="text-slate-600 mt-1">
-                {{ escrow ? 'Cotiza, marca avances y gestiona pagos en custodia.' : 'Personas que te contactaron por tus anuncios. Responde y cierra cuando termines.' }}
+                {{ escrow ? 'Responde por mensaje, cotiza y gestiona pagos en custodia.' : 'Responde por mensaje a quien te contactó y cierra cuando termines.' }}
             </p>
         </header>
 
@@ -146,7 +151,12 @@ async function markDelivered(id) {
                     </div>
                     <StatusPill :status="r.status" />
                 </div>
-                <p v-if="r.message" class="text-sm text-slate-700 bg-slate-50 rounded-lg p-3 mb-3 whitespace-pre-wrap">{{ r.message }}</p>
+                <RequestConversation
+                    class="mb-4"
+                    :request-id="r.id"
+                    :closed="requestClosed(r)"
+                    @sent="store.load"
+                />
 
                 <div v-if="escrow && r.latest_quote" class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 mb-3">
                     <div class="flex justify-between items-start gap-3 flex-wrap">

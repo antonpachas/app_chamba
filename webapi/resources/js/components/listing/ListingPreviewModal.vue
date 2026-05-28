@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth';
 import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import { providerPublicProfileEnabled } from '@/services/features';
+import FavoriteButton from '@/components/common/FavoriteButton.vue';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
@@ -83,7 +84,16 @@ const coverImage = computed(() => {
                         <div v-if="!listing.is_visible" class="mb-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900">
                             Este anuncio ya no está visible en la búsqueda pública, pero puedes verlo porque tienes una solicitud asociada.
                         </div>
-                        <img :src="coverImage" alt="" class="w-full h-44 object-cover rounded-xl bg-slate-100 mb-4" />
+                        <div class="relative mb-4">
+                            <img :src="coverImage" alt="" class="w-full h-44 object-cover rounded-xl bg-slate-100" />
+                            <div
+                                v-if="listing.provider_profile_id"
+                                class="absolute bottom-2 right-2"
+                                @click.stop
+                            >
+                                <FavoriteButton :provider-profile-id="listing.provider_profile_id" size="sm" />
+                            </div>
+                        </div>
                         <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">{{ listing.category_name }}</p>
                         <h3 class="text-xl font-black text-slate-900 mt-1">{{ listing.title }}</h3>
                         <p class="text-sm font-semibold text-slate-700 mt-1">{{ listing.provider_name }}</p>

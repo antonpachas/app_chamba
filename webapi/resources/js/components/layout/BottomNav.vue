@@ -15,6 +15,8 @@ const items = computed(() => {
         return [
             { name: 'admin-dashboard', label: 'Panel', icon: 'dashboard' },
             { name: 'admin-subscriptions', label: 'Membresías', icon: 'workspace_premium' },
+            { name: 'admin-users', label: 'Usuarios', icon: 'group' },
+            { name: 'admin-moderation', label: 'Moderar', icon: 'gavel' },
             { name: 'admin-reports', label: 'Reportes', icon: 'analytics' },
             { name: 'admin-ledger', label: 'Kardex', icon: 'account_balance' },
             { name: 'admin-platform-ads', label: 'Ads', icon: 'campaign' },
@@ -34,9 +36,9 @@ const items = computed(() => {
     }
     if (auth.isCliente) {
         return [
-            { name: 'home', label: 'Inicio', icon: 'home' },
             { name: 'search', label: 'Buscar', icon: 'search' },
-            { name: 'client-requests', label: 'Solicitudes', icon: 'history' },
+            { name: 'client-favorites', label: 'Favoritos', icon: 'favorite' },
+            { name: 'client-requests', label: 'Solicitudes', icon: 'inbox' },
             { name: 'account', label: 'Cuenta', icon: 'person' },
         ];
     }

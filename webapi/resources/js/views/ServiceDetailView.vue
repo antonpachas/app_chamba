@@ -6,14 +6,19 @@ import { useAuthStore } from '@/stores/auth';
 import { api } from '@/services/api';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import FavoriteButton from '@/components/common/FavoriteButton.vue';
+import RequestReviewForm from '@/components/requests/RequestReviewForm.vue';
 import { providerPublicProfileEnabled } from '@/services/features';
+import { useClientRequestsStore } from '@/stores/clientRequests';
 
 const route = useRoute();
 const router = useRouter();
 const search = useSearchStore();
 const auth = useAuthStore();
+const clientRequests = useClientRequestsStore();
 
 const service = ref(null);
+const reviewableRequest = ref(null);
 const loading = ref(true);
 const error = ref('');
 
@@ -107,7 +112,24 @@ async function loadListing() {
     }
 }
 
-onMounted(loadListing);
+async function loadReviewable() {
+    reviewableRequest.value = null;
+    if (!auth.isAuthenticated || !auth.isCliente) return;
+    try {
+        await clientRequests.load();
+        reviewableRequest.value =
+            clientRequests.items.find(
+                (r) => Number(r.service?.id) === id.value && r.can_review,
+            ) || null;
+    } catch {
+        reviewableRequest.value = null;
+    }
+}
+
+onMounted(async () => {
+    await loadListing();
+    await loadReviewable();
+});
 
 async function submitRequest() {
     if (!auth.isAuthenticated || auth.user?.role !== 'cliente' || !service.value) return;
@@ -159,9 +181,17 @@ function goLogin() {
             <div class="rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm mb-8">
                 <div class="relative h-64 md:h-96 bg-slate-200">
                     <img :src="image" alt="" class="w-full h-full object-cover" />
+                    <div class="absolute top-4 left-4 z-10 flex items-center gap-2">
+                        <FavoriteButton
+                            v-if="providerProfileId"
+                            :provider-profile-id="providerProfileId"
+                            size="lg"
+                            show-label
+                        />
+                    </div>
                     <div
                         v-if="ratingValue"
-                        class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md"
+                        class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md z-10"
                     >
                         <span class="material-symbols-outlined text-amber-500" style="font-variation-settings: 'FILL' 1">star</span>
                         <span class="text-sm font-bold text-slate-900">{{ ratingValue.v }}</span>
@@ -242,16 +272,19 @@ function goLogin() {
                 </div>
 
                 <aside class="lg:col-span-5 lg:sticky lg:top-24 space-y-6">
-                    <div v-if="!auth.isAuthenticated" class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8">
+                    <div v-if="!auth.isAuthenticated" class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 space-y-4">
+                        <div v-if="providerProfileId" class="flex items-center gap-2 pb-4 border-b border-slate-100">
+                            <FavoriteButton :provider-profile-id="providerProfileId" show-label />
+                            <span class="text-xs text-slate-500">Guarda negocios que te interesan</span>
+                        </div>
                         <h2 class="text-base font-bold text-[#0b1c30] mb-2">Solicitar contacto</h2>
                         <p class="text-sm text-slate-600 mb-4">
-                            Inicia sesión como <strong>cliente</strong> para enviar una solicitud.
-                            Sin cuenta no puedes pedir contacto.
+                            Inicia sesión como <strong>cliente</strong> para enviar una solicitud, guardar favoritos y valorar.
                         </p>
                         <AppButton variant="primary" block @click="goLogin">Iniciar sesión</AppButton>
                         <RouterLink
                             :to="{ name: 'register', query: { next: route.fullPath } }"
-                            class="mt-3 inline-flex w-full justify-center rounded-lg border-2 border-[#003874]/30 bg-white px-6 py-2.5 text-sm font-bold text-[#003874] hover:bg-slate-50 no-underline"
+                            class="inline-flex w-full justify-center rounded-lg border-2 border-[#003874]/30 bg-white px-6 py-2.5 text-sm font-bold text-[#003874] hover:bg-slate-50 no-underline"
                         >
                             Crear cuenta
                         </RouterLink>
@@ -286,7 +319,26 @@ function goLogin() {
                         </div>
                     </div>
 
-                    <div v-else class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8">
+                    <template v-else-if="auth.isCliente">
+                        <RequestReviewForm
+                            v-if="reviewableRequest"
+                            :service-request-id="reviewableRequest.id"
+                            :provider-name="service.provider_name"
+                            @submitted="loadReviewable"
+                        />
+
+                        <div
+                            v-else
+                            class="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600"
+                        >
+                            <p class="font-bold text-[#0b1c30] mb-1">Valorar este negocio</p>
+                            <p>
+                                Después de enviar una solicitud, podrás calificar en
+                                <RouterLink :to="{ name: 'client-requests' }" class="text-[#003874] font-bold hover:underline">Mis solicitudes</RouterLink>.
+                            </p>
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8">
                         <h2 class="text-base font-bold text-[#0b1c30] mb-4">Solicitar contacto</h2>
                         <form @submit.prevent="submitRequest" class="space-y-4">
                             <label class="block">
@@ -341,7 +393,8 @@ function goLogin() {
                                 </a>
                             </div>
                         </div>
-                    </div>
+                        </div>
+                    </template>
                 </aside>
             </div>
         </article>

@@ -1,8 +1,21 @@
 <script setup>
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { asset } from '@/utils/asset';
+import { scrollToHash } from '@/utils/scroll';
 
 const year = new Date().getFullYear();
+const route = useRoute();
+const router = useRouter();
+
+function goHowItWorks(event) {
+    event.preventDefault();
+    if (route.name !== 'home') {
+        router.push({ name: 'home', hash: '#como-funciona' }).then(() => scrollToHash('#como-funciona'));
+    } else {
+        router.replace({ hash: '#como-funciona' });
+        scrollToHash('#como-funciona');
+    }
+}
 </script>
 
 <template>
@@ -24,13 +37,13 @@ const year = new Date().getFullYear();
                         <RouterLink :to="{ name: 'search' }" class="hover:text-[#003874]">Buscar anuncios</RouterLink>
                     </li>
                     <li>
-                        <RouterLink :to="{ name: 'home', hash: '#como-funciona' }" class="hover:text-[#003874]">
+                        <a href="#como-funciona" class="hover:text-[#003874] cursor-pointer" @click="goHowItWorks">
                             Cómo funciona
-                        </RouterLink>
+                        </a>
                     </li>
                     <li>
-                        <RouterLink :to="{ name: 'login', query: { cuenta: 'proveedor' } }" class="hover:text-[#003874]">
-                            Soy proveedor
+                        <RouterLink :to="{ name: 'login' }" class="hover:text-[#003874]">
+                            Acceder
                         </RouterLink>
                     </li>
                 </ul>

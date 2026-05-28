@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Auth\UpdateMeRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Services\SubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 final class MeController extends Controller
 {
@@ -33,6 +36,33 @@ final class MeController extends Controller
         return response()->json([
             'user' => UserResource::make($user),
             'entitlements' => $entitlements,
+        ]);
+    }
+
+    public function update(UpdateMeRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $data = $request->validated();
+
+        if (! empty($data['password'])) {
+            if (! Hash::check($data['current_password'], $user->password_hash)) {
+                throw ValidationException::withMessages([
+                    'current_password' => ['La contraseña actual no es correcta.'],
+                ]);
+            }
+            $user->password_hash = Hash::make($data['password']);
+        }
+
+        $user->full_name = $data['full_name'];
+        $user->email = $data['email'];
+        $user->phone = $data['phone'] ?? null;
+        $user->save();
+
+        $user->load('providerProfile');
+
+        return response()->json([
+            'message' => 'Perfil actualizado.',
+            'user' => UserResource::make($user),
         ]);
     }
 }

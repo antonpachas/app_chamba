@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { providerPublicProfileEnabled } from '@/services/features';
+import FavoriteButton from '@/components/common/FavoriteButton.vue';
 
 const props = defineProps({
     service: { type: Object, required: true },
@@ -68,6 +69,13 @@ const priceFooter = computed(() => {
             >
                 <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1">verified</span>
                 <span class="text-[10px] font-black uppercase tracking-wider">Pro</span>
+            </div>
+            <div
+                v-if="providerProfileId"
+                class="absolute bottom-3 right-3 z-10"
+                @click.stop
+            >
+                <FavoriteButton :provider-profile-id="providerProfileId" size="sm" />
             </div>
             <div
                 v-if="ratingNum"

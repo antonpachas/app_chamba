@@ -135,6 +135,10 @@ final class ListingLifecycleService
 
     public function isVisible(ProviderService $listing): bool
     {
+        if ((bool) $listing->admin_hidden) {
+            return false;
+        }
+
         if (! $listing->is_active) {
             return false;
         }

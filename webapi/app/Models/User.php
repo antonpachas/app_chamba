@@ -22,6 +22,9 @@ class User extends Authenticatable
         'password_hash',
         'role',
         'status',
+        'suspended_at',
+        'suspended_reason',
+        'suspended_by',
         'avatar_path',
     ];
 
@@ -31,7 +34,9 @@ class User extends Authenticatable
 
     protected function casts(): array
     {
-        return [];
+        return [
+            'suspended_at' => 'datetime',
+        ];
     }
 
     public function getAuthPassword(): string

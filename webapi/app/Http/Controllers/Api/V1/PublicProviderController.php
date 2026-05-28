@@ -28,10 +28,14 @@ final class PublicProviderController extends Controller
 
         $p = ProviderProfile::query()
             ->with([
-                'user:id,full_name,phone,avatar_path',
+                'user:id,full_name,phone,avatar_path,status',
                 'district.province.department',
             ])
             ->findOrFail($providerProfile);
+
+        if ((string) ($p->user?->status ?? '') !== 'activo') {
+            return response()->json(['message' => 'Este negocio no está disponible.'], 404);
+        }
 
         $showContact = (bool) chamba_setting('providers.show_contact_on_public_profile', true);
         $media = app(MediaStorageService::class);

@@ -83,5 +83,17 @@ export const useClientRequestsStore = defineStore('clientRequests', {
             await api.post(`/client/service-requests/${id}/close`, undefined, { auth: true });
             await this.load();
         },
+        async submitReview(serviceRequestId, { rating, comment }) {
+            await api.post(
+                '/client/reviews',
+                {
+                    service_request_id: serviceRequestId,
+                    rating,
+                    comment: comment || null,
+                },
+                { auth: true },
+            );
+            await this.load();
+        },
     },
 });

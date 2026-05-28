@@ -5,6 +5,7 @@ import { api } from '@/services/api';
 import { platform } from '@/services/features';
 import ServiceCard from '@/components/service/ServiceCard.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import FavoriteButton from '@/components/common/FavoriteButton.vue';
 
 const route = useRoute();
 const loading = ref(true);
@@ -79,6 +80,7 @@ onMounted(async () => {
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2 mb-1">
                                 <h1 class="text-2xl md:text-3xl font-black tracking-tight">{{ profile.name }}</h1>
+                                <FavoriteButton :provider-profile-id="id" size="md" />
                                 <span
                                     v-if="profile.is_pro"
                                     class="inline-flex items-center gap-1 bg-grad-warm text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full"

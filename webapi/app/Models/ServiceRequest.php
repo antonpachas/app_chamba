@@ -87,4 +87,9 @@ class ServiceRequest extends Model
     {
         return $this->hasMany(ServiceRequestEvidence::class)->orderBy('sort_order');
     }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(ServiceRequestMessage::class)->orderBy('created_at');
+    }
 }

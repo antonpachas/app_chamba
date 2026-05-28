@@ -43,6 +43,8 @@ const subscriptionsActive = computed(() => {
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <RouterLink :to="{ name: 'admin-subscriptions' }" class="rounded-full bg-white text-[#003874] font-bold px-5 py-2.5 text-sm shadow no-underline hover:brightness-105">Revisar membresías</RouterLink>
+                    <RouterLink :to="{ name: 'admin-users' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Usuarios</RouterLink>
+                    <RouterLink :to="{ name: 'admin-moderation' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Moderación</RouterLink>
                     <RouterLink :to="{ name: 'admin-settings' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Configuración</RouterLink>
                     <RouterLink v-if="escrow" :to="{ name: 'admin-payments' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Pagos en custodia</RouterLink>
                     <RouterLink v-if="escrow" :to="{ name: 'admin-withdrawals' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Procesar retiros</RouterLink>

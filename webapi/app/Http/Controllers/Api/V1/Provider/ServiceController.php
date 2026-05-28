@@ -151,6 +151,13 @@ final class ServiceController extends Controller
 
         $isActive = (bool) $request->validated('is_active');
 
+        if ($isActive && (bool) $model->admin_hidden) {
+            return response()->json([
+                'message' => 'Este anuncio fue ocultado por moderación. Contacta a soporte de Busca PE.',
+                'code' => 'listing_admin_hidden',
+            ], 422);
+        }
+
         try {
             $model = $this->listings->setActive($model, $profile, $request->user(), $isActive);
         } catch (Throwable $e) {

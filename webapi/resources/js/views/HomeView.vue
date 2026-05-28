@@ -1,6 +1,7 @@
 <script setup>
-import { onMounted, ref } from 'vue';
-import { useRouter, RouterLink } from 'vue-router';
+import { nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter, RouterLink } from 'vue-router';
+import { scrollToHash } from '@/utils/scroll';
 import { useCatalogStore } from '@/stores/catalog';
 import { useGeoStore } from '@/stores/geo';
 import { useSearchStore } from '@/stores/search';
@@ -8,6 +9,7 @@ import { categoryStyleFor } from '@/components/common/CategoryIcon';
 import ServiceCard from '@/components/service/ServiceCard.vue';
 import AdSlot from '@/components/ads/AdSlot.vue';
 
+const route = useRoute();
 const router = useRouter();
 const catalog = useCatalogStore();
 const geo = useGeoStore();
@@ -15,12 +17,21 @@ const search = useSearchStore();
 
 const localKeyword = ref('');
 
+function applyHashScroll() {
+    if (route.hash) {
+        nextTick(() => scrollToHash(route.hash));
+    }
+}
+
 onMounted(async () => {
     await Promise.all([catalog.ensureCategories(), geo.ensureDepartments()]);
     if (!search.searched) {
         await search.run();
     }
+    applyHashScroll();
 });
+
+watch(() => route.hash, applyHashScroll);
 
 async function onDepartment(e) {
     geo.clearGps();
@@ -222,13 +233,13 @@ function pickCategory(id) {
             </p>
             <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
                 <RouterLink
-                    :to="{ name: 'login', query: { cuenta: 'proveedor' } }"
+                    :to="{ name: 'login' }"
                     class="inline-flex btn-grad-warm px-8 py-3 rounded-full font-bold no-underline active:scale-[0.99]"
                 >
                     Publicar mi negocio
                 </RouterLink>
                 <RouterLink
-                    :to="{ name: 'register', query: { cuenta: 'proveedor' } }"
+                    :to="{ name: 'register' }"
                     class="inline-flex px-8 py-3 rounded-full font-bold border border-white/40 text-white hover:bg-white/10 no-underline transition"
                 >
                     Crear cuenta gratis

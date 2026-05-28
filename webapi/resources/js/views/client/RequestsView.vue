@@ -6,6 +6,9 @@ import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import ListingPreviewModal from '@/components/listing/ListingPreviewModal.vue';
+import RequestConversation from '@/components/requests/RequestConversation.vue';
+import RequestReviewForm from '@/components/requests/RequestReviewForm.vue';
+import StarRatingInput from '@/components/common/StarRatingInput.vue';
 
 const store = useClientRequestsStore();
 const previewListingId = ref(null);
@@ -93,6 +96,10 @@ function openListingPreview(serviceId) {
     previewOpen.value = true;
 }
 
+function requestClosed(r) {
+    return ['cerrado', 'cancelado'].includes(r.status);
+}
+
 async function submitDispute(paymentId) {
     if ((disputeReason.value || '').trim().length < 10) {
         localError.value = 'Describe el problema con al menos 10 caracteres.';
@@ -116,7 +123,7 @@ async function submitDispute(paymentId) {
     <div class="max-w-5xl mx-auto px-4 md:px-8 py-8">
         <header class="mb-8">
             <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mis solicitudes</h1>
-            <p class="text-slate-600 mt-1">Sigue el estado, acepta cotizaciones y registra pagos.</p>
+            <p class="text-slate-600 mt-1">Conversa con el negocio, sigue el estado y gestiona cotizaciones.</p>
         </header>
 
         <AppAlert v-if="localError" type="error" class="mb-4">{{ localError }}</AppAlert>
@@ -153,9 +160,29 @@ async function submitDispute(paymentId) {
                     <StatusPill :status="r.status" />
                 </div>
 
-                <p v-if="r.message" class="text-sm text-slate-700 bg-slate-50 rounded-lg p-3 mb-4 whitespace-pre-wrap">
-                    {{ r.message }}
-                </p>
+                <RequestConversation
+                    class="mb-4"
+                    :request-id="r.id"
+                    :closed="requestClosed(r)"
+                    @sent="store.load"
+                />
+
+                <RequestReviewForm
+                    v-if="r.can_review"
+                    class="mb-4"
+                    :service-request-id="r.id"
+                    :provider-name="r.provider?.name"
+                    @submitted="store.load"
+                />
+
+                <div
+                    v-else-if="r.review"
+                    class="rounded-xl border border-amber-100 bg-amber-50/60 p-4 mb-4"
+                >
+                    <p class="text-xs font-bold uppercase tracking-wide text-amber-800 mb-2">Tu valoración</p>
+                    <StarRatingInput :model-value="r.review.rating" readonly size="sm" />
+                    <p v-if="r.review.comment" class="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{{ r.review.comment }}</p>
+                </div>
 
                 <div v-if="r.latest_quote" class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 mb-4">
                     <div class="flex justify-between items-start gap-4 flex-wrap">

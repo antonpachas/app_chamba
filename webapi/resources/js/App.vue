@@ -49,7 +49,7 @@ watch(
                 <main class="flex-1 w-full">
                     <router-view v-slot="{ Component }">
                         <transition name="fade" mode="out-in">
-                            <component :is="Component" />
+                            <component :is="Component" :key="route.path" />
                         </transition>
                     </router-view>
                 </main>

@@ -22,7 +22,7 @@ final class ServiceRequestListController extends Controller
                 'providerService.providerProfile:id,user_id,business_name,whatsapp,contact_phone,avg_rating,total_reviews',
                 'providerService.providerProfile.user:id,full_name',
             ])
-            ->withCount(['quotes' => fn ($q) => $q])
+            ->withCount(['quotes' => fn ($q) => $q, 'messages'])
             ->orderByDesc('created_at')
             ->limit(100)
             ->get();
@@ -31,6 +31,7 @@ final class ServiceRequestListController extends Controller
         $rows->loadMissing('payment');
         $rows->loadMissing('evidence');
         $rows->loadMissing('events');
+        $rows->loadMissing('review:id,service_request_id,rating,comment,created_at');
 
         return response()->json([
             'data' => $rows->map(function (ServiceRequest $r) {
@@ -42,6 +43,13 @@ final class ServiceRequestListController extends Controller
                     'status' => $r->status,
                     'message' => $r->message,
                     'contact_channel' => $r->contact_channel,
+                    'messages_count' => (int) ($r->messages_count ?? 0),
+                    'can_review' => $r->review === null,
+                    'review' => $r->review ? [
+                        'rating' => (int) $r->review->rating,
+                        'comment' => $r->review->comment,
+                        'created_at' => $r->review->created_at,
+                    ] : null,
                     'created_at' => $r->created_at,
                     'delivered_at' => $r->delivered_at,
                     'auto_release_at' => $r->auto_release_at,

@@ -21,7 +21,8 @@ class ProviderServiceResource extends JsonResource
 
         $expiresAt = $this->expires_at ? Carbon::parse($this->expires_at) : null;
         $expired = $expiresAt !== null && $expiresAt->isPast();
-        $visible = (bool) $this->is_active && ! $expired;
+        $adminHidden = (bool) $this->admin_hidden;
+        $visible = ! $adminHidden && (bool) $this->is_active && ! $expired;
 
         return [
             'id' => $this->id,
@@ -30,6 +31,8 @@ class ProviderServiceResource extends JsonResource
             'base_price' => $this->base_price,
             'price_type' => $this->price_type,
             'is_active' => (bool) $this->is_active,
+            'admin_hidden' => $adminHidden,
+            'admin_hidden_reason' => $this->admin_hidden_reason,
             'published_at' => $this->published_at,
             'expires_at' => $this->expires_at,
             'duration_days' => $this->duration_days,

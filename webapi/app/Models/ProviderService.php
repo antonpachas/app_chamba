@@ -16,6 +16,10 @@ class ProviderService extends Model
         'base_price',
         'price_type',
         'is_active',
+        'admin_hidden',
+        'admin_hidden_at',
+        'admin_hidden_reason',
+        'admin_hidden_by',
         'published_at',
         'expires_at',
         'deactivated_at',
@@ -26,6 +30,8 @@ class ProviderService extends Model
     {
         return [
             'is_active' => 'boolean',
+            'admin_hidden' => 'boolean',
+            'admin_hidden_at' => 'datetime',
             'published_at' => 'datetime',
             'expires_at' => 'datetime',
             'deactivated_at' => 'datetime',
@@ -36,6 +42,7 @@ class ProviderService extends Model
     public function scopeVisible($query)
     {
         return $query
+            ->where('admin_hidden', false)
             ->where('is_active', true)
             ->where(function ($q) {
                 $q->whereNull('expires_at')->orWhere('expires_at', '>', now());

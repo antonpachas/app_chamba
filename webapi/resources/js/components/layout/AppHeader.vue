@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { scrollToHash } from '@/utils/scroll';
 import { useAuthStore } from '@/stores/auth';
 import { escrowEnabled } from '@/services/features';
 import { asset } from '@/utils/asset';
@@ -9,6 +10,7 @@ import { useProviderNotificationsStore } from '@/stores/providerNotifications';
 const auth = useAuthStore();
 const notifications = useProviderNotificationsStore();
 const route = useRoute();
+const router = useRouter();
 const menuOpen = ref(false);
 const escrow = escrowEnabled();
 
@@ -26,6 +28,8 @@ const navLinks = computed(() => {
         return [
             { name: 'admin-dashboard', label: 'Panel' },
             { name: 'admin-subscriptions', label: 'Membresías' },
+            { name: 'admin-users', label: 'Usuarios' },
+            { name: 'admin-moderation', label: 'Moderación' },
             { name: 'admin-settings', label: 'Configuración' },
             ...(escrow ? [
                 { name: 'admin-payments', label: 'Pagos' },
@@ -52,10 +56,32 @@ const navLinks = computed(() => {
         ];
     }
     return [
-        { name: 'search', label: 'Buscar anuncios' },
+        { name: 'home', label: 'Inicio' },
+        { name: 'search', label: 'Buscar' },
         { name: 'home', label: 'Cómo funciona', hash: '#como-funciona' },
     ];
 });
+
+function isLinkActive(link) {
+    if (link.hash) {
+        return route.name === 'home' && route.hash === link.hash;
+    }
+    if (link.name === 'home') {
+        return route.name === 'home' && !route.hash;
+    }
+    return route.name === link.name;
+}
+
+function goNavLink(link, event) {
+    if (!link.hash) return;
+    event?.preventDefault();
+    if (route.name !== 'home') {
+        router.push({ name: 'home', hash: link.hash }).then(() => scrollToHash(link.hash));
+    } else {
+        router.replace({ hash: link.hash });
+        scrollToHash(link.hash);
+    }
+}
 </script>
 
 <template>
@@ -67,33 +93,40 @@ const navLinks = computed(() => {
                     <span class="text-2xl font-black tracking-tighter text-grad-brand">Busca PE</span>
                 </RouterLink>
                 <div class="hidden md:flex items-center gap-6">
-                    <RouterLink
-                        v-for="link in navLinks"
-                        :key="link.name + (link.hash || '')"
-                        :to="{ name: link.name, hash: link.hash }"
-                        class="text-sm font-medium tracking-tight pb-1 border-b-2 transition no-underline relative"
-                        :class="
-                            route.name === link.name
-                                ? 'text-[#003874] border-[#003874]'
-                                : 'text-slate-500 border-transparent hover:text-[#003874]'
-                        "
-                    >
-                        {{ link.label }}
-                        <span
-                            v-if="link.name === 'provider-requests' && notifications.unreadCount > 0"
-                            class="absolute -top-1 -right-3 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rose-600 text-white text-[10px] font-black flex items-center justify-center"
-                        >{{ notifications.unreadCount > 9 ? '9+' : notifications.unreadCount }}</span>
-                    </RouterLink>
+                    <template v-for="link in navLinks" :key="link.name + (link.hash || '')">
+                        <a
+                            v-if="link.hash"
+                            :href="link.hash"
+                            class="text-sm font-medium tracking-tight pb-1 border-b-2 transition no-underline cursor-pointer"
+                            :class="
+                                isLinkActive(link)
+                                    ? 'text-[#003874] border-[#003874]'
+                                    : 'text-slate-500 border-transparent hover:text-[#003874]'
+                            "
+                            @click="goNavLink(link, $event)"
+                        >
+                            {{ link.label }}
+                        </a>
+                        <RouterLink
+                            v-else
+                            :to="{ name: link.name }"
+                            class="text-sm font-medium tracking-tight pb-1 border-b-2 transition no-underline relative"
+                            :class="
+                                isLinkActive(link)
+                                    ? 'text-[#003874] border-[#003874]'
+                                    : 'text-slate-500 border-transparent hover:text-[#003874]'
+                            "
+                        >
+                            {{ link.label }}
+                            <span
+                                v-if="link.name === 'provider-requests' && notifications.unreadCount > 0"
+                                class="absolute -top-1 -right-3 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rose-600 text-white text-[10px] font-black flex items-center justify-center"
+                            >{{ notifications.unreadCount > 9 ? '9+' : notifications.unreadCount }}</span>
+                        </RouterLink>
+                    </template>
                 </div>
             </div>
             <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-                <RouterLink
-                    v-if="!auth.isAuthenticated"
-                    :to="{ name: 'register', query: { cuenta: 'proveedor' } }"
-                    class="hidden lg:inline text-sm font-semibold text-[#003874] hover:underline whitespace-nowrap"
-                >
-                    Soy proveedor
-                </RouterLink>
                 <RouterLink
                     v-if="!auth.isAuthenticated"
                     :to="{ name: 'login' }"

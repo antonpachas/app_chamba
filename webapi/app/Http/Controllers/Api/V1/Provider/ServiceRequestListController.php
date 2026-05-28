@@ -33,6 +33,7 @@ final class ServiceRequestListController extends Controller
                 'providerService:id,title,base_price,price_type,category_id',
                 'providerService.category:id,name',
             ])
+            ->withCount('messages')
             ->orderByDesc('created_at')
             ->limit(100)
             ->get();
@@ -44,6 +45,7 @@ final class ServiceRequestListController extends Controller
                     'status' => $r->status,
                     'message' => $r->message,
                     'contact_channel' => $r->contact_channel,
+                    'messages_count' => (int) ($r->messages_count ?? 0),
                     'created_at' => $r->created_at,
                     'service' => $r->providerService ? [
                         'id' => $r->providerService->id,

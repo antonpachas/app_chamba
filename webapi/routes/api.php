@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
+use App\Http\Controllers\Api\V1\Admin\ListingAdminController;
+use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\LedgerAdminController;
 use App\Http\Controllers\Api\V1\Admin\PaymentAdminController;
 use App\Http\Controllers\Api\V1\Admin\PlatformAdAdminController;
@@ -40,6 +42,7 @@ use App\Http\Controllers\Api\V1\PlatformFeedbackController;
 use App\Http\Controllers\Api\V1\PublicAdsController;
 use App\Http\Controllers\Api\V1\PublicPlatformController;
 use App\Http\Controllers\Api\V1\PublicProviderController;
+use App\Http\Controllers\Api\V1\ServiceRequestMessageController;
 use App\Http\Controllers\Api\V1\ServiceSearchController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
 use Illuminate\Support\Facades\Route;
@@ -88,9 +91,10 @@ Route::prefix('v1')->group(function (): void {
         ->middleware('signed')
         ->where('name', '[A-Za-z0-9_.-]+');
 
-    Route::middleware('auth:sanctum')->group(function (): void {
+    Route::middleware(['auth:sanctum', 'user.active'])->group(function (): void {
         Route::post('auth/logout', [LogoutController::class, 'store']);
         Route::get('auth/me', [MeController::class, 'show']);
+        Route::put('me', [MeController::class, 'update']);
 
         Route::get('subscriptions/me', [SubscriptionController::class, 'me']);
         Route::post('subscriptions/pay', [SubscriptionController::class, 'pay']);
@@ -98,6 +102,11 @@ Route::prefix('v1')->group(function (): void {
 
         Route::post('me/avatar', [AvatarController::class, 'store']);
         Route::delete('me/avatar', [AvatarController::class, 'destroy']);
+
+        Route::get('service-requests/{serviceRequest}/messages', [ServiceRequestMessageController::class, 'index'])
+            ->whereNumber('serviceRequest');
+        Route::post('service-requests/{serviceRequest}/messages', [ServiceRequestMessageController::class, 'store'])
+            ->whereNumber('serviceRequest');
 
         Route::middleware('role:proveedor')->prefix('provider')->group(function (): void {
             Route::get('profile', [ProfileController::class, 'show']);
@@ -189,6 +198,15 @@ Route::prefix('v1')->group(function (): void {
 
             Route::get('reports/top-categories', [ReportsAdminController::class, 'topCategories']);
             Route::get('reports/top-queries', [ReportsAdminController::class, 'topQueries']);
+
+            Route::get('listings', [ListingAdminController::class, 'index']);
+            Route::post('listings/{listing}/hide', [ListingAdminController::class, 'hide'])->whereNumber('listing');
+            Route::post('listings/{listing}/restore', [ListingAdminController::class, 'restore'])->whereNumber('listing');
+
+            Route::get('users', [UserAdminController::class, 'index']);
+            Route::post('users/{user}/suspend', [UserAdminController::class, 'suspend'])->whereNumber('user');
+            Route::post('users/{user}/activate', [UserAdminController::class, 'activate'])->whereNumber('user');
+            Route::post('users/{user}/reset-password', [UserAdminController::class, 'resetPassword'])->whereNumber('user');
             Route::get('ledger', [LedgerAdminController::class, 'index']);
             Route::post('ledger/expenses', [LedgerAdminController::class, 'storeExpense']);
             Route::get('platform-ads', [PlatformAdAdminController::class, 'index']);

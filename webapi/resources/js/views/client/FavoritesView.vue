@@ -21,7 +21,7 @@ onMounted(() => favs.load());
             <RouterLink :to="{ name: 'search' }" class="text-[#003874] font-bold hover:underline ml-1">Buscar anuncios</RouterLink>
         </div>
         <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <article v-for="f in favs.items" :key="f.provider_profile_id" class="rounded-2xl border border-slate-200 bg-white p-5">
+            <article v-for="f in favs.items" :key="f.provider_profile_id" class="rounded-2xl border border-slate-200 bg-white p-5 flex flex-col">
                 <p class="text-xs font-bold uppercase tracking-wide text-[#003874]">{{ f.business_name || '—' }}</p>
                 <h3 class="text-lg font-bold text-slate-900 mt-1">{{ f.provider_name || f.full_name || '—' }}</h3>
                 <p class="text-sm text-slate-600 mt-1">
@@ -33,6 +33,13 @@ onMounted(() => favs.load());
                     </span>
                     <AppButton variant="ghost" size="sm" @click="favs.toggle(f.provider_profile_id)">Quitar</AppButton>
                 </div>
+                <RouterLink
+                    v-if="f.provider_profile_id"
+                    :to="{ name: 'provider-public', params: { id: f.provider_profile_id } }"
+                    class="mt-4 text-center rounded-full border-2 border-[#003874]/30 text-[#003874] font-bold text-sm py-2 no-underline hover:bg-[#003874]/5"
+                >
+                    Ver negocio
+                </RouterLink>
             </article>
         </div>
     </div>

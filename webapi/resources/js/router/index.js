@@ -176,6 +176,18 @@ const routes = [
         meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Membresías' },
     },
     {
+        path: '/admin/moderacion',
+        name: 'admin-moderation',
+        component: () => import('@/views/admin/ModerationView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Moderación' },
+    },
+    {
+        path: '/admin/usuarios',
+        name: 'admin-users',
+        component: () => import('@/views/admin/UsersAdminView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Usuarios' },
+    },
+    {
         path: '/admin/configuracion',
         name: 'admin-settings',
         component: () => import('@/views/admin/SettingsView.vue'),
@@ -212,7 +224,13 @@ const router = createRouter({
     routes,
     scrollBehavior(to, _from, saved) {
         if (saved) return saved;
-        if (to.hash) return { el: to.hash, behavior: 'smooth' };
+        if (to.hash) {
+            return {
+                el: to.hash,
+                behavior: 'smooth',
+                top: 88,
+            };
+        }
         return { top: 0, left: 0, behavior: 'instant' };
     },
 });

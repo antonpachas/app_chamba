@@ -142,5 +142,13 @@ export const useAuthStore = defineStore('auth', {
                 persistUser(this.user);
             }
         },
+        async updateProfile(payload) {
+            const data = await api.put('/me', payload, { auth: true });
+            if (data?.user) {
+                this.user = data.user;
+                persistUser(this.user);
+            }
+            return data;
+        },
     },
 });
