@@ -5,11 +5,15 @@ namespace App\Services;
 use App\Models\ProviderLocation;
 use App\Models\ProviderProfile;
 use App\Models\User;
+use App\Services\BusinessHoursService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class ProviderLocationService
 {
+    public function __construct(
+        private readonly BusinessHoursService $businessHours,
+    ) {}
     /**
      * Resuelve el máximo de sedes que puede tener el proveedor según su plan.
      */
@@ -62,6 +66,9 @@ class ProviderLocationService
                 'ubigeo' => $data['ubigeo'] ?? null,
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
+                'business_hours' => array_key_exists('business_hours', $data)
+                    ? $this->businessHours->normalizeInput($data['business_hours'])
+                    : null,
                 'is_primary' => $isPrimary,
                 'is_active' => true,
             ]);
@@ -76,6 +83,9 @@ class ProviderLocationService
                     ->where('provider_profile_id', $location->provider_profile_id)
                     ->where('id', '!=', $location->id)
                     ->update(['is_primary' => 0]);
+            }
+            if (array_key_exists('business_hours', $data)) {
+                $data['business_hours'] = $this->businessHours->normalizeInput($data['business_hours']);
             }
             $location->fill($data)->save();
             return $location->refresh();

@@ -6,12 +6,12 @@ import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import { escrowEnabled } from '@/services/features';
-import { useProviderNotificationsStore } from '@/stores/providerNotifications';
+import { useUserNotificationsStore } from '@/stores/userNotifications';
 import ListingPreviewModal from '@/components/listing/ListingPreviewModal.vue';
 import RequestConversation from '@/components/requests/RequestConversation.vue';
 
 const store = useProviderRequestsStore();
-const notifications = useProviderNotificationsStore();
+const notifications = useUserNotificationsStore();
 const previewListingId = ref(null);
 const previewOpen = ref(false);
 const detailOpen = ref(false);

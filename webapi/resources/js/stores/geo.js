@@ -12,9 +12,27 @@ export const useGeoStore = defineStore('geo', {
         ubigeoInput: '',
         userLat: null,
         userLng: null,
+        mapLat: null,
+        mapLng: null,
+        mapLocationLoading: false,
         useGps: false,
         loading: false,
     }),
+    getters: {
+        mapDisplayLat(state) {
+            if (state.mapLat != null) return state.mapLat;
+            if (state.useGps && state.userLat != null) return state.userLat;
+            return null;
+        },
+        mapDisplayLng(state) {
+            if (state.mapLng != null) return state.mapLng;
+            if (state.useGps && state.userLng != null) return state.userLng;
+            return null;
+        },
+        hasMapLocation() {
+            return this.mapDisplayLat != null && this.mapDisplayLng != null;
+        },
+    },
     actions: {
         async ensureDepartments() {
             if (this.departments.length) return;
@@ -71,28 +89,56 @@ export const useGeoStore = defineStore('geo', {
                 this.loading = false;
             }
         },
-        useMyLocation() {
+        _getCurrentPosition() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
                     reject(new Error('Tu navegador no soporta geolocalización.'));
                     return;
                 }
                 navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        this.userLat = pos.coords.latitude;
-                        this.userLng = pos.coords.longitude;
-                        this.useGps = true;
-                        resolve();
-                    },
+                    (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
                     () => reject(new Error('No se pudo obtener tu ubicación.')),
-                    { enableHighAccuracy: true, timeout: 12000 },
+                    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
                 );
             });
+        },
+        useMyLocation() {
+            return this._getCurrentPosition().then(({ lat, lng }) => {
+                this.userLat = lat;
+                this.userLng = lng;
+                this.mapLat = lat;
+                this.mapLng = lng;
+                this.useGps = true;
+            });
+        },
+        /** Obtiene GPS para el mapa sin cambiar filtros de búsqueda. */
+        async ensureMapLocation() {
+            if (this.mapLat != null && this.mapLng != null) {
+                return true;
+            }
+            if (this.useGps && this.userLat != null && this.userLng != null) {
+                this.mapLat = this.userLat;
+                this.mapLng = this.userLng;
+                return true;
+            }
+            this.mapLocationLoading = true;
+            try {
+                const { lat, lng } = await this._getCurrentPosition();
+                this.mapLat = lat;
+                this.mapLng = lng;
+                return true;
+            } catch {
+                return false;
+            } finally {
+                this.mapLocationLoading = false;
+            }
         },
         clearGps() {
             this.useGps = false;
             this.userLat = null;
             this.userLng = null;
+            this.mapLat = null;
+            this.mapLng = null;
         },
     },
 });

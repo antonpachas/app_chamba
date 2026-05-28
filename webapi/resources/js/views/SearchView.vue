@@ -15,6 +15,7 @@ import SearchResultsToolbar from '@/components/search/SearchResultsToolbar.vue';
 import ListingResultsMap from '@/components/search/ListingResultsMap.vue';
 import DiscoverMarketingSections from '@/components/discover/DiscoverMarketingSections.vue';
 import { useAuthStore } from '@/stores/auth';
+import NotificationsBanner from '@/components/notifications/NotificationsBanner.vue';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -41,6 +42,14 @@ onMounted(async () => {
 
 watch(() => route.hash, applyHashScroll);
 
+watch(
+    () => search.viewMode,
+    (mode) => {
+        if (mode === 'map') void geo.ensureMapLocation();
+    },
+    { immediate: true },
+);
+
 function submitSearch() {
     void search.run();
 }
@@ -51,6 +60,19 @@ function pickCategory(id) {
 }
 function clearCategory() {
     search.setCategory(null);
+    void search.run();
+}
+
+const quickSearches = [
+    { label: 'Mecánico', keyword: 'mecánico' },
+    { label: 'Gasfitero', keyword: 'gasfitero' },
+    { label: 'Ferretería', keyword: 'ferretería' },
+    { label: 'Restaurante', keyword: 'restaurante' },
+    { label: 'Dentista', keyword: 'dentista' },
+];
+
+function quickSearch(keyword) {
+    search.setKeyword(keyword);
     void search.run();
 }
 </script>
@@ -68,12 +90,28 @@ function clearCategory() {
             <ListingSearchBar auto-run-on-geo class="mb-6" @search="submitSearch" />
         </div>
 
+        <NotificationsBanner v-if="auth.isCliente" class="max-w-3xl mx-auto" />
         <GuestBrowseBanner
             v-if="!auth.isAuthenticated"
             :meta="search.guestMeta"
             class="max-w-3xl mx-auto mb-8"
         />
         <AdSlot placement="home" class="mb-8" />
+
+        <section class="mb-6" aria-label="Búsquedas populares">
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Búsquedas populares</p>
+            <div class="flex flex-wrap gap-2">
+                <button
+                    v-for="q in quickSearches"
+                    :key="q.keyword"
+                    type="button"
+                    class="px-3 py-1.5 rounded-full text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:border-[#003874]/40 transition"
+                    @click="quickSearch(q.keyword)"
+                >
+                    {{ q.label }}
+                </button>
+            </div>
+        </section>
 
         <section class="mb-10" aria-label="Filtrar por rubro">
             <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Rubros</p>
@@ -136,8 +174,9 @@ function clearCategory() {
             <ListingResultsMap
                 v-else-if="search.viewMode === 'map'"
                 :results="search.results"
-                :user-lat="geo.useGps ? geo.userLat : null"
-                :user-lng="geo.useGps ? geo.userLng : null"
+                :user-lat="geo.mapDisplayLat"
+                :user-lng="geo.mapDisplayLng"
+                :location-loading="geo.mapLocationLoading"
             />
             <div
                 v-else

@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useClientRequestsStore } from '@/stores/clientRequests';
+import { useUserNotificationsStore } from '@/stores/userNotifications';
+import NotificationsBanner from '@/components/notifications/NotificationsBanner.vue';
 import StatusPill from '@/components/common/StatusPill.vue';
 import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
@@ -11,6 +13,7 @@ import RequestReviewForm from '@/components/requests/RequestReviewForm.vue';
 import StarRatingInput from '@/components/common/StarRatingInput.vue';
 
 const store = useClientRequestsStore();
+const notifications = useUserNotificationsStore();
 const previewListingId = ref(null);
 const previewOpen = ref(false);
 const detailOpen = ref(false);
@@ -30,6 +33,7 @@ const activeRequest = computed(() =>
 
 onMounted(async () => {
     await Promise.all([store.load(), store.loadPayments()]);
+    await notifications.markAllRead();
 });
 
 async function decide(quoteId, decision) {
@@ -143,6 +147,8 @@ async function submitDispute(paymentId) {
             <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mis solicitudes</h1>
             <p class="text-slate-600 mt-1">Vista compacta tipo inbox. Abre cada solicitud para ver chat y acciones.</p>
         </header>
+
+        <NotificationsBanner />
 
         <AppAlert v-if="localError" type="error" class="mb-4">{{ localError }}</AppAlert>
         <AppAlert v-if="localOk" type="success" class="mb-4">{{ localOk }}</AppAlert>

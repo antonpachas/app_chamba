@@ -3,10 +3,10 @@ import { computed } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { escrowEnabled } from '@/services/features';
-import { useProviderNotificationsStore } from '@/stores/providerNotifications';
+import { useUserNotificationsStore } from '@/stores/userNotifications';
 
 const auth = useAuthStore();
-const notifications = useProviderNotificationsStore();
+const notifications = useUserNotificationsStore();
 const route = useRoute();
 const escrow = escrowEnabled();
 
@@ -24,7 +24,7 @@ const items = computed(() => {
         return [
             { name: 'provider-dashboard', label: 'Panel', icon: 'dashboard' },
             { name: 'provider-listings', label: 'Anuncios', icon: 'campaign' },
-            { name: 'provider-requests', label: 'Inbox', icon: 'inbox' },
+            { name: 'provider-requests', label: 'Inbox', icon: 'inbox', notifyKey: 'provider-requests' },
             { name: 'account', label: 'Cuenta', icon: 'person' },
         ];
     }
@@ -57,7 +57,7 @@ const items = computed(() => {
             <span class="relative">
                 <span class="material-symbols-outlined text-[24px]">{{ item.icon }}</span>
                 <span
-                    v-if="item.name === 'provider-requests' && notifications.unreadCount > 0"
+                    v-if="item.notifyKey && notifications.unreadCount > 0"
                     class="absolute -top-0.5 -right-1.5 min-w-[1rem] h-4 px-1 rounded-full bg-rose-600 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white"
                 >{{ notifications.unreadCount > 9 ? '9+' : notifications.unreadCount }}</span>
             </span>

@@ -17,6 +17,7 @@ class ProviderLocation extends Model
         'ubigeo',
         'latitude',
         'longitude',
+        'business_hours',
         'is_primary',
         'is_active',
     ];
@@ -28,6 +29,7 @@ class ProviderLocation extends Model
             'is_active' => 'boolean',
             'latitude' => 'float',
             'longitude' => 'float',
+            'business_hours' => 'array',
         ];
     }
 

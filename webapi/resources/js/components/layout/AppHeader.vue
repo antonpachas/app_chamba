@@ -5,10 +5,10 @@ import { scrollToHash } from '@/utils/scroll';
 import { useAuthStore } from '@/stores/auth';
 import { escrowEnabled } from '@/services/features';
 import { asset } from '@/utils/asset';
-import { useProviderNotificationsStore } from '@/stores/providerNotifications';
+import { useUserNotificationsStore } from '@/stores/userNotifications';
 
 const auth = useAuthStore();
-const notifications = useProviderNotificationsStore();
+const notifications = useUserNotificationsStore();
 const route = useRoute();
 const router = useRouter();
 const menuOpen = ref(false);
@@ -137,7 +137,10 @@ function navLinkClass(link) {
                     >
                         {{ link.label }}
                         <span
-                            v-if="link.name === 'provider-requests' && notifications.unreadCount > 0"
+                            v-if="
+                                (link.name === 'provider-requests' || link.name === 'client-requests') &&
+                                notifications.unreadCount > 0
+                            "
                             class="absolute -top-0.5 -right-0.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rose-600 text-white text-[10px] font-black flex items-center justify-center"
                         >{{ notifications.unreadCount > 9 ? '9+' : notifications.unreadCount }}</span>
                     </RouterLink>

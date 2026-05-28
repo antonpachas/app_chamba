@@ -279,6 +279,10 @@ async function shareListing() {
                         <span class="material-symbols-outlined text-[18px]">storefront</span>
                         Ver todos los anuncios de este negocio
                     </RouterLink>
+                    <p v-if="service.location_label" class="text-sm text-[#003874] font-semibold mt-2 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-base">store</span>
+                        Sede: {{ service.location_label }}
+                    </p>
                     <p class="text-sm text-slate-500 mt-1 flex items-center gap-1">
                         <span class="material-symbols-outlined text-base">location_on</span>
                         {{ locationLine || '—' }}

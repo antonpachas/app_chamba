@@ -75,22 +75,29 @@ final class ListingPresenterService
             'expires_at' => $service->expires_at,
         ], static fn ($v) => $v !== null));
 
-        return $this->appendBusinessHours($row, $prof?->business_hours);
+        return $this->appendBusinessHours($row, $prof?->business_hours, null);
     }
 
     /**
      * @param  array<string, mixed>  $row
      * @return array<string, mixed>
      */
-    public function appendBusinessHours(array $row, mixed $hours): array
+    public function appendBusinessHours(array $row, mixed $profileHours, mixed $locationHours = null): array
     {
-        if (! is_array($hours)) {
+        $resolved = $this->businessHours->resolveForListing(
+            is_array($profileHours) ? $profileHours : null,
+            is_array($locationHours) ? $locationHours : null,
+        );
+        if ($resolved === null) {
             return $row;
         }
-        $summary = $this->businessHours->summarize($hours);
+        $summary = $this->businessHours->summarize($resolved);
         $row['business_hours'] = $summary['schedule'];
         $row['is_open_now'] = $summary['is_open_now'];
         $row['hours_summary'] = $summary['hours_summary'];
+        if (is_array($locationHours) && $locationHours !== []) {
+            $row['hours_source'] = 'location';
+        }
 
         return $row;
     }

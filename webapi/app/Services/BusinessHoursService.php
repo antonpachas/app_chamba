@@ -154,6 +154,22 @@ final class BusinessHoursService
      * @param  mixed  $input
      * @return array<string, array{closed: bool, open: string|null, close: string|null}>|null
      */
+    /**
+     * Horario de sede si existe; si no, el del perfil del negocio.
+     *
+     * @param  array<string, mixed>|null  $profileHours
+     * @param  array<string, mixed>|null  $locationHours
+     * @return array<string, mixed>|null
+     */
+    public function resolveForListing(?array $profileHours, ?array $locationHours): ?array
+    {
+        if (is_array($locationHours) && $locationHours !== []) {
+            return $locationHours;
+        }
+
+        return is_array($profileHours) && $profileHours !== [] ? $profileHours : null;
+    }
+
     public function normalizeInput(mixed $input): ?array
     {
         if ($input === null || $input === '') {

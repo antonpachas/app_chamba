@@ -92,6 +92,15 @@ final class ListingShowController extends Controller
             $row['provider_latitude'] = $branch->latitude;
             $row['provider_longitude'] = $branch->longitude;
         }
+        if ($branch !== null) {
+            $row['location_label'] = $branch->label;
+            $prof = $service->providerProfile;
+            $row = $this->presenter->appendBusinessHours(
+                $row,
+                $prof?->business_hours,
+                $branch->business_hours,
+            );
+        }
 
         return $row;
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Provider;
 use App\Http\Controllers\Controller;
 use App\Models\ProviderService;
 use App\Models\ServiceRequest;
+use App\Services\NotificationService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ final class ServiceRequestListController extends Controller
 {
     public function __construct(
         private readonly PaymentService $payments,
+        private readonly NotificationService $notifications,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -105,6 +107,10 @@ final class ServiceRequestListController extends Controller
         }
 
         $sr->update($payload);
+
+        if (in_array($next, ['visto', 'cerrado'], true)) {
+            $this->notifications->notifyClientRequestStatusUpdated($sr, $next);
+        }
 
         $this->payments->logRequestEvent(
             $sr, $current, $next, (int) $request->user()->id, 'proveedor', $data['note'] ?? null,

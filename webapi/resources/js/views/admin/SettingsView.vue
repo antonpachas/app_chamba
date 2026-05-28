@@ -23,10 +23,11 @@ const groupLabels = {
     subscriptions: 'Suscripciones',
     escrow: 'Comisión (modo custodia)',
     features: 'Modos del sistema',
+    notifications: 'Correos de notificación',
     general: 'General',
 };
 
-const groupOrder = ['features', 'providers', 'listings', 'limits', 'ads', 'payouts', 'subscriptions', 'escrow', 'general'];
+const groupOrder = ['features', 'notifications', 'providers', 'listings', 'limits', 'ads', 'payouts', 'subscriptions', 'escrow', 'general'];
 
 const orderedGroups = computed(() => {
     const groups = store.settingsByGroup;

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\Admin\SupportTicketAdminController;
 use App\Http\Controllers\Api\V1\Admin\SystemLogAdminController;
 use App\Http\Controllers\Api\V1\Admin\SystemSettingsAdminController;
 use App\Http\Controllers\Api\V1\SupportTicketController;
+use App\Http\Controllers\Api\V1\UserNotificationController;
 use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
@@ -105,6 +106,10 @@ Route::prefix('v1')->group(function (): void {
 
         Route::post('me/avatar', [AvatarController::class, 'store']);
         Route::delete('me/avatar', [AvatarController::class, 'destroy']);
+
+        Route::get('me/notifications', [UserNotificationController::class, 'index']);
+        Route::post('me/notifications/read-all', [UserNotificationController::class, 'markAllRead']);
+        Route::post('me/notifications/{notification}/read', [UserNotificationController::class, 'markRead'])->whereNumber('notification');
 
         Route::get('service-requests/{serviceRequest}/messages', [ServiceRequestMessageController::class, 'index'])
             ->whereNumber('serviceRequest');

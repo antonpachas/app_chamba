@@ -2,18 +2,18 @@
 import { computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import { useProviderNotificationsStore } from '@/stores/providerNotifications';
+import { useUserNotificationsStore } from '@/stores/userNotifications';
 import AppHeader from '@/components/layout/AppHeader.vue';
 import AppFooter from '@/components/layout/AppFooter.vue';
 import BottomNav from '@/components/layout/BottomNav.vue';
 
 const route = useRoute();
 const auth = useAuthStore();
-const notifications = useProviderNotificationsStore();
+const notifications = useUserNotificationsStore();
 const isPlain = computed(() => route.meta.layout === 'plain');
 
 function syncNotificationPolling() {
-    if (auth.isAuthenticated && auth.isProveedor) {
+    if (auth.isAuthenticated && (auth.isProveedor || auth.isCliente)) {
         notifications.startPolling();
     } else {
         notifications.stopPolling();
@@ -29,7 +29,7 @@ onUnmounted(() => {
 });
 
 watch(
-    () => [auth.isAuthenticated, auth.isProveedor],
+    () => [auth.isAuthenticated, auth.isProveedor, auth.isCliente],
     () => syncNotificationPolling(),
 );
 </script>

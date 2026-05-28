@@ -37,17 +37,27 @@ final class ListingListFormatter
     }
 
     /**
-     * @param  array<int, array<string, mixed>>  $rows
      * @param  array<int, array<string, mixed>|null>  $hoursByProfileId
-     * @return array<int, array<string, mixed>>
+     * @param  array<int, array<string, mixed>|null>  $hoursByLocationId
+     * @param  array<int, int>  $primaryLocationIdByProfile
      */
-    public function mapList(array $rows, array $hoursByProfileId = []): array
-    {
-        return array_map(function (array $row) use ($hoursByProfileId): array {
+    public function mapList(
+        array $rows,
+        array $hoursByProfileId = [],
+        array $hoursByLocationId = [],
+        array $primaryLocationIdByProfile = [],
+    ): array {
+        return array_map(function (array $row) use ($hoursByProfileId, $hoursByLocationId, $primaryLocationIdByProfile): array {
             $pid = (int) ($row['provider_profile_id'] ?? 0);
-            $hours = $hoursByProfileId[$pid] ?? null;
+            $profHours = $hoursByProfileId[$pid] ?? null;
+            $locId = $primaryLocationIdByProfile[$pid] ?? 0;
+            $locHours = $locId > 0 ? ($hoursByLocationId[$locId] ?? null) : null;
+            $resolved = $this->businessHours->resolveForListing(
+                is_array($profHours) ? $profHours : null,
+                is_array($locHours) ? $locHours : null,
+            );
 
-            return $this->forList($row, is_array($hours) ? $hours : null);
+            return $this->forList($row, $resolved);
         }, $rows);
     }
 }

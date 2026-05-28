@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Provider;
 
 use App\Http\Controllers\Controller;
 use App\Models\ProviderLocation;
+use App\Services\BusinessHoursService;
 use App\Services\ProviderLocationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,7 +12,10 @@ use Throwable;
 
 final class LocationController extends Controller
 {
-    public function __construct(private readonly ProviderLocationService $locations) {}
+    public function __construct(
+        private readonly ProviderLocationService $locations,
+        private readonly BusinessHoursService $businessHours,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -98,12 +102,15 @@ final class LocationController extends Controller
             'longitude' => 'nullable|numeric|between:-180,180',
             'is_primary' => 'sometimes|boolean',
             'is_active' => 'sometimes|boolean',
+            'business_hours' => 'nullable|array',
         ];
         return $request->validate($rules);
     }
 
     private function formatLocation(ProviderLocation $l): array
     {
+        $hoursSummary = $this->businessHours->summarize($l->business_hours);
+
         return [
             'id' => $l->id,
             'label' => $l->label,
@@ -119,6 +126,9 @@ final class LocationController extends Controller
             'longitude' => $l->longitude,
             'is_primary' => (bool) $l->is_primary,
             'is_active' => (bool) $l->is_active,
+            'business_hours' => $l->business_hours,
+            'is_open_now' => $hoursSummary['is_open_now'],
+            'hours_summary' => $hoursSummary['hours_summary'],
             'created_at' => $l->created_at,
         ];
     }

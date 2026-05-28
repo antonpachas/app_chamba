@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\District;
 use App\Models\ProviderLocation;
 use App\Models\ProviderProfile;
+use Illuminate\Support\Collection;
 use App\Models\ProviderService;
 use App\Models\ProviderVisibilityEvent;
 use App\Models\SearchEvent;
@@ -103,15 +104,8 @@ final class ServiceSearchController extends Controller
         }
         $rows = $this->sortListings($rows, $sort, $hasGps);
 
-        $hoursByProfile = [];
-        if ($profileIds->isNotEmpty()) {
-            $hoursByProfile = ProviderProfile::query()
-                ->whereIn('id', $profileIds)
-                ->get(['id', 'business_hours'])
-                ->mapWithKeys(fn (ProviderProfile $p) => [$p->id => $p->business_hours])
-                ->all();
-        }
-        $rows = $this->listFormatter->mapList($rows, $hoursByProfile);
+        [$hoursByProfile, $hoursByLocation, $primaryLocByProfile] = $this->loadHoursContext($profileIds);
+        $rows = $this->listFormatter->mapList($rows, $hoursByProfile, $hoursByLocation, $primaryLocByProfile);
 
         $serviceIds = collect($rows)->pluck('service_id')->filter()->unique()->values();
         if ($serviceIds->isNotEmpty()) {
@@ -340,6 +334,42 @@ final class ServiceSearchController extends Controller
         });
 
         return $rows;
+    }
+
+    /**
+     * @param  Collection<int, int>  $profileIds
+     * @return array{0: array<int, array|null>, 1: array<int, array|null>, 2: array<int, int>}
+     */
+    private function loadHoursContext(Collection $profileIds): array
+    {
+        if ($profileIds->isEmpty()) {
+            return [[], [], []];
+        }
+
+        $hoursByProfile = ProviderProfile::query()
+            ->whereIn('id', $profileIds)
+            ->get(['id', 'business_hours'])
+            ->mapWithKeys(fn (ProviderProfile $p) => [$p->id => $p->business_hours])
+            ->all();
+
+        $primaryLocations = ProviderLocation::query()
+            ->whereIn('provider_profile_id', $profileIds)
+            ->where('is_active', 1)
+            ->orderByDesc('is_primary')
+            ->orderBy('id')
+            ->get(['id', 'provider_profile_id', 'business_hours']);
+
+        $primaryLocByProfile = [];
+        $hoursByLocation = [];
+        foreach ($primaryLocations as $loc) {
+            $pid = (int) $loc->provider_profile_id;
+            if (! isset($primaryLocByProfile[$pid])) {
+                $primaryLocByProfile[$pid] = (int) $loc->id;
+                $hoursByLocation[(int) $loc->id] = $loc->business_hours;
+            }
+        }
+
+        return [$hoursByProfile, $hoursByLocation, $primaryLocByProfile];
     }
 
     private function distanceSortKey(array $row): float

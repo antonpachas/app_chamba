@@ -4,6 +4,7 @@ import { api } from '@/services/api';
 import { useProviderLocationsStore } from '@/stores/providerLocations';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import BusinessHoursEditor from '@/components/provider/BusinessHoursEditor.vue';
 
 const store = useProviderLocationsStore();
 const editing = ref(null); // null | 'new' | {id...}
@@ -17,6 +18,8 @@ const form = reactive({
     latitude: '',
     longitude: '',
     is_primary: false,
+    use_profile_hours: true,
+    business_hours: null,
 });
 const departments = ref([]);
 const provinces = ref([]);
@@ -73,6 +76,8 @@ function startNew() {
     form.latitude = '';
     form.longitude = '';
     form.is_primary = false;
+    form.use_profile_hours = true;
+    form.business_hours = null;
     err.value = ''; ok.value = '';
 }
 
@@ -87,6 +92,8 @@ async function startEdit(loc) {
     form.latitude = loc.latitude ?? '';
     form.longitude = loc.longitude ?? '';
     form.is_primary = !!loc.is_primary;
+    form.use_profile_hours = !loc.business_hours;
+    form.business_hours = loc.business_hours || null;
     err.value = ''; ok.value = '';
     if (form.department_id) {
         const r = await api.get('/geo/provinces', { params: { department_id: form.department_id } });
@@ -116,6 +123,7 @@ async function submit() {
             latitude: form.latitude === '' ? null : Number(form.latitude),
             longitude: form.longitude === '' ? null : Number(form.longitude),
             is_primary: form.is_primary,
+            business_hours: form.use_profile_hours ? null : form.business_hours,
         };
         if (editing.value === 'new') {
             await store.create(payload);
@@ -231,6 +239,13 @@ async function remove(id) {
                 <input type="checkbox" v-model="form.is_primary" />
                 <span>Marcar como sede principal</span>
             </label>
+            <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-3 space-y-3">
+                <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <input type="checkbox" v-model="form.use_profile_hours" />
+                    Usar el mismo horario de mi perfil de negocio
+                </label>
+                <BusinessHoursEditor v-if="!form.use_profile_hours" v-model="form.business_hours" />
+            </div>
             <div class="flex justify-end gap-2">
                 <AppButton variant="ghost" type="button" @click="editing = null">Cancelar</AppButton>
                 <AppButton variant="primary" type="submit" :loading="busy">Guardar</AppButton>
@@ -254,6 +269,8 @@ async function remove(id) {
                         {{ [l.district_name, l.province_name, l.department_name].filter(Boolean).join(' · ') }}
                     </p>
                     <p v-if="l.address_text" class="text-xs text-slate-500 mt-0.5">{{ l.address_text }}</p>
+                    <p v-if="l.hours_summary" class="text-xs text-slate-500 mt-1">{{ l.hours_summary }}</p>
+                    <p v-else class="text-xs text-slate-400 mt-1">Horario del perfil</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <AppButton variant="ghost" size="sm" @click="startEdit(l)">Editar</AppButton>
