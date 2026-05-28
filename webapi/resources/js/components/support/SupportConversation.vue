@@ -10,6 +10,7 @@ const props = defineProps({
     messages: { type: Array, default: () => [] },
     canReply: { type: Boolean, default: true },
     adminMode: { type: Boolean, default: false },
+    chatMaxClass: { type: String, default: 'max-h-80' },
 });
 
 const emit = defineEmits(['sent', 'refresh']);
@@ -120,14 +121,18 @@ watch(
 </script>
 
 <template>
-    <div class="rounded-xl border border-slate-200 bg-slate-50/80 overflow-hidden flex flex-col min-h-[280px]">
+    <div class="rounded-xl border border-slate-200 bg-slate-50/80 overflow-hidden flex flex-col min-h-[240px]">
         <div class="px-4 py-2 border-b border-slate-200 bg-white shrink-0">
             <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Chat con soporte</p>
         </div>
 
         <AppAlert v-if="err" type="error" class="m-3 shrink-0">{{ err }}</AppAlert>
 
-        <div ref="listEl" class="flex-1 max-h-80 overflow-y-auto px-3 py-3 space-y-3 min-h-[160px]">
+        <div
+            ref="listEl"
+            class="flex-1 overflow-y-auto px-3 py-3 space-y-3 min-h-[140px]"
+            :class="chatMaxClass"
+        >
             <p v-if="loading" class="text-sm text-slate-500 text-center py-4">Cargando mensajes…</p>
             <p v-else-if="!thread.length" class="text-sm text-slate-500 text-center py-4">
                 Sin mensajes aún.

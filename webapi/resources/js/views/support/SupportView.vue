@@ -1,12 +1,12 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { api } from '@/services/api';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import SupportStatusPill from '@/components/support/SupportStatusPill.vue';
-import SupportConversation from '@/components/support/SupportConversation.vue';
+import SupportTicketModal from '@/components/support/SupportTicketModal.vue';
 
 const auth = useAuthStore();
 
@@ -19,6 +19,8 @@ const ok = ref('');
 const statusFilter = ref('all');
 const activeId = ref(null);
 const activeTicket = ref(null);
+const detailOpen = ref(false);
+const detailLoading = ref(false);
 
 const showNew = ref(false);
 const creating = ref(false);
@@ -36,11 +38,15 @@ const categories = [
     { value: 'otro', label: 'Otro' },
 ];
 
-const activeList = computed(() => tickets.value || []);
+const categoryLabels = Object.fromEntries(categories.map((c) => [c.value, c.label]));
 
 function fmtDate(d) {
     if (!d) return '—';
     return new Date(d).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function categoryLabel(value) {
+    return categoryLabels[value] || value || '—';
 }
 
 async function loadTickets() {
@@ -54,8 +60,7 @@ async function loadTickets() {
         tickets.value = r.data || [];
         meta.value = r.meta || {};
         if (activeId.value && !tickets.value.find((t) => t.id === activeId.value)) {
-            activeId.value = null;
-            activeTicket.value = null;
+            closeDetail();
         }
     } catch (e) {
         err.value = e.message;
@@ -67,7 +72,10 @@ async function loadTickets() {
 
 async function openTicket(id) {
     activeId.value = id;
+    detailOpen.value = true;
+    detailLoading.value = true;
     showNew.value = false;
+    activeTicket.value = null;
     err.value = '';
     try {
         const r = await api.get(`/support-tickets/${id}`, { auth: true });
@@ -76,7 +84,15 @@ async function openTicket(id) {
     } catch (e) {
         err.value = e.message;
         activeTicket.value = null;
+    } finally {
+        detailLoading.value = false;
     }
+}
+
+function closeDetail() {
+    detailOpen.value = false;
+    activeId.value = null;
+    activeTicket.value = null;
 }
 
 function onTicketRefresh(ticket) {
@@ -131,7 +147,7 @@ onMounted(async () => {
         <AppAlert v-if="ok" type="success" class="mb-4">{{ ok }}</AppAlert>
 
         <div class="flex flex-wrap gap-2 mb-6">
-            <AppButton variant="primary" @click="showNew = true; activeId = null; activeTicket = null">
+            <AppButton variant="primary" @click="showNew = true; closeDetail()">
                 Nuevo caso
             </AppButton>
             <select
@@ -189,59 +205,69 @@ onMounted(async () => {
             </form>
         </div>
 
-        <div class="grid lg:grid-cols-12 gap-6 items-start">
-            <aside class="lg:col-span-4 space-y-2">
-                <p v-if="loading" class="text-slate-500 text-sm py-8 text-center">Cargando casos…</p>
-                <p v-else-if="!activeList.length" class="text-slate-500 text-sm py-8 text-center rounded-xl border border-dashed border-slate-200">
-                    No tienes casos aún. Abre uno nuevo.
-                </p>
-                <button
-                    v-for="t in activeList"
-                    :key="t.id"
-                    type="button"
-                    class="w-full text-left rounded-xl border px-4 py-3 transition"
-                    :class="activeId === t.id ? 'border-[#003874] bg-chamba-50' : 'border-slate-200 bg-white hover:border-slate-300'"
-                    @click="openTicket(t.id)"
-                >
-                    <div class="flex items-start justify-between gap-2">
-                        <span class="font-bold text-sm text-slate-900 line-clamp-2">#{{ t.id }} · {{ t.subject }}</span>
-                        <span
-                            v-if="t.unread_for_user"
-                            class="shrink-0 w-2 h-2 rounded-full bg-rose-500 mt-1"
-                            title="Nueva respuesta"
-                        ></span>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2 mt-2">
-                        <SupportStatusPill :status="t.status" />
-                        <span class="text-[10px] text-slate-500">{{ fmtDate(t.last_message_at || t.created_at) }}</span>
-                    </div>
-                </button>
-            </aside>
-
-            <section class="lg:col-span-8">
-                <div v-if="!activeTicket" class="rounded-2xl border border-dashed border-slate-200 py-16 text-center text-slate-500">
-                    Selecciona un caso o crea uno nuevo.
-                </div>
-                <div v-else class="space-y-4">
-                    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <div class="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                                <p class="text-xs font-bold uppercase text-slate-500">Caso #{{ activeTicket.id }}</p>
-                                <h2 class="text-xl font-black text-slate-900 mt-1">{{ activeTicket.subject }}</h2>
-                                <p class="text-sm text-slate-600 mt-1 capitalize">{{ activeTicket.category }}</p>
-                            </div>
-                            <SupportStatusPill :status="activeTicket.status" />
-                        </div>
-                    </div>
-                    <SupportConversation
-                        :ticket-id="activeTicket.id"
-                        :messages="activeTicket.messages"
-                        :can-reply="activeTicket.can_reply"
-                        @refresh="onTicketRefresh"
-                        @sent="loadTickets"
-                    />
-                </div>
-            </section>
+        <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <table class="w-full text-sm min-w-[640px]">
+                <thead class="bg-slate-50 text-xs font-bold uppercase text-slate-600">
+                    <tr>
+                        <th class="text-left px-4 py-3">#</th>
+                        <th class="text-left px-4 py-3">Asunto</th>
+                        <th class="text-left px-4 py-3">Categoría</th>
+                        <th class="text-left px-4 py-3">Estado</th>
+                        <th class="text-left px-4 py-3">Actualizado</th>
+                        <th class="text-right px-4 py-3">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-if="loading">
+                        <td colspan="6" class="px-4 py-12 text-center text-slate-500">Cargando casos…</td>
+                    </tr>
+                    <tr v-else-if="!tickets.length">
+                        <td colspan="6" class="px-4 py-12 text-center text-slate-500">
+                            No tienes casos aún. Abre uno con «Nuevo caso».
+                        </td>
+                    </tr>
+                    <tr
+                        v-for="t in tickets"
+                        :key="t.id"
+                        class="border-t border-slate-100 hover:bg-slate-50/80 cursor-pointer transition"
+                        :class="activeId === t.id && detailOpen ? 'bg-chamba-50' : ''"
+                        @click="openTicket(t.id)"
+                    >
+                        <td class="px-4 py-3 font-mono text-xs text-slate-500 whitespace-nowrap">
+                            #{{ t.id }}
+                            <span
+                                v-if="t.unread_for_user"
+                                class="ml-1 inline-block w-2 h-2 rounded-full bg-rose-500 align-middle"
+                                title="Nueva respuesta"
+                            ></span>
+                        </td>
+                        <td class="px-4 py-3 font-semibold text-slate-900 max-w-[260px]">
+                            <span class="line-clamp-2">{{ t.subject }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-slate-600">{{ categoryLabel(t.category) }}</td>
+                        <td class="px-4 py-3"><SupportStatusPill :status="t.status" /></td>
+                        <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+                            {{ fmtDate(t.last_message_at || t.created_at) }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <AppButton variant="ghost" size="sm" @click.stop="openTicket(t.id)">Ver</AppButton>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
+
+        <p class="text-xs text-slate-500 mt-3 text-center">
+            Toca una fila o «Ver» para abrir el chat con soporte en un panel centrado.
+        </p>
+
+        <SupportTicketModal
+            :open="detailOpen"
+            :loading="detailLoading"
+            :ticket="activeTicket"
+            @close="closeDetail"
+            @refresh="onTicketRefresh"
+            @sent="loadTickets"
+        />
     </div>
 </template>

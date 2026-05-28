@@ -5,7 +5,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import SupportStatusPill from '@/components/support/SupportStatusPill.vue';
-import SupportConversation from '@/components/support/SupportConversation.vue';
+import SupportTicketModal from '@/components/support/SupportTicketModal.vue';
 
 const tickets = ref([]);
 const meta = ref({ open_count: 0 });
@@ -18,8 +18,10 @@ const roleFilter = ref('all');
 const q = ref('');
 const onlyUnread = ref(false);
 
-const activeTicket = ref(null);
 const activeId = ref(null);
+const activeTicket = ref(null);
+const detailOpen = ref(false);
+const detailLoading = ref(false);
 const statusSaving = ref(false);
 
 const statusOptions = [
@@ -31,6 +33,14 @@ const statusOptions = [
     { value: 'cerrado', label: 'Cerrado' },
 ];
 
+const categoryLabels = {
+    cuenta: 'Cuenta',
+    anuncios: 'Anuncios',
+    pagos: 'Pagos',
+    tecnico: 'Técnico',
+    otro: 'Otro',
+};
+
 function fmtDate(d) {
     if (!d) return '—';
     return new Date(d).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
@@ -40,6 +50,10 @@ function roleLabel(role) {
     if (role === 'proveedor') return 'Proveedor';
     if (role === 'cliente') return 'Cliente';
     return role || '—';
+}
+
+function categoryLabel(value) {
+    return categoryLabels[value] || value || '—';
 }
 
 async function loadTickets() {
@@ -68,6 +82,9 @@ async function loadTickets() {
 
 async function openTicket(id) {
     activeId.value = id;
+    detailOpen.value = true;
+    detailLoading.value = true;
+    activeTicket.value = null;
     err.value = '';
     try {
         const r = await api.get(`/admin/support-tickets/${id}`, { auth: true });
@@ -76,7 +93,15 @@ async function openTicket(id) {
     } catch (e) {
         err.value = e.message;
         activeTicket.value = null;
+    } finally {
+        detailLoading.value = false;
     }
+}
+
+function closeDetail() {
+    detailOpen.value = false;
+    activeId.value = null;
+    activeTicket.value = null;
 }
 
 function onTicketRefresh(ticket) {
@@ -142,93 +167,76 @@ onMounted(loadTickets);
             <AppButton variant="primary" @click="loadTickets">Buscar</AppButton>
         </div>
 
-        <div class="grid lg:grid-cols-12 gap-6 items-start">
-            <div class="lg:col-span-5 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <table class="w-full text-sm min-w-[480px]">
-                    <thead class="bg-slate-50 text-xs font-bold uppercase text-slate-600">
-                        <tr>
-                            <th class="text-left px-4 py-3">Caso</th>
-                            <th class="text-left px-4 py-3">Usuario</th>
-                            <th class="text-left px-4 py-3">Estado</th>
-                            <th class="text-left px-4 py-3">Actualizado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-if="loading">
-                            <td colspan="4" class="px-4 py-10 text-center text-slate-500">Cargando…</td>
-                        </tr>
-                        <tr v-else-if="!tickets.length">
-                            <td colspan="4" class="px-4 py-10 text-center text-slate-500">Sin casos.</td>
-                        </tr>
-                        <tr
-                            v-for="t in tickets"
-                            :key="t.id"
-                            class="border-t border-slate-100 hover:bg-slate-50/60 cursor-pointer"
-                            :class="activeId === t.id ? 'bg-chamba-50' : ''"
-                            @click="openTicket(t.id)"
-                        >
-                            <td class="px-4 py-3">
-                                <span class="font-mono text-xs text-slate-500">#{{ t.id }}</span>
-                                <p class="font-semibold text-slate-900 line-clamp-1">{{ t.subject }}</p>
-                                <span
-                                    v-if="t.unread_for_admin"
-                                    class="inline-block mt-1 text-[10px] font-bold uppercase text-rose-600"
-                                >Nuevo</span>
-                            </td>
-                            <td class="px-4 py-3 text-xs">
-                                <p class="font-semibold">{{ t.user?.full_name }}</p>
-                                <p class="text-slate-500">{{ t.user?.email }}</p>
-                                <p class="text-slate-400">{{ roleLabel(t.user?.role) }}</p>
-                            </td>
-                            <td class="px-4 py-3"><SupportStatusPill :status="t.status" /></td>
-                            <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{{ fmtDate(t.last_message_at) }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <section class="lg:col-span-7">
-                <div v-if="!activeTicket" class="rounded-2xl border border-dashed border-slate-200 py-16 text-center text-slate-500">
-                    Selecciona un caso de la tabla.
-                </div>
-                <div v-else class="space-y-4">
-                    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-                        <div class="flex flex-wrap justify-between gap-3">
-                            <div>
-                                <p class="text-xs font-bold uppercase text-slate-500">#{{ activeTicket.id }}</p>
-                                <h2 class="text-xl font-black text-slate-900">{{ activeTicket.subject }}</h2>
-                                <p class="text-sm text-slate-600 mt-1">
-                                    {{ activeTicket.user?.full_name }} · {{ activeTicket.user?.email }} ·
-                                    {{ roleLabel(activeTicket.user?.role) }}
-                                </p>
-                                <p v-if="activeTicket.user?.phone" class="text-sm text-slate-500">Tel: {{ activeTicket.user.phone }}</p>
-                            </div>
-                            <SupportStatusPill :status="activeTicket.status" />
-                        </div>
-                        <div class="flex flex-wrap gap-2 items-center pt-2 border-t border-slate-100">
-                            <span class="text-xs font-bold uppercase text-slate-500">Cambiar estado:</span>
-                            <AppButton
-                                v-for="s in statusOptions"
-                                :key="s.value"
-                                variant="ghost"
-                                size="sm"
-                                :disabled="statusSaving || activeTicket.status === s.value"
-                                @click="changeStatus(s.value)"
-                            >
-                                {{ s.label }}
-                            </AppButton>
-                        </div>
-                    </div>
-                    <SupportConversation
-                        :ticket-id="activeTicket.id"
-                        :messages="activeTicket.messages"
-                        :can-reply="activeTicket.status !== 'cerrado'"
-                        admin-mode
-                        @refresh="onTicketRefresh"
-                        @sent="loadTickets"
-                    />
-                </div>
-            </section>
+        <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <table class="w-full text-sm min-w-[720px]">
+                <thead class="bg-slate-50 text-xs font-bold uppercase text-slate-600">
+                    <tr>
+                        <th class="text-left px-4 py-3">#</th>
+                        <th class="text-left px-4 py-3">Asunto</th>
+                        <th class="text-left px-4 py-3">Usuario</th>
+                        <th class="text-left px-4 py-3">Rol</th>
+                        <th class="text-left px-4 py-3">Categoría</th>
+                        <th class="text-left px-4 py-3">Estado</th>
+                        <th class="text-left px-4 py-3">Actualizado</th>
+                        <th class="text-right px-4 py-3">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-if="loading">
+                        <td colspan="8" class="px-4 py-12 text-center text-slate-500">Cargando casos…</td>
+                    </tr>
+                    <tr v-else-if="!tickets.length">
+                        <td colspan="8" class="px-4 py-12 text-center text-slate-500">Sin casos con estos filtros.</td>
+                    </tr>
+                    <tr
+                        v-for="t in tickets"
+                        :key="t.id"
+                        class="border-t border-slate-100 hover:bg-slate-50/80 cursor-pointer transition"
+                        :class="activeId === t.id && detailOpen ? 'bg-chamba-50' : ''"
+                        @click="openTicket(t.id)"
+                    >
+                        <td class="px-4 py-3 font-mono text-xs text-slate-500 whitespace-nowrap">
+                            #{{ t.id }}
+                            <span
+                                v-if="t.unread_for_admin"
+                                class="ml-1 inline-block w-2 h-2 rounded-full bg-rose-500 align-middle"
+                                title="Sin leer"
+                            ></span>
+                        </td>
+                        <td class="px-4 py-3 font-semibold text-slate-900 max-w-[220px]">
+                            <span class="line-clamp-2">{{ t.subject }}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <p class="font-medium text-slate-800">{{ t.user?.full_name }}</p>
+                            <p class="text-xs text-slate-500 truncate max-w-[180px]">{{ t.user?.email }}</p>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-slate-600">{{ roleLabel(t.user?.role) }}</td>
+                        <td class="px-4 py-3 text-xs text-slate-600">{{ categoryLabel(t.category) }}</td>
+                        <td class="px-4 py-3"><SupportStatusPill :status="t.status" /></td>
+                        <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{{ fmtDate(t.last_message_at) }}</td>
+                        <td class="px-4 py-3 text-right">
+                            <AppButton variant="ghost" size="sm" @click.stop="openTicket(t.id)">Ver</AppButton>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
+
+        <p class="text-xs text-slate-500 mt-3 text-center">
+            Toca una fila o «Ver» para abrir el caso en un panel centrado con el chat.
+        </p>
+
+        <SupportTicketModal
+            :open="detailOpen"
+            :loading="detailLoading"
+            :ticket="activeTicket"
+            admin-mode
+            :status-options="statusOptions"
+            :status-saving="statusSaving"
+            @close="closeDetail"
+            @change-status="changeStatus"
+            @refresh="onTicketRefresh"
+            @sent="loadTickets"
+        />
     </div>
 </template>
