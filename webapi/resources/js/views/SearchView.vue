@@ -9,8 +9,11 @@ import ServiceCard from '@/components/service/ServiceCard.vue';
 import AdSlot from '@/components/ads/AdSlot.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
+import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
+const auth = useAuthStore();
 const geoErr = ref('');
 const router = useRouter();
 const catalog = useCatalogStore();
@@ -87,6 +90,7 @@ function clearCategory() {
             class="text-center md:text-left [&_.page-title]:md:text-4xl"
         />
         <AppAlert v-if="geoErr" type="error" class="mb-4 max-w-xl mx-auto">{{ geoErr }}</AppAlert>
+        <GuestBrowseBanner v-if="!auth.isAuthenticated" :meta="search.guestMeta" class="max-w-3xl mx-auto" />
         <AdSlot placement="search" />
         <form
             @submit.prevent="submitSearch"

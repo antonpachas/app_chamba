@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useFavoritesStore } from '@/stores/favorites';
 
 const props = defineProps({
-    providerProfileId: { type: [Number, String], default: null },
+    providerServiceId: { type: [Number, String], default: null },
     size: { type: String, default: 'md' },
     showLabel: { type: Boolean, default: false },
 });
@@ -16,12 +16,17 @@ const favs = useFavoritesStore();
 const busy = ref(false);
 
 const pid = computed(() => {
-    const n = Number(props.providerProfileId);
+    const n = Number(props.providerServiceId);
     return Number.isFinite(n) && n > 0 ? n : null;
 });
 
 const canUse = computed(() => auth.isAuthenticated && auth.isCliente && pid.value != null);
 const isFav = computed(() => pid.value != null && favs.isFavorite(pid.value));
+const tooltip = computed(() => (
+    isFav.value
+        ? 'Quitar anuncio de favoritos'
+        : 'Guardar anuncio en favoritos'
+));
 
 const btnClass = computed(() => {
     const base = 'inline-flex items-center justify-center rounded-full border transition shrink-0';
@@ -71,17 +76,25 @@ async function onClick(event) {
         type="button"
         :class="btnClass"
         :disabled="busy"
-        :title="isFav ? 'Quitar de favoritos' : 'Guardar en favoritos'"
+        :title="tooltip"
+        :aria-label="tooltip"
         :aria-pressed="isFav"
         @click="onClick"
     >
         <span
+            v-if="!busy"
             class="material-symbols-outlined"
             :class="size === 'lg' ? 'text-[22px]' : size === 'sm' ? 'text-[18px]' : 'text-[20px]'"
             :style="isFav ? { fontVariationSettings: '\'FILL\' 1' } : undefined"
         >favorite</span>
+        <span
+            v-else
+            class="inline-block rounded-full border-2 border-current border-t-transparent animate-spin"
+            :class="size === 'lg' ? 'w-5 h-5' : size === 'sm' ? 'w-4 h-4' : 'w-[18px] h-[18px]'"
+            aria-hidden="true"
+        ></span>
     </button>
     <span v-if="showLabel && canUse" class="text-xs font-bold text-slate-600 ml-1">
-        {{ isFav ? 'En favoritos' : 'Favorito' }}
+        {{ busy ? 'Guardando...' : isFav ? 'Anuncio en favoritos' : 'Guardar anuncio' }}
     </span>
 </template>

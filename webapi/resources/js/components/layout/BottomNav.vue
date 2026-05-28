@@ -16,6 +16,7 @@ const items = computed(() => {
             { name: 'admin-dashboard', label: 'Panel', icon: 'dashboard' },
             { name: 'admin-users', label: 'Usuarios', icon: 'group' },
             { name: 'admin-moderation', label: 'Moderar', icon: 'gavel' },
+            { name: 'admin-support', label: 'Soporte', icon: 'support_agent' },
             { name: 'account', label: 'Cuenta', icon: 'person' },
         ];
     }

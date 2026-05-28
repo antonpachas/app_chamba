@@ -9,16 +9,26 @@ export const useFavoritesStore = defineStore('favorites', {
         loading: false,
     }),
     getters: {
-        isFavorite: (s) => (providerProfileId) => {
-            const id = Number(providerProfileId);
+        isFavorite: (s) => (providerServiceId) => {
+            const id = Number(providerServiceId);
+            if (!Number.isFinite(id) || id <= 0) return false;
             return s.ids.includes(id);
         },
     },
     actions: {
+        normalizeFavoriteId(row) {
+            if (!row || typeof row !== 'object') return null;
+            const raw = row.provider_service_id ?? row.providerServiceId ?? null;
+            const id = Number(raw);
+            return Number.isFinite(id) && id > 0 ? id : null;
+        },
         syncIds() {
-            this.ids = (this.items || [])
-                .map((f) => Number(f.provider_profile_id))
-                .filter((id) => Number.isFinite(id) && id > 0);
+            const unique = new Set();
+            for (const item of this.items || []) {
+                const id = this.normalizeFavoriteId(item);
+                if (id != null) unique.add(id);
+            }
+            this.ids = Array.from(unique);
         },
         async ensureLoaded() {
             if (!this.loaded && !this.loading) {
@@ -39,11 +49,14 @@ export const useFavoritesStore = defineStore('favorites', {
                 this.loading = false;
             }
         },
-        async toggle(providerProfileId) {
-            const id = Number(providerProfileId);
+        async toggle(providerServiceId) {
+            const id = Number(providerServiceId);
+            if (!Number.isFinite(id) || id <= 0) {
+                throw new Error('ID de anuncio inválido para favorito.');
+            }
             const r = await api.post(
                 '/client/favorites/toggle',
-                { provider_profile_id: id },
+                { provider_service_id: id, provider_profile_id: null },
                 { auth: true },
             );
             if (r.action === 'added' && !this.ids.includes(id)) {

@@ -76,6 +76,12 @@ const routes = [
         meta: { layout: 'default', requiresAuth: true, title: 'Mi cuenta' },
     },
     {
+        path: '/soporte',
+        name: 'support',
+        component: () => import('@/views/support/SupportView.vue'),
+        meta: { layout: 'default', requiresAuth: true, title: 'Soporte' },
+    },
+    {
         path: '/cliente/solicitudes',
         name: 'client-requests',
         component: () => import('@/views/client/RequestsView.vue'),
@@ -188,6 +194,18 @@ const routes = [
         meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Usuarios' },
     },
     {
+        path: '/admin/sistema',
+        name: 'admin-system',
+        component: () => import('@/views/admin/SystemView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Sistema' },
+    },
+    {
+        path: '/admin/soporte',
+        name: 'admin-support',
+        component: () => import('@/views/admin/SupportAdminView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Soporte' },
+    },
+    {
         path: '/admin/configuracion',
         name: 'admin-settings',
         component: () => import('@/views/admin/SettingsView.vue'),
@@ -254,6 +272,12 @@ router.beforeEach(async (to) => {
         return { name: 'login', query: { next: to.fullPath } };
     }
     if (to.meta.guestOnly && auth.isAuthenticated) {
+        return homeRouteForRole(auth.user?.role);
+    }
+    if (to.name === 'support' && auth.user?.role === 'admin') {
+        return { name: 'admin-support' };
+    }
+    if (to.name === 'support' && auth.isAuthenticated && !auth.isCliente && !auth.isProveedor) {
         return homeRouteForRole(auth.user?.role);
     }
     if (

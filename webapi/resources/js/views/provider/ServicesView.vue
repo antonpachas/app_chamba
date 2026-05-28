@@ -34,6 +34,7 @@ const errMsg = ref('');
 const okMsg = ref('');
 const loadError = ref('');
 const saving = ref(false);
+const rowActionBusyId = ref(null);
 
 const categoryName = computed(() => {
     const id = form.value.category_id;
@@ -218,23 +219,29 @@ async function submit() {
 async function toggle(s) {
     errMsg.value = '';
     okMsg.value = '';
+    rowActionBusyId.value = s.id;
     try {
         const nextActive = !s.is_active;
         await store.toggleServiceActive(s.id, nextActive);
         okMsg.value = nextActive ? 'Anuncio activado.' : 'Anuncio pausado.';
     } catch (e) {
         errMsg.value = e.message;
+    } finally {
+        rowActionBusyId.value = null;
     }
 }
 
 async function renew(s) {
     errMsg.value = '';
     okMsg.value = '';
+    rowActionBusyId.value = s.id;
     try {
         await store.renewService(s.id);
         okMsg.value = 'Anuncio renovado con nueva fecha de vencimiento.';
     } catch (e) {
         errMsg.value = e.message;
+    } finally {
+        rowActionBusyId.value = null;
     }
 }
 
@@ -316,194 +323,198 @@ watch(showForm, (open) => {
         <AppAlert v-if="errMsg" type="error" class="mb-4">{{ errMsg }}</AppAlert>
         <AppAlert v-if="okMsg" type="success" class="mb-4">{{ okMsg }}</AppAlert>
 
-        <div v-if="showForm" class="rounded-2xl border border-slate-200 bg-white mb-6 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/80">
-                <h2 class="text-lg font-bold text-slate-900">{{ editing ? 'Editar anuncio' : 'Nuevo anuncio' }}</h2>
-                <p class="text-sm text-slate-600 mt-0.5">Completa los datos y revisa la vista previa antes de publicar.</p>
-            </div>
-
-            <div class="grid lg:grid-cols-2 gap-0 lg:gap-8 p-6">
-                <form class="space-y-4 order-2 lg:order-1" @submit.prevent="submit">
-                    <label class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-700">Categoría</span>
-                        <select v-model="form.category_id" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#003874]">
-                            <option v-for="c in catalog.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-                        </select>
-                    </label>
-                    <AppInput v-model="form.title" label="Título" placeholder="Ej. Ferretería con delivery" required />
-                    <label class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-700">Descripción</span>
-                        <textarea
-                            v-model="form.description"
-                            rows="4"
-                            required
-                            maxlength="2000"
-                            placeholder="Describe tu negocio o servicio…"
-                            class="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-[#003874]"
-                        ></textarea>
-                    </label>
-                    <div class="grid sm:grid-cols-2 gap-4">
-                        <label class="block">
-                            <span class="mb-2 block text-sm font-bold text-slate-700">Tipo de precio</span>
-                            <select v-model="form.price_type" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#003874]">
-                                <option value="cotizar">A cotizar</option>
-                                <option value="desde">Desde…</option>
-                                <option value="fijo">Fijo</option>
-                            </select>
-                        </label>
-                        <AppInput v-model="form.base_price" label="Precio base (S/)" type="number" placeholder="150.00" />
-                    </div>
-
-                    <div class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-700">
-                            Fotos del anuncio <span class="text-rose-600">*</span>
-                            <span class="text-slate-400 font-normal">({{ formPhotos.length }}/{{ MAX_PHOTOS }})</span>
-                        </span>
-                        <p class="text-xs text-slate-500 mb-3">La primera foto es la portada en búsqueda. JPG, PNG o WEBP · máx. 5 MB c/u.</p>
-                        <div class="flex flex-wrap gap-2 mb-3">
-                            <div
-                                v-for="(photo, idx) in formPhotos"
-                                :key="photo.key"
-                                class="relative group w-20 h-20"
-                            >
-                                <img :src="photo.url" alt="" class="w-full h-full object-cover rounded-lg ring-2 ring-slate-200" :class="idx === 0 ? 'ring-[#003874]' : ''" />
-                                <span
-                                    v-if="idx === 0"
-                                    class="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold uppercase bg-[#003874] text-white rounded-b-lg py-0.5"
-                                >Portada</span>
-                                <button
-                                    type="button"
-                                    class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-bold shadow opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition"
-                                    title="Quitar"
-                                    @click="removeFormPhoto(photo)"
-                                >×</button>
-                                <button
-                                    v-if="idx > 0"
-                                    type="button"
-                                    class="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold text-[#003874] bg-white border border-slate-200 rounded px-1 shadow-sm opacity-0 group-hover:opacity-100 transition whitespace-nowrap"
-                                    title="Usar como portada"
-                                    @click="setCover(idx)"
-                                >
-                                    Portada
-                                </button>
-                            </div>
-                            <label
-                                v-if="formPhotos.length < MAX_PHOTOS"
-                                class="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 hover:border-[#003874] hover:bg-[#003874]/5 flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-[#003874] transition"
-                            >
-                                <span class="material-symbols-outlined text-[22px]">add</span>
-                                <span class="text-[9px] font-bold mt-0.5">Agregar</span>
-                                <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp"
-                                    multiple
-                                    class="hidden"
-                                    @change="onPickPhotos"
-                                />
-                            </label>
-                        </div>
-                    </div>
-
-                    <div v-if="locStore.items.length" class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-700">Sedes donde aparece (vacío = todas)</span>
-                        <div class="flex flex-wrap gap-2">
-                            <label
-                                v-for="loc in locStore.items"
-                                :key="loc.id"
-                                class="inline-flex items-center gap-2 text-sm border border-slate-200 rounded-lg px-3 py-1.5"
-                            >
-                                <input v-model="form.location_ids" type="checkbox" :value="loc.id" />
-                                {{ loc.label }}
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                        <AppButton variant="ghost" type="button" @click="closeForm">Cancelar</AppButton>
-                        <AppButton variant="primary" type="submit" :loading="saving">
-                            {{ editing ? 'Guardar cambios' : 'Publicar anuncio' }}
-                        </AppButton>
-                    </div>
-                </form>
-
-                <aside class="order-1 lg:order-2 lg:sticky lg:top-24 self-start space-y-3">
-                    <p class="text-xs font-bold uppercase tracking-widest text-slate-500 hidden lg:block">
-                        Así lo verán en Busca PE
-                    </p>
-                    <ListingCardPreview :service="previewService" />
-                    <p v-if="categoryName" class="text-xs text-slate-500 text-center hidden lg:block">
-                        Categoría: <strong>{{ categoryName }}</strong>
-                    </p>
-                </aside>
-            </div>
-        </div>
-
         <p v-if="store.servicesLoading" class="text-slate-500">Cargando…</p>
         <div v-else-if="!store.services.length" class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
             Aún no publicaste anuncios.
         </div>
-        <div v-else class="grid sm:grid-cols-2 gap-4">
-            <article v-for="s in store.services" :key="s.id" class="rounded-2xl border border-slate-200 bg-white p-5">
-                <div class="flex justify-between items-start gap-3">
-                    <div class="min-w-0">
-                        <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">{{ s.category?.name }}</p>
-                        <h3 class="text-base font-bold text-slate-900 mt-1 truncate">{{ s.title }}</h3>
-                    </div>
-                    <span
-                        v-if="s.admin_hidden"
-                        class="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full bg-rose-100 text-rose-800"
-                        title="Oculto por moderación de la plataforma"
-                    >Oculto por admin</span>
-                    <span
-                        v-else
-                        class="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full"
-                        :class="s.is_visible ? 'bg-emerald-100 text-emerald-800' : (s.is_expired ? 'bg-amber-100 text-amber-900' : 'bg-slate-200 text-slate-600')"
-                    >{{ s.is_visible ? 'Visible' : (s.is_expired ? 'Vencido' : 'Pausado') }}</span>
-                </div>
-                <p v-if="s.admin_hidden_reason" class="text-xs text-rose-700 mt-2 bg-rose-50 rounded-lg px-3 py-2">
-                    {{ s.admin_hidden_reason }}
-                </p>
-                <p v-if="s.expires_at" class="text-xs text-slate-500 mt-1">
-                    <template v-if="s.is_expired">Venció el {{ new Date(s.expires_at).toLocaleDateString() }}</template>
-                    <template v-else-if="s.is_visible">Vence en {{ s.days_remaining }} día(s) · {{ new Date(s.expires_at).toLocaleDateString() }}</template>
-                    <template v-else>Pausado · vence {{ new Date(s.expires_at).toLocaleDateString() }}</template>
-                </p>
-                <p class="text-sm text-slate-600 mt-2 line-clamp-3">{{ s.description }}</p>
-                <p class="text-base font-black text-[#003874] mt-3">
-                    <Money :amount="s.base_price" />
-                    <span class="text-xs text-slate-500 font-medium">({{ s.price_type }})</span>
-                </p>
+        <div v-else class="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[980px] text-sm">
+                <thead class="bg-slate-50 text-xs font-bold uppercase text-slate-600">
+                    <tr>
+                        <th class="text-left px-4 py-3">Anuncio</th>
+                        <th class="text-left px-4 py-3">Estado</th>
+                        <th class="text-left px-4 py-3">Vigencia</th>
+                        <th class="text-left px-4 py-3">Precio</th>
+                        <th class="text-left px-4 py-3">Fotos</th>
+                        <th class="text-right px-4 py-3">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="s in store.services" :key="s.id" class="border-t border-slate-100 hover:bg-slate-50/50">
+                        <td class="px-4 py-3 min-w-0">
+                            <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">{{ s.category?.name }}</p>
+                            <p class="font-semibold text-slate-900 truncate max-w-[320px]">{{ s.title }}</p>
+                            <p class="text-xs text-slate-500 line-clamp-1">{{ s.description }}</p>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span
+                                v-if="s.admin_hidden"
+                                class="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full bg-rose-100 text-rose-800"
+                            >Oculto por admin</span>
+                            <span
+                                v-else
+                                class="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full"
+                                :class="s.is_visible ? 'bg-emerald-100 text-emerald-800' : (s.is_expired ? 'bg-amber-100 text-amber-900' : 'bg-slate-200 text-slate-600')"
+                            >{{ s.is_visible ? 'Visible' : (s.is_expired ? 'Vencido' : 'Pausado') }}</span>
+                            <p v-if="s.admin_hidden && s.admin_hidden_reason" class="mt-2 text-xs text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-2 py-1.5 max-w-[260px]">
+                                Motivo: {{ s.admin_hidden_reason }}
+                            </p>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                            <template v-if="s.expires_at">{{ new Date(s.expires_at).toLocaleDateString() }}</template>
+                            <template v-else>—</template>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <Money :amount="s.base_price" />
+                            <span class="text-xs text-slate-500">({{ s.price_type }})</span>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-slate-600">{{ (s.images || []).length }} foto(s)</td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="inline-flex gap-2">
+                                <AppButton variant="ghost" size="sm" @click="startEdit(s)">Editar</AppButton>
+                                <AppButton v-if="s.is_expired && !s.admin_hidden" variant="primary" size="sm" :loading="rowActionBusyId === s.id" @click="renew(s)">Renovar</AppButton>
+                                <AppButton v-else-if="!s.admin_hidden" variant="outline" size="sm" :loading="rowActionBusyId === s.id" @click="toggle(s)">
+                                    {{ s.is_active ? 'Pausar' : 'Activar' }}
+                                </AppButton>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
-                <div class="mt-3">
-                    <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Fotos del anuncio</p>
-                    <div class="flex flex-wrap gap-2">
-                        <div v-for="img in s.images || []" :key="img.id" class="relative group w-16 h-16">
-                            <img :src="img.url" alt="" class="w-full h-full object-cover rounded-lg ring-1 ring-slate-200" />
-                            <button
-                                type="button"
-                                class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition shadow"
-                                title="Eliminar"
-                                @click="deleteImage(s, img)"
-                            >×</button>
-                        </div>
-                        <label
-                            class="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 hover:border-[#003874] hover:bg-[#003874]/5 flex items-center justify-center cursor-pointer text-slate-400 hover:text-[#003874] transition"
-                            title="Agregar foto"
-                        >
-                            <span class="material-symbols-outlined text-[20px]">add_photo_alternate</span>
-                            <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="uploadImage(s, $event)" />
+        <div
+            v-if="showForm"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            @click.self="closeForm"
+        >
+            <div class="w-full max-w-6xl max-h-[90vh] rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col overflow-hidden">
+                <div class="sticky top-0 px-6 py-4 border-b border-slate-100 bg-white z-10 flex items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">{{ editing ? 'Editar anuncio' : 'Nuevo anuncio' }}</h2>
+                        <p class="text-sm text-slate-600 mt-0.5">Completa los datos y revisa la vista previa antes de publicar.</p>
+                    </div>
+                    <button type="button" class="text-slate-500 hover:text-slate-800 text-xl leading-none" @click="closeForm">×</button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto">
+                    <div class="grid lg:grid-cols-2 gap-0 lg:gap-8 p-6">
+                    <form id="service-modal-form" class="space-y-4 order-2 lg:order-1" @submit.prevent="submit">
+                        <label class="block">
+                            <span class="mb-2 block text-sm font-bold text-slate-700">Categoría</span>
+                            <select v-model="form.category_id" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#003874]">
+                                <option v-for="c in catalog.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+                            </select>
                         </label>
+                        <AppInput v-model="form.title" label="Título" placeholder="Ej. Ferretería con delivery" required />
+                        <label class="block">
+                            <span class="mb-2 block text-sm font-bold text-slate-700">Descripción</span>
+                            <textarea
+                                v-model="form.description"
+                                rows="4"
+                                required
+                                maxlength="2000"
+                                placeholder="Describe tu negocio o servicio…"
+                                class="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-[#003874]"
+                            ></textarea>
+                        </label>
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <label class="block">
+                                <span class="mb-2 block text-sm font-bold text-slate-700">Tipo de precio</span>
+                                <select v-model="form.price_type" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#003874]">
+                                    <option value="cotizar">A cotizar</option>
+                                    <option value="desde">Desde…</option>
+                                    <option value="fijo">Fijo</option>
+                                </select>
+                            </label>
+                            <AppInput v-model="form.base_price" label="Precio base (S/)" type="number" placeholder="150.00" />
+                        </div>
+
+                        <div class="block">
+                            <span class="mb-2 block text-sm font-bold text-slate-700">
+                                Fotos del anuncio <span class="text-rose-600">*</span>
+                                <span class="text-slate-400 font-normal">({{ formPhotos.length }}/{{ MAX_PHOTOS }})</span>
+                            </span>
+                            <p class="text-xs text-slate-500 mb-3">La primera foto es la portada en búsqueda. JPG, PNG o WEBP · máx. 5 MB c/u.</p>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <div
+                                    v-for="(photo, idx) in formPhotos"
+                                    :key="photo.key"
+                                    class="relative group w-20 h-20"
+                                >
+                                    <img :src="photo.url" alt="" class="w-full h-full object-cover rounded-lg ring-2 ring-slate-200" :class="idx === 0 ? 'ring-[#003874]' : ''" />
+                                    <span
+                                        v-if="idx === 0"
+                                        class="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold uppercase bg-[#003874] text-white rounded-b-lg py-0.5"
+                                    >Portada</span>
+                                    <button
+                                        type="button"
+                                        class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-bold shadow opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition"
+                                        title="Quitar"
+                                        @click="removeFormPhoto(photo)"
+                                    >×</button>
+                                    <button
+                                        v-if="idx > 0"
+                                        type="button"
+                                        class="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold text-[#003874] bg-white border border-slate-200 rounded px-1 shadow-sm opacity-0 group-hover:opacity-100 transition whitespace-nowrap"
+                                        title="Usar como portada"
+                                        @click="setCover(idx)"
+                                    >
+                                        Portada
+                                    </button>
+                                </div>
+                                <label
+                                    v-if="formPhotos.length < MAX_PHOTOS"
+                                    class="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 hover:border-[#003874] hover:bg-[#003874]/5 flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-[#003874] transition"
+                                >
+                                    <span class="material-symbols-outlined text-[22px]">add</span>
+                                    <span class="text-[9px] font-bold mt-0.5">Agregar</span>
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        multiple
+                                        class="hidden"
+                                        @change="onPickPhotos"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+
+                        <div v-if="locStore.items.length" class="block">
+                            <span class="mb-2 block text-sm font-bold text-slate-700">Sedes donde aparece (vacío = todas)</span>
+                            <div class="flex flex-wrap gap-2">
+                                <label
+                                    v-for="loc in locStore.items"
+                                    :key="loc.id"
+                                    class="inline-flex items-center gap-2 text-sm border border-slate-200 rounded-lg px-3 py-1.5"
+                                >
+                                    <input v-model="form.location_ids" type="checkbox" :value="loc.id" />
+                                    {{ loc.label }}
+                                </label>
+                            </div>
+                        </div>
+
+                    </form>
+
+                    <aside class="order-1 lg:order-2 lg:sticky lg:top-24 self-start space-y-3">
+                        <p class="text-xs font-bold uppercase tracking-widest text-slate-500 hidden lg:block">
+                            Así lo verán en Busca PE
+                        </p>
+                        <ListingCardPreview :service="previewService" />
+                        <p v-if="categoryName" class="text-xs text-slate-500 text-center hidden lg:block">
+                            Categoría: <strong>{{ categoryName }}</strong>
+                        </p>
+                    </aside>
                     </div>
                 </div>
 
-                <div class="mt-4 flex flex-wrap gap-2">
-                    <AppButton variant="ghost" size="sm" @click="startEdit(s)">Editar</AppButton>
-                    <AppButton v-if="s.is_expired && !s.admin_hidden" variant="primary" size="sm" @click="renew(s)">Renovar</AppButton>
-                    <AppButton v-else-if="!s.admin_hidden" variant="outline" size="sm" @click="toggle(s)">
-                        {{ s.is_active ? 'Pausar' : 'Activar' }}
+                <div class="sticky bottom-0 border-t border-slate-100 bg-white px-6 py-4 flex justify-end gap-2 z-10">
+                    <AppButton variant="ghost" type="button" @click="closeForm">Cancelar</AppButton>
+                    <AppButton variant="primary" type="submit" form="service-modal-form" :loading="saving">
+                        {{ editing ? 'Guardar cambios' : 'Publicar anuncio' }}
                     </AppButton>
                 </div>
-            </article>
+            </div>
         </div>
     </div>
 </template>

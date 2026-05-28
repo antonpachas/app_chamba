@@ -22,7 +22,7 @@ onMounted(async () => {
 });
 
 const pendingNew = computed(() => requestsStore.items.filter((r) => r.status === 'nuevo' || r.status === 'contactado').length);
-const pendingPay = computed(() => requestsStore.items.filter((r) => r.status === 'pagado_pendiente' || r.status === 'en_custodia' || r.status === 'en_progreso').length);
+const dashboard = computed(() => profileStore.dashboard || {});
 </script>
 
 <template>
@@ -126,10 +126,21 @@ const pendingPay = computed(() => requestsStore.items.filter((r) => r.status ===
             </div>
             <div class="rounded-2xl bg-grad-card-violet border border-violet-200 p-5 relative overflow-hidden" style="box-shadow: 0 16px 40px -16px rgba(124, 58, 237, 0.30)">
                 <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-grad-violet flex items-center justify-center text-white">
-                    <span class="material-symbols-outlined text-[22px]">work</span>
+                    <span class="material-symbols-outlined text-[22px]">travel_explore</span>
                 </div>
-                <p class="text-xs font-bold uppercase tracking-widest text-violet-900">Trabajos en curso</p>
-                <p class="text-4xl font-black text-violet-950 mt-2">{{ pendingPay }}</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-violet-900">Apariciones en búsqueda (30d)</p>
+                <p class="text-4xl font-black text-violet-950 mt-2">{{ dashboard.search_impressions_30d || 0 }}</p>
+                <p class="text-xs text-violet-900/80 mt-1">Total histórico: {{ dashboard.search_impressions_total || 0 }}</p>
+            </div>
+            <div class="rounded-2xl bg-white border border-slate-200 p-5 relative overflow-hidden">
+                <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
+                    <span class="material-symbols-outlined text-[22px]">visibility</span>
+                </div>
+                <p class="text-xs font-bold uppercase tracking-widest text-slate-700">Vistas a tu negocio (30d)</p>
+                <p class="text-3xl font-black text-slate-900 mt-2">{{ (dashboard.profile_views_30d || 0) + (dashboard.listing_views_30d || 0) }}</p>
+                <p class="text-xs text-slate-500 mt-1">
+                    Perfil: {{ dashboard.profile_views_30d || 0 }} · Anuncios: {{ dashboard.listing_views_30d || 0 }}
+                </p>
             </div>
         </div>
 

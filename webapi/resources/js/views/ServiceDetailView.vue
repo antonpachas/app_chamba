@@ -10,6 +10,9 @@ import FavoriteButton from '@/components/common/FavoriteButton.vue';
 import RequestReviewForm from '@/components/requests/RequestReviewForm.vue';
 import { providerPublicProfileEnabled } from '@/services/features';
 import { useClientRequestsStore } from '@/stores/clientRequests';
+import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
+import ListingContactActions from '@/components/listing/ListingContactActions.vue';
+import { hasListingContact } from '@/utils/whatsapp';
 
 const route = useRoute();
 const router = useRouter();
@@ -63,16 +66,7 @@ const mapSrc = computed(() => {
     return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${minlon},${minlat},${maxlon},${maxlat}`)}&layer=mapnik&marker=${encodeURIComponent(`${lat.value},${lng.value}`)}`;
 });
 
-const waUrl = computed(() => {
-    const s = service.value;
-    const d = String(s?.whatsapp || '').replace(/\D/g, '');
-    return d ? `https://wa.me/${d}` : null;
-});
-const telUrl = computed(() => {
-    const s = service.value;
-    const d = String(s?.contact_phone || '').replace(/\D/g, '') || String(s?.whatsapp || '').replace(/\D/g, '');
-    return d ? `tel:${d}` : null;
-});
+const hasContact = computed(() => hasListingContact(service.value));
 
 const providerProfileId = computed(() => {
     const pid = service.value?.provider_profile_id;
@@ -83,12 +77,14 @@ const showProviderProfileLink = computed(
     () => providerPublicProfileEnabled() && providerProfileId.value != null,
 );
 
+const isGuestPreview = computed(() => !auth.isAuthenticated || !!service.value?.guest_preview);
+
 async function loadListing() {
     loading.value = true;
     error.value = '';
     service.value = null;
     try {
-        const res = await api.get(`/listings/${id.value}`, { auth: auth.isAuthenticated });
+        const res = await api.get(`/listings/${id.value}`);
         if (res.data) {
             service.value = res.data;
             return;
@@ -178,13 +174,14 @@ function goLogin() {
         <div v-if="loading" class="py-20 text-center text-slate-500 font-medium">Cargando…</div>
         <AppAlert v-else-if="error" type="error">{{ error }}</AppAlert>
         <article v-else-if="service">
+            <GuestBrowseBanner v-if="isGuestPreview" compact class="mb-6" />
             <div class="rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm mb-8">
                 <div class="relative h-64 md:h-96 bg-slate-200">
                     <img :src="image" alt="" class="w-full h-full object-cover" />
                     <div class="absolute top-4 left-4 z-10 flex items-center gap-2">
                         <FavoriteButton
-                            v-if="providerProfileId"
-                            :provider-profile-id="providerProfileId"
+                            v-if="service?.service_id"
+                            :provider-service-id="service.service_id"
                             size="lg"
                             show-label
                         />
@@ -227,6 +224,16 @@ function goLogin() {
                     >
                         {{ service.description }}
                     </p>
+                    <p
+                        v-if="isGuestPreview && service.description_truncated"
+                        class="mt-2 text-sm text-slate-500"
+                    >
+                        Descripción abreviada para visitantes.
+                        <button type="button" class="text-[#003874] font-bold hover:underline bg-transparent border-0 p-0 cursor-pointer" @click="goLogin">
+                            Inicia sesión
+                        </button>
+                        para leer el texto completo y contactar.
+                    </p>
                 </div>
             </div>
 
@@ -246,6 +253,14 @@ function goLogin() {
                         <p v-if="service.address_text" class="text-sm text-slate-600 mt-4">
                             <strong>Zona:</strong> {{ service.address_text }}
                         </p>
+                    </section>
+
+                    <section
+                        v-if="hasContact"
+                        class="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-6 md:p-8"
+                    >
+                        <h2 class="text-xs font-bold uppercase tracking-wide text-emerald-800 mb-3">Contactar al negocio</h2>
+                        <ListingContactActions :service="service" />
                     </section>
 
                     <section v-if="hasMap" class="rounded-2xl border border-slate-100 bg-white p-6 md:p-8">
@@ -273,13 +288,14 @@ function goLogin() {
 
                 <aside class="lg:col-span-5 lg:sticky lg:top-24 space-y-6">
                     <div v-if="!auth.isAuthenticated" class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 space-y-4">
-                        <div v-if="providerProfileId" class="flex items-center gap-2 pb-4 border-b border-slate-100">
-                            <FavoriteButton :provider-profile-id="providerProfileId" show-label />
-                            <span class="text-xs text-slate-500">Guarda negocios que te interesan</span>
+                        <div v-if="service?.service_id" class="flex items-center gap-2 pb-4 border-b border-slate-100">
+                            <FavoriteButton :provider-service-id="service.service_id" show-label />
+                            <span class="text-xs text-slate-500">Guarda anuncios que te interesan</span>
                         </div>
-                        <h2 class="text-base font-bold text-[#0b1c30] mb-2">Solicitar contacto</h2>
+                        <h2 class="text-base font-bold text-[#0b1c30] mb-2">Solicitud en la plataforma</h2>
                         <p class="text-sm text-slate-600 mb-4">
-                            Inicia sesión como <strong>cliente</strong> para enviar una solicitud, guardar favoritos y valorar.
+                            Ya puedes escribir por WhatsApp arriba. Si prefieres dejar registro en Busca PE, inicia sesión como
+                            <strong>cliente</strong> para enviar una solicitud y valorar.
                         </p>
                         <AppButton variant="primary" block @click="goLogin">Iniciar sesión</AppButton>
                         <RouterLink
@@ -292,31 +308,10 @@ function goLogin() {
 
                     <div
                         v-else-if="auth.isProveedor"
-                        class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8"
+                        class="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600"
                     >
-                        <h2 class="text-base font-bold text-[#0b1c30] mb-2">Contacto</h2>
-                        <p class="text-sm text-slate-600 mb-4">
-                            Con tu cuenta de proveedor no puedes registrar solicitudes de cliente, pero sí contactar
-                            directamente.
-                        </p>
-                        <div class="flex flex-wrap gap-3">
-                            <a
-                                v-if="waUrl"
-                                :href="waUrl"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 text-sm shadow-md no-underline"
-                            >
-                                WhatsApp
-                            </a>
-                            <a
-                                v-if="telUrl"
-                                :href="telUrl"
-                                class="inline-flex items-center justify-center rounded-xl border-2 border-slate-200 hover:border-[#003874]/40 font-bold px-5 py-3 text-sm text-slate-800 no-underline"
-                            >
-                                Llamar
-                            </a>
-                        </div>
+                        <p class="font-bold text-[#0b1c30] mb-1">Cuenta de proveedor</p>
+                        <p>Usa WhatsApp o teléfono en la sección de contacto. No puedes registrar solicitudes como cliente.</p>
                     </div>
 
                     <template v-else-if="auth.isCliente">
@@ -372,27 +367,9 @@ function goLogin() {
                                 {{ sending ? 'Enviando…' : 'Enviar solicitud' }}
                             </AppButton>
                         </form>
-                        <div v-if="waUrl || telUrl" class="mt-6 pt-6 border-t border-slate-100">
-                            <p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Contacto directo</p>
-                            <div class="flex flex-wrap gap-3">
-                                <a
-                                    v-if="waUrl"
-                                    :href="waUrl"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 text-sm shadow-md no-underline"
-                                >
-                                    WhatsApp
-                                </a>
-                                <a
-                                    v-if="telUrl"
-                                    :href="telUrl"
-                                    class="inline-flex items-center justify-center rounded-xl border-2 border-slate-200 hover:border-[#003874]/40 font-bold px-5 py-3 text-sm text-slate-800 no-underline"
-                                >
-                                    Llamar
-                                </a>
-                            </div>
-                        </div>
+                        <p class="text-xs text-slate-500 mt-4 pt-4 border-t border-slate-100">
+                            También puedes usar WhatsApp o llamar en la sección «Contactar al negocio».
+                        </p>
                         </div>
                     </template>
                 </aside>

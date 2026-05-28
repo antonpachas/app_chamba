@@ -12,6 +12,8 @@ const busy = ref(null);
 const userQ = ref('');
 const userRole = ref('all');
 const userStatus = ref('all');
+const riskLevel = ref('all');
+const onlyFlags = ref(false);
 const users = ref([]);
 const usersMeta = ref({ total: 0, current_page: 1, last_page: 1 });
 const usersLoading = ref(false);
@@ -20,10 +22,22 @@ const suspendReason = ref('');
 const suspendHideListings = ref(true);
 const modalUser = ref(null);
 const modalResetUser = ref(null);
+const modalActivityUser = ref(null);
+const activityLoading = ref(false);
+const activityData = ref(null);
+const requestMessagesModal = ref({ open: false, loading: false, request: null, messages: [] });
 
 const userPages = computed(() => {
     const last = usersMeta.value.last_page || 1;
     return Array.from({ length: last }, (_, i) => i + 1);
+});
+
+const filteredUsers = computed(() => {
+    return (users.value || []).filter((u) => {
+        const levelOk = riskLevel.value === 'all' || (u.risk?.level || 'bajo') === riskLevel.value;
+        const flagsOk = !onlyFlags.value || (u.risk?.flags?.length || 0) > 0;
+        return levelOk && flagsOk;
+    });
 });
 
 async function loadUsers(page = 1) {
@@ -60,6 +74,46 @@ function openDisableModal(row) {
 
 function openResetModal(row) {
     modalResetUser.value = row;
+}
+
+async function openActivityModal(row) {
+    modalActivityUser.value = row;
+    activityData.value = null;
+    activityLoading.value = true;
+    err.value = '';
+    try {
+        const r = await api.get(`/admin/users/${row.id}/activity`, { auth: true });
+        activityData.value = r.data || null;
+    } catch (e) {
+        err.value = e.message || 'No se pudo cargar el historial.';
+    } finally {
+        activityLoading.value = false;
+    }
+}
+
+async function openRequestMessages(requestId) {
+    if (!modalActivityUser.value?.id || !requestId) return;
+    requestMessagesModal.value = { open: true, loading: true, request: null, messages: [] };
+    err.value = '';
+    try {
+        const r = await api.get(
+            `/admin/users/${modalActivityUser.value.id}/service-requests/${requestId}/messages`,
+            { auth: true },
+        );
+        requestMessagesModal.value = {
+            open: true,
+            loading: false,
+            request: r.data?.service_request || null,
+            messages: r.data?.messages || [],
+        };
+    } catch (e) {
+        requestMessagesModal.value.loading = false;
+        err.value = e.message || 'No se pudieron cargar los mensajes.';
+    }
+}
+
+function closeRequestMessages() {
+    requestMessagesModal.value = { open: false, loading: false, request: null, messages: [] };
 }
 
 async function confirmDisable() {
@@ -134,6 +188,64 @@ function formatDate(iso) {
         return '—';
     }
 }
+
+function shortBody(v, max = 120) {
+    const s = String(v || '').trim();
+    if (!s) return '—';
+    return s.length > max ? `${s.slice(0, max)}…` : s;
+}
+
+function csvEscape(value) {
+    const s = String(value ?? '');
+    const safe = s.replace(/"/g, '""');
+    return `"${safe}"`;
+}
+
+function exportUsersCsv() {
+    const headers = [
+        'id',
+        'nombre',
+        'email',
+        'telefono',
+        'rol',
+        'estado',
+        'negocio',
+        'riesgo_nivel',
+        'riesgo_score',
+        'riesgo_alertas',
+        'fecha_registro',
+    ];
+    const lines = [headers.join(',')];
+
+    for (const u of filteredUsers.value || []) {
+        lines.push([
+            csvEscape(u.id),
+            csvEscape(u.full_name),
+            csvEscape(u.email),
+            csvEscape(u.phone || ''),
+            csvEscape(u.role || ''),
+            csvEscape(u.status || ''),
+            csvEscape(u.provider_profile?.business_name || ''),
+            csvEscape(u.risk?.level || 'bajo'),
+            csvEscape(u.risk?.score ?? 0),
+            csvEscape((u.risk?.flags || []).join('|')),
+            csvEscape(formatDate(u.created_at)),
+        ].join(','));
+    }
+
+    const csv = `\uFEFF${lines.join('\n')}`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+    a.href = url;
+    a.download = `admin_usuarios_${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
 </script>
 
 <template>
@@ -175,6 +287,19 @@ function formatDate(iso) {
                 <option value="activo">Activos</option>
                 <option value="suspendido">Deshabilitados</option>
             </select>
+            <select v-model="riskLevel" class="rounded-lg border border-slate-200 px-3 py-2.5 text-sm">
+                <option value="all">Riesgo: todos</option>
+                <option value="alto">Riesgo alto</option>
+                <option value="medio">Riesgo medio</option>
+                <option value="bajo">Riesgo bajo</option>
+            </select>
+            <label class="inline-flex items-center gap-2 text-sm rounded-lg border border-slate-200 px-3 py-2.5">
+                <input v-model="onlyFlags" type="checkbox" />
+                Solo con alertas
+            </label>
+            <AppButton variant="ghost" @click="exportUsersCsv">
+                Exportar CSV
+            </AppButton>
             <AppButton variant="primary" @click="loadUsers(1)">Buscar</AppButton>
         </div>
 
@@ -191,15 +316,16 @@ function formatDate(iso) {
                         <th class="text-left px-4 py-3">Usuario</th>
                         <th class="text-left px-4 py-3">Rol</th>
                         <th class="text-left px-4 py-3">Estado</th>
+                        <th class="text-left px-4 py-3">Riesgo</th>
                         <th class="text-left px-4 py-3">Registro</th>
                         <th class="text-right px-4 py-3">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-if="!users.length">
-                        <td colspan="6" class="px-4 py-12 text-center text-slate-500">Sin resultados.</td>
+                    <tr v-if="!filteredUsers.length">
+                        <td colspan="7" class="px-4 py-12 text-center text-slate-500">Sin resultados.</td>
                     </tr>
-                    <tr v-for="u in users" :key="u.id" class="border-t border-slate-100 hover:bg-slate-50/50">
+                    <tr v-for="u in filteredUsers" :key="u.id" class="border-t border-slate-100 hover:bg-slate-50/50">
                         <td class="px-4 py-3 text-slate-500 font-mono text-xs">#{{ u.id }}</td>
                         <td class="px-4 py-3">
                             <p class="font-bold text-slate-900">{{ u.full_name }}</p>
@@ -221,11 +347,38 @@ function formatDate(iso) {
                                 {{ u.status === 'suspendido' ? 'deshabilitado' : u.status }}
                             </span>
                         </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full"
+                                    :class="
+                                        (u.risk?.level || 'bajo') === 'alto'
+                                            ? 'bg-rose-100 text-rose-800'
+                                            : (u.risk?.level || 'bajo') === 'medio'
+                                                ? 'bg-amber-100 text-amber-800'
+                                                : 'bg-emerald-100 text-emerald-800'
+                                    "
+                                >
+                                    {{ u.risk?.level || 'bajo' }}
+                                </span>
+                                <span class="text-xs text-slate-600">Score {{ u.risk?.score ?? 0 }}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1">
+                                {{ (u.risk?.flags || []).join(', ') || 'Sin alertas' }}
+                            </p>
+                        </td>
                         <td class="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                             {{ formatDate(u.created_at) }}
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex flex-wrap justify-end gap-1">
+                                <AppButton
+                                    variant="ghost"
+                                    size="sm"
+                                    @click="openActivityModal(u)"
+                                >
+                                    Ver actividad
+                                </AppButton>
                                 <AppButton
                                     variant="ghost"
                                     size="sm"
@@ -327,6 +480,186 @@ function formatDate(iso) {
                     <AppButton variant="primary" :loading="busy === modalResetUser.id" @click="confirmResetPassword">
                         Enviar nueva contraseña
                     </AppButton>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal actividad -->
+        <div
+            v-if="modalActivityUser"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            @click.self="modalActivityUser = null"
+        >
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto p-6">
+                <div class="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">
+                            Historial de {{ modalActivityUser.full_name }}
+                        </h3>
+                        <p class="text-sm text-slate-600">
+                            Supervisión de actividad completa (cliente/proveedor).
+                        </p>
+                    </div>
+                    <AppButton variant="ghost" @click="modalActivityUser = null">Cerrar</AppButton>
+                </div>
+
+                <p v-if="activityLoading" class="text-slate-500 py-8">Cargando historial…</p>
+                <template v-else-if="activityData">
+                    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                        <div class="rounded-xl border border-slate-200 p-3">
+                            <p class="text-xs text-slate-500">Solicitudes como cliente</p>
+                            <p class="text-2xl font-bold text-slate-900">{{ activityData.summary?.client_requests_total ?? 0 }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 p-3">
+                            <p class="text-xs text-slate-500">Solicitudes como proveedor</p>
+                            <p class="text-2xl font-bold text-slate-900">{{ activityData.summary?.provider_requests_total ?? 0 }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 p-3">
+                            <p class="text-xs text-slate-500">Mensajes</p>
+                            <p class="text-2xl font-bold text-slate-900">{{ activityData.summary?.messages_total ?? 0 }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 p-3">
+                            <p class="text-xs text-slate-500">Anuncios</p>
+                            <p class="text-2xl font-bold text-slate-900">{{ activityData.summary?.listings_total ?? 0 }}</p>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 p-3 mb-6 bg-slate-50">
+                        <p class="text-sm font-semibold text-slate-900 mb-1">
+                            Riesgo: {{ activityData.risk?.level || 'bajo' }} · Score {{ activityData.risk?.score ?? 0 }}
+                        </p>
+                        <p class="text-xs text-slate-600">
+                            Alertas: {{ (activityData.risk?.flags || []).join(', ') || 'Sin alertas' }}
+                        </p>
+                    </div>
+
+                    <div class="space-y-5">
+                        <section class="rounded-xl border border-slate-200 p-4">
+                            <h4 class="font-bold text-slate-900 mb-2">Solicitudes como cliente</h4>
+                            <div v-if="!(activityData.client_requests || []).length" class="text-sm text-slate-500">Sin actividad.</div>
+                            <div v-else class="overflow-x-auto">
+                                <table class="w-full text-sm min-w-[600px]">
+                                    <thead class="text-xs uppercase text-slate-500">
+                                        <tr>
+                                            <th class="text-left py-2">ID</th>
+                                            <th class="text-left py-2">Anuncio</th>
+                                            <th class="text-left py-2">Estado</th>
+                                            <th class="text-left py-2">Msgs</th>
+                                            <th class="text-left py-2">Fecha</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="r in activityData.client_requests" :key="`c-${r.id}`" class="border-t border-slate-100">
+                                            <td class="py-2">#{{ r.id }}</td>
+                                            <td class="py-2">{{ r.provider_service?.title || 'Anuncio' }}</td>
+                                            <td class="py-2">{{ r.status }}</td>
+                                            <td class="py-2">
+                                                <button
+                                                    type="button"
+                                                    class="inline-flex items-center gap-1 text-[#003874] font-semibold hover:underline"
+                                                    @click="openRequestMessages(r.id)"
+                                                >
+                                                    <span class="material-symbols-outlined text-base">chat</span>
+                                                    {{ r.messages_count ?? 0 }}
+                                                </button>
+                                            </td>
+                                            <td class="py-2">{{ formatDate(r.created_at) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="rounded-xl border border-slate-200 p-4">
+                            <h4 class="font-bold text-slate-900 mb-2">Solicitudes como proveedor</h4>
+                            <div v-if="!(activityData.provider_requests || []).length" class="text-sm text-slate-500">Sin actividad.</div>
+                            <div v-else class="overflow-x-auto">
+                                <table class="w-full text-sm min-w-[560px]">
+                                    <thead class="text-xs uppercase text-slate-500">
+                                        <tr>
+                                            <th class="text-left py-2">ID</th>
+                                            <th class="text-left py-2">Servicio</th>
+                                            <th class="text-left py-2">Estado</th>
+                                            <th class="text-left py-2">Msgs</th>
+                                            <th class="text-left py-2">Fecha</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="r in activityData.provider_requests" :key="`p-${r.id}`" class="border-t border-slate-100">
+                                            <td class="py-2">#{{ r.id }}</td>
+                                            <td class="py-2">{{ r.provider_service_title || r.provider_service_id }}</td>
+                                            <td class="py-2">{{ r.status }}</td>
+                                            <td class="py-2">
+                                                <button
+                                                    type="button"
+                                                    class="inline-flex items-center gap-1 text-[#003874] font-semibold hover:underline"
+                                                    @click="openRequestMessages(r.id)"
+                                                >
+                                                    <span class="material-symbols-outlined text-base">chat</span>
+                                                    {{ r.messages_count ?? 0 }}
+                                                </button>
+                                            </td>
+                                            <td class="py-2">{{ formatDate(r.created_at) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="rounded-xl border border-slate-200 p-4">
+                            <h4 class="font-bold text-slate-900 mb-2">Reseñas y favoritos</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm min-w-[520px]">
+                                    <thead class="text-xs uppercase text-slate-500">
+                                        <tr>
+                                            <th class="text-left py-2">Métrica</th>
+                                            <th class="text-left py-2">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="border-t border-slate-100"><td class="py-2">Reseñas</td><td class="py-2">{{ activityData.summary?.reviews_total ?? 0 }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-2">Favoritos</td><td class="py-2">{{ activityData.summary?.favorites_total ?? 0 }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-2">Pagos</td><td class="py-2">{{ activityData.summary?.payments_total ?? 0 }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-2">Solicitudes (7d)</td><td class="py-2">{{ activityData.risk?.metrics?.requests_7d ?? 0 }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-2">Mensajes (7d)</td><td class="py-2">{{ activityData.risk?.metrics?.messages_7d ?? 0 }}</td></tr>
+                                        <tr class="border-t border-slate-100"><td class="py-2">Disputas</td><td class="py-2">{{ activityData.risk?.metrics?.disputes_total ?? 0 }}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Modal mensajes por solicitud -->
+        <div
+            v-if="requestMessagesModal.open"
+            class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50"
+            @click.self="closeRequestMessages"
+        >
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[82vh] overflow-y-auto p-5">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <h4 class="text-lg font-bold text-slate-900">
+                        Mensajes · solicitud #{{ requestMessagesModal.request?.id || '—' }}
+                    </h4>
+                    <AppButton variant="ghost" size="sm" @click="closeRequestMessages">Cerrar</AppButton>
+                </div>
+                <p v-if="requestMessagesModal.loading" class="text-slate-500 py-6">Cargando mensajes…</p>
+                <p v-else-if="!(requestMessagesModal.messages || []).length" class="text-slate-500 py-6">
+                    Esta solicitud no tiene mensajes.
+                </p>
+                <div v-else class="space-y-2">
+                    <article
+                        v-for="m in requestMessagesModal.messages"
+                        :key="m.id"
+                        class="rounded-lg border border-slate-200 px-3 py-2"
+                    >
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <span class="text-xs font-bold uppercase text-slate-500">{{ m.author_role }}</span>
+                            <span class="text-xs text-slate-500">{{ formatDate(m.created_at) }}</span>
+                        </div>
+                        <p class="text-sm text-slate-800 whitespace-pre-wrap">{{ shortBody(m.body, 5000) }}</p>
+                    </article>
                 </div>
             </div>
         </div>

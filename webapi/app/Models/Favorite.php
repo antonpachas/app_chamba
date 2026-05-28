@@ -10,6 +10,7 @@ class Favorite extends Model
     protected $fillable = [
         'user_id',
         'provider_profile_id',
+        'provider_service_id',
     ];
 
     public function user(): BelongsTo
@@ -17,8 +18,8 @@ class Favorite extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function providerProfile(): BelongsTo
+    public function listing(): BelongsTo
     {
-        return $this->belongsTo(ProviderProfile::class);
+        return $this->belongsTo(ProviderService::class, 'provider_service_id');
     }
 }

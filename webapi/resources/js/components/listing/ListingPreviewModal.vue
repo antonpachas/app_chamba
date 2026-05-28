@@ -7,6 +7,8 @@ import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import { providerPublicProfileEnabled } from '@/services/features';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
+import ListingContactActions from '@/components/listing/ListingContactActions.vue';
+import { hasListingContact } from '@/utils/whatsapp';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
@@ -30,7 +32,7 @@ watch(
         loading.value = true;
         error.value = '';
         try {
-            const r = await api.get(`/listings/${id}`, { auth: auth.isAuthenticated });
+            const r = await api.get(`/listings/${id}`);
             listing.value = r.data || null;
             if (!listing.value) error.value = 'No se pudo cargar el anuncio.';
         } catch (e) {
@@ -46,6 +48,8 @@ watch(
 function close() {
     emit('close');
 }
+
+const showContact = computed(() => hasListingContact(listing.value));
 
 const coverImage = computed(() => {
     const l = listing.value;
@@ -87,11 +91,11 @@ const coverImage = computed(() => {
                         <div class="relative mb-4">
                             <img :src="coverImage" alt="" class="w-full h-44 object-cover rounded-xl bg-slate-100" />
                             <div
-                                v-if="listing.provider_profile_id"
+                                v-if="listing.service_id"
                                 class="absolute bottom-2 right-2"
                                 @click.stop
                             >
-                                <FavoriteButton :provider-profile-id="listing.provider_profile_id" size="sm" />
+                                <FavoriteButton :provider-service-id="listing.service_id" size="sm" />
                             </div>
                         </div>
                         <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">{{ listing.category_name }}</p>
@@ -115,6 +119,9 @@ const coverImage = computed(() => {
                             <span class="material-symbols-outlined text-[14px]">storefront</span>
                             Ver perfil del negocio
                         </RouterLink>
+                        <div v-if="showContact" class="my-4 rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
+                            <ListingContactActions :service="listing" compact />
+                        </div>
                         <div class="mt-5 flex flex-col sm:flex-row gap-2">
                             <RouterLink
                                 :to="{ name: 'listing-detail', params: { id: listing.service_id } }"

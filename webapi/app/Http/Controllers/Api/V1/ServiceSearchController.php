@@ -9,10 +9,12 @@ use App\Models\District;
 use App\Models\ProviderLocation;
 use App\Models\ProviderProfile;
 use App\Models\ProviderService;
+use App\Models\ProviderVisibilityEvent;
 use App\Models\SearchEvent;
 use App\Models\ServiceImage;
 use App\Models\SubscriptionPlan;
 use App\Models\UserSubscription;
+use App\Services\ListingGuestPreviewService;
 use App\Services\MediaStorageService;
 use App\Services\StoredProcedureService;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +25,7 @@ final class ServiceSearchController extends Controller
     public function __construct(
         private readonly StoredProcedureService $storedProcedures,
         private readonly MediaStorageService $media,
+        private readonly ListingGuestPreviewService $guestPreview,
     ) {}
 
     public function index(ServiceSearchRequest $request): JsonResponse
@@ -100,7 +103,7 @@ final class ServiceSearchController extends Controller
             unset($row);
         }
 
-        SearchEvent::create([
+        $searchEvent = SearchEvent::create([
             'user_id' => $request->user()?->id,
             'category_id' => $categoryId,
             'query' => $keyword,
@@ -113,7 +116,51 @@ final class ServiceSearchController extends Controller
             'created_at' => now(),
         ]);
 
-        return response()->json(['data' => $rows]);
+        $this->trackSearchImpressions($rows, (int) ($request->user()?->id ?? 0), (int) $searchEvent->id);
+
+        $meta = [];
+        if ($request->user('sanctum') === null) {
+            $rows = array_map(fn (array $row): array => $this->guestPreview->scrubRow($row), $rows);
+            $limited = $this->guestPreview->limitSearchResults($rows);
+            $rows = $limited['rows'];
+            $meta = [
+                'guest_preview' => true,
+                'guest_limit' => $this->guestPreview->maxSearchResults(),
+                'guest_total' => $limited['total'],
+                'guest_limited' => $limited['limited'],
+            ];
+        }
+
+        return response()->json(['data' => $rows, 'meta' => $meta !== [] ? $meta : null]);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     */
+    private function trackSearchImpressions(array $rows, int $viewerUserId, int $searchEventId): void
+    {
+        $profileIds = collect($rows)
+            ->pluck('provider_profile_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($profileIds->isEmpty()) {
+            return;
+        }
+
+        $now = now();
+        $payload = $profileIds->map(fn (int $providerProfileId) => [
+            'provider_profile_id' => $providerProfileId,
+            'provider_service_id' => null,
+            'search_event_id' => $searchEventId > 0 ? $searchEventId : null,
+            'viewer_user_id' => $viewerUserId > 0 ? $viewerUserId : null,
+            'source' => 'search_result',
+            'created_at' => $now,
+        ])->all();
+
+        ProviderVisibilityEvent::query()->insert($payload);
     }
 
     /**
@@ -169,14 +216,19 @@ final class ServiceSearchController extends Controller
                 ->first();
             $rows[] = [
                 'service_id' => $svc->id,
+                'title' => $svc->title,
                 'provider_profile_id' => $prof?->id,
                 'provider_user_id' => $prof?->user_id,
                 'service_title' => $svc->title,
+                'description' => $svc->description,
                 'service_description' => $svc->description,
+                'base_price' => $svc->base_price,
+                'price_type' => $svc->price_type,
                 'service_base_price' => $svc->base_price,
                 'service_price_type' => $svc->price_type,
                 'category_id' => $svc->category_id,
                 'category_name' => $svc->category?->name,
+                'provider_name' => $prof?->business_name ?: $prof?->user?->full_name,
                 'business_name' => $prof?->business_name ?: $prof?->user?->full_name,
                 'avg_rating' => $prof?->avg_rating,
                 'total_reviews' => $prof?->total_reviews,

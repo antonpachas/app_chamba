@@ -17,7 +17,8 @@ class ToggleFavoriteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'provider_profile_id' => ['required', 'integer', 'exists:provider_profiles,id'],
+            'provider_service_id' => ['nullable', 'required_without:provider_profile_id', 'integer', 'exists:provider_services,id'],
+            'provider_profile_id' => ['nullable', 'required_without:provider_service_id', 'integer', 'exists:provider_profiles,id'],
         ];
     }
 }

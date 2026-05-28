@@ -31,6 +31,8 @@ const navLinks = computed(() => {
             { name: 'admin-users', label: 'Usuarios' },
             { name: 'admin-moderation', label: 'Moderación' },
             { name: 'admin-subscriptions', label: 'Membresías' },
+            { name: 'admin-system', label: 'Sistema' },
+            { name: 'admin-support', label: 'Soporte' },
             { name: 'admin-settings', label: 'Config' },
             ...(escrow ? [
                 { name: 'admin-payments', label: 'Pagos' },

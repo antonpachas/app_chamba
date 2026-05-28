@@ -30,4 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return null;
         });
+
+        $exceptions->reportable(function (Throwable $e) {
+            app(\App\Services\SystemLogService::class)->recordFromThrowable($e);
+        });
     })->create();

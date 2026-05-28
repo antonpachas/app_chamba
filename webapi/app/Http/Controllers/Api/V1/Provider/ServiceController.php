@@ -152,8 +152,10 @@ final class ServiceController extends Controller
         $isActive = (bool) $request->validated('is_active');
 
         if ($isActive && (bool) $model->admin_hidden) {
+            $reason = trim((string) ($model->admin_hidden_reason ?? ''));
+            $reasonMsg = $reason !== '' ? " Motivo: {$reason}" : '';
             return response()->json([
-                'message' => 'Este anuncio fue ocultado por moderación. Contacta a soporte de Busca PE.',
+                'message' => 'Este anuncio fue ocultado por moderación. Contacta a soporte de Busca PE.'.$reasonMsg,
                 'code' => 'listing_admin_hidden',
             ], 422);
         }

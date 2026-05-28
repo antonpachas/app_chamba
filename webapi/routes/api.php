@@ -9,7 +9,10 @@ use App\Http\Controllers\Api\V1\Admin\PlatformAdAdminController;
 use App\Http\Controllers\Api\V1\Admin\ReportsAdminController;
 use App\Http\Controllers\Api\V1\Admin\SubscriptionAdminController;
 use App\Http\Controllers\Api\V1\Admin\SubscriptionPlanAdminController;
+use App\Http\Controllers\Api\V1\Admin\SupportTicketAdminController;
+use App\Http\Controllers\Api\V1\Admin\SystemLogAdminController;
 use App\Http\Controllers\Api\V1\Admin\SystemSettingsAdminController;
+use App\Http\Controllers\Api\V1\SupportTicketController;
 use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
@@ -108,6 +111,11 @@ Route::prefix('v1')->group(function (): void {
         Route::post('service-requests/{serviceRequest}/messages', [ServiceRequestMessageController::class, 'store'])
             ->whereNumber('serviceRequest');
 
+        Route::get('support-tickets', [SupportTicketController::class, 'index']);
+        Route::post('support-tickets', [SupportTicketController::class, 'store']);
+        Route::get('support-tickets/{ticket}', [SupportTicketController::class, 'show'])->whereNumber('ticket');
+        Route::post('support-tickets/{ticket}/messages', [SupportTicketController::class, 'storeMessage'])->whereNumber('ticket');
+
         Route::middleware('role:proveedor')->prefix('provider')->group(function (): void {
             Route::get('profile', [ProfileController::class, 'show']);
             Route::post('profile', [ProfileController::class, 'store']);
@@ -192,6 +200,14 @@ Route::prefix('v1')->group(function (): void {
             Route::put('settings', [SystemSettingsAdminController::class, 'bulkUpdate']);
             Route::get('settings-logs', [SystemSettingsAdminController::class, 'logs']);
 
+            Route::get('system-logs', [SystemLogAdminController::class, 'index']);
+            Route::get('system-logs/{log}', [SystemLogAdminController::class, 'show'])->whereNumber('log');
+
+            Route::get('support-tickets', [SupportTicketAdminController::class, 'index']);
+            Route::get('support-tickets/{ticket}', [SupportTicketAdminController::class, 'show'])->whereNumber('ticket');
+            Route::patch('support-tickets/{ticket}/status', [SupportTicketAdminController::class, 'updateStatus'])->whereNumber('ticket');
+            Route::post('support-tickets/{ticket}/messages', [SupportTicketAdminController::class, 'storeMessage'])->whereNumber('ticket');
+
             Route::get('plans', [SubscriptionPlanAdminController::class, 'index']);
             Route::put('plans/{plan}', [SubscriptionPlanAdminController::class, 'update']);
             Route::get('plans/{plan}/logs', [SubscriptionPlanAdminController::class, 'logs']);
@@ -204,6 +220,10 @@ Route::prefix('v1')->group(function (): void {
             Route::post('listings/{listing}/restore', [ListingAdminController::class, 'restore'])->whereNumber('listing');
 
             Route::get('users', [UserAdminController::class, 'index']);
+            Route::get('users/{user}/activity', [UserAdminController::class, 'activity'])->whereNumber('user');
+            Route::get('users/{user}/service-requests/{serviceRequest}/messages', [UserAdminController::class, 'requestMessages'])
+                ->whereNumber('user')
+                ->whereNumber('serviceRequest');
             Route::post('users/{user}/suspend', [UserAdminController::class, 'suspend'])->whereNumber('user');
             Route::post('users/{user}/activate', [UserAdminController::class, 'activate'])->whereNumber('user');
             Route::post('users/{user}/reset-password', [UserAdminController::class, 'resetPassword'])->whereNumber('user');

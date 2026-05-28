@@ -8,8 +8,11 @@ import { useSearchStore } from '@/stores/search';
 import { categoryStyleFor } from '@/components/common/CategoryIcon';
 import ServiceCard from '@/components/service/ServiceCard.vue';
 import AdSlot from '@/components/ads/AdSlot.vue';
+import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
+import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
+const auth = useAuthStore();
 const router = useRouter();
 const catalog = useCatalogStore();
 const geo = useGeoStore();
@@ -130,6 +133,7 @@ function pickCategory(id) {
         </section>
 
         <div class="max-w-7xl mx-auto px-4 md:px-8 mt-10">
+            <GuestBrowseBanner v-if="!auth.isAuthenticated" :meta="search.guestMeta" compact class="mb-6" />
             <AdSlot placement="home" />
         </div>
 

@@ -3,6 +3,8 @@ import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { providerPublicProfileEnabled } from '@/services/features';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
+import ListingContactActions from '@/components/listing/ListingContactActions.vue';
+import { hasListingContact } from '@/utils/whatsapp';
 
 const props = defineProps({
     service: { type: Object, required: true },
@@ -49,6 +51,8 @@ const priceFooter = computed(() => {
     const cta = pt === 'cotizar' ? 'Cotizar' : pt === 'fijo' ? 'Ver más' : 'Consultar';
     return { label, value, cta };
 });
+
+const showContact = computed(() => hasListingContact(props.service));
 </script>
 
 <template>
@@ -71,11 +75,11 @@ const priceFooter = computed(() => {
                 <span class="text-[10px] font-black uppercase tracking-wider">Pro</span>
             </div>
             <div
-                v-if="providerProfileId"
+                v-if="id"
                 class="absolute bottom-3 right-3 z-10"
                 @click.stop
             >
-                <FavoriteButton :provider-profile-id="providerProfileId" size="sm" />
+                <FavoriteButton :provider-service-id="id" size="sm" />
             </div>
             <div
                 v-if="ratingNum"
@@ -111,7 +115,7 @@ const priceFooter = computed(() => {
                 <span class="material-symbols-outlined text-sm">location_on</span>
                 <span>{{ locationLine || '—' }}</span>
             </div>
-            <div class="flex justify-between items-center border-t border-slate-100 pt-4">
+            <div class="flex justify-between items-center border-t border-slate-100 pt-4 mb-3">
                 <div class="flex flex-col min-w-0">
                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wide">
                         {{ priceFooter.label }}
@@ -121,6 +125,9 @@ const priceFooter = computed(() => {
                 <span class="shrink-0 text-[#9f4200] font-bold text-sm border border-[#9f4200] px-4 py-2 rounded-lg">
                     {{ priceFooter.cta }}
                 </span>
+            </div>
+            <div v-if="showContact" class="border-t border-slate-100 pt-3" @click.stop>
+                <ListingContactActions :service="service" compact />
             </div>
         </div>
     </RouterLink>

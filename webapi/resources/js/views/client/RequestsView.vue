@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useClientRequestsStore } from '@/stores/clientRequests';
 import StatusPill from '@/components/common/StatusPill.vue';
 import Money from '@/components/common/Money.vue';
@@ -13,6 +13,8 @@ import StarRatingInput from '@/components/common/StarRatingInput.vue';
 const store = useClientRequestsStore();
 const previewListingId = ref(null);
 const previewOpen = ref(false);
+const detailOpen = ref(false);
+const detailRequestId = ref(null);
 const busyId = ref(null);
 const payOpenId = ref(null);
 const payForm = ref({ payment_method: 'yape', payment_reference: '', notes: '', proof: null });
@@ -21,6 +23,10 @@ const disputeOpenId = ref(null);
 const disputeReason = ref('');
 const localError = ref('');
 const localOk = ref('');
+
+const activeRequest = computed(() =>
+    store.items.find((r) => Number(r.id) === Number(detailRequestId.value)) || null,
+);
 
 onMounted(async () => {
     await Promise.all([store.load(), store.loadPayments()]);
@@ -96,6 +102,18 @@ function openListingPreview(serviceId) {
     previewOpen.value = true;
 }
 
+function openDetail(requestId) {
+    detailRequestId.value = Number(requestId);
+    detailOpen.value = true;
+}
+
+function closeDetail() {
+    detailOpen.value = false;
+    detailRequestId.value = null;
+    payOpenId.value = null;
+    disputeOpenId.value = null;
+}
+
 function requestClosed(r) {
     return ['cerrado', 'cancelado'].includes(r.status);
 }
@@ -123,7 +141,7 @@ async function submitDispute(paymentId) {
     <div class="max-w-5xl mx-auto px-4 md:px-8 py-8">
         <header class="mb-8">
             <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mis solicitudes</h1>
-            <p class="text-slate-600 mt-1">Conversa con el negocio, sigue el estado y gestiona cotizaciones.</p>
+            <p class="text-slate-600 mt-1">Vista compacta tipo inbox. Abre cada solicitud para ver chat y acciones.</p>
         </header>
 
         <AppAlert v-if="localError" type="error" class="mb-4">{{ localError }}</AppAlert>
@@ -133,107 +151,162 @@ async function submitDispute(paymentId) {
         <div v-else-if="!store.items.length" class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
             Aún no tienes solicitudes. Cuando contactes a un proveedor desde un servicio, aparecerá aquí.
         </div>
-        <div v-else class="space-y-5">
-            <article
-                v-for="r in store.items"
-                :key="r.id"
-                class="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm"
-            >
-                <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
+        <div v-else class="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[860px] text-sm">
+                <thead class="bg-slate-50 text-xs font-bold uppercase text-slate-600">
+                    <tr>
+                        <th class="text-left px-4 py-3">Solicitud</th>
+                        <th class="text-left px-4 py-3">Negocio</th>
+                        <th class="text-left px-4 py-3">Estado</th>
+                        <th class="text-left px-4 py-3">Fecha</th>
+                        <th class="text-right px-4 py-3">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="r in store.items" :key="r.id" class="border-t border-slate-100 hover:bg-slate-50/50">
+                        <td class="px-4 py-3 min-w-0">
+                            <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">
+                                #{{ r.id }} · {{ r.service?.category?.name || '—' }}
+                            </p>
+                            <p class="font-semibold text-slate-900 truncate max-w-[280px]">{{ r.service?.title || '—' }}</p>
+                        </td>
+                        <td class="px-4 py-3">
+                            <p class="font-semibold text-slate-800">{{ r.provider?.name || '—' }}</p>
+                            <p class="text-xs text-slate-500">{{ r.messages_count || 0 }} mensaje(s)</p>
+                        </td>
+                        <td class="px-4 py-3"><StatusPill :status="r.status" /></td>
+                        <td class="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                            {{ new Date(r.created_at).toLocaleDateString() }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <AppButton variant="primary" size="sm" @click="openDetail(r.id)">Ver detalle</AppButton>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div
+            v-if="detailOpen && activeRequest"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            @click.self="closeDetail"
+        >
+            <div class="w-full max-w-4xl max-h-[88vh] overflow-y-auto rounded-2xl bg-white border border-slate-200 shadow-2xl">
+                <div class="sticky top-0 bg-white border-b border-slate-100 px-5 py-4 flex items-start justify-between gap-3 z-10">
                     <div class="min-w-0">
                         <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">
-                            #{{ r.id }} · {{ r.service?.category?.name || '—' }}
+                            Solicitud #{{ activeRequest.id }}
                         </p>
-                        <h2 class="text-lg font-bold text-[#0b1c30] truncate">
-                            <button
-                                v-if="r.service?.id"
-                                type="button"
-                                class="text-left hover:text-[#003874] hover:underline bg-transparent border-0 p-0 cursor-pointer font-bold"
-                                @click="openListingPreview(r.service.id)"
-                            >{{ r.service.title }}</button>
-                            <span v-else>—</span>
-                        </h2>
-                        <p class="text-sm text-slate-600 mt-0.5">
-                            <strong>{{ r.provider?.name }}</strong>
+                        <h3 class="text-lg font-bold text-[#0b1c30] truncate">
+                            {{ activeRequest.service?.title || 'Detalle de solicitud' }}
+                        </h3>
+                        <p class="text-sm text-slate-600">
+                            {{ activeRequest.provider?.name || '—' }}
                         </p>
                     </div>
-                    <StatusPill :status="r.status" />
+                    <div class="flex items-center gap-2">
+                        <StatusPill :status="activeRequest.status" />
+                        <button type="button" class="text-slate-500 hover:text-slate-800 text-xl leading-none" @click="closeDetail">×</button>
+                    </div>
                 </div>
 
-                <RequestConversation
-                    class="mb-4"
-                    :request-id="r.id"
-                    :closed="requestClosed(r)"
-                    @sent="store.load"
-                />
+                <div class="p-5">
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <AppButton
+                            v-if="activeRequest.service?.id"
+                            variant="outline"
+                            size="sm"
+                            @click="openListingPreview(activeRequest.service.id)"
+                        >
+                            Ver anuncio
+                        </AppButton>
+                        <a
+                            v-if="activeRequest.provider?.whatsapp"
+                            :href="`https://wa.me/${String(activeRequest.provider.whatsapp).replace(/\\D/g,'')}`"
+                            target="_blank" rel="noopener noreferrer"
+                            class="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 no-underline text-sm"
+                        >WhatsApp</a>
+                        <a
+                            v-if="activeRequest.provider?.contact_phone"
+                            :href="`tel:${String(activeRequest.provider.contact_phone).replace(/\\D/g,'')}`"
+                            class="rounded-lg border border-slate-200 hover:border-[#003874]/40 font-bold px-4 py-2 text-slate-800 no-underline text-sm"
+                        >Llamar</a>
+                    </div>
 
-                <RequestReviewForm
-                    v-if="r.can_review"
-                    class="mb-4"
-                    :service-request-id="r.id"
-                    :provider-name="r.provider?.name"
-                    @submitted="store.load"
-                />
+                    <RequestConversation
+                        class="mb-4"
+                        :request-id="activeRequest.id"
+                        :closed="requestClosed(activeRequest)"
+                        @sent="store.load"
+                    />
 
-                <div
-                    v-else-if="r.review"
-                    class="rounded-xl border border-amber-100 bg-amber-50/60 p-4 mb-4"
-                >
-                    <p class="text-xs font-bold uppercase tracking-wide text-amber-800 mb-2">Tu valoración</p>
-                    <StarRatingInput :model-value="r.review.rating" readonly size="sm" />
-                    <p v-if="r.review.comment" class="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{{ r.review.comment }}</p>
-                </div>
+                    <RequestReviewForm
+                        v-if="activeRequest.can_review"
+                        class="mb-4"
+                        :service-request-id="activeRequest.id"
+                        :provider-name="activeRequest.provider?.name"
+                        @submitted="store.load"
+                    />
 
-                <div v-if="r.latest_quote" class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 mb-4">
+                    <div
+                        v-else-if="activeRequest.review"
+                        class="rounded-xl border border-amber-100 bg-amber-50/60 p-4 mb-4"
+                    >
+                        <p class="text-xs font-bold uppercase tracking-wide text-amber-800 mb-2">Tu valoración</p>
+                        <StarRatingInput :model-value="activeRequest.review.rating" readonly size="sm" />
+                        <p v-if="activeRequest.review.comment" class="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{{ activeRequest.review.comment }}</p>
+                    </div>
+
+                    <div v-if="activeRequest.latest_quote" class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 mb-4">
                     <div class="flex justify-between items-start gap-4 flex-wrap">
                         <div>
                             <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Cotización</p>
                             <p class="text-2xl font-black text-[#003874]">
-                                <Money :amount="r.latest_quote.amount" :currency="r.latest_quote.currency" />
+                                <Money :amount="activeRequest.latest_quote.amount" :currency="activeRequest.latest_quote.currency" />
                             </p>
-                            <p v-if="r.latest_quote.estimated_days" class="text-xs text-slate-600 mt-1">
-                                Tiempo estimado: {{ r.latest_quote.estimated_days }} días
+                            <p v-if="activeRequest.latest_quote.estimated_days" class="text-xs text-slate-600 mt-1">
+                                Tiempo estimado: {{ activeRequest.latest_quote.estimated_days }} días
                             </p>
-                            <p v-if="r.latest_quote.notes" class="text-sm text-slate-700 mt-2 whitespace-pre-wrap">
-                                {{ r.latest_quote.notes }}
+                            <p v-if="activeRequest.latest_quote.notes" class="text-sm text-slate-700 mt-2 whitespace-pre-wrap">
+                                {{ activeRequest.latest_quote.notes }}
                             </p>
                         </div>
-                        <StatusPill :status="r.latest_quote.status" />
+                        <StatusPill :status="activeRequest.latest_quote.status" />
                     </div>
-                    <div v-if="r.latest_quote.status === 'pendiente'" class="mt-4 flex flex-wrap gap-2">
+                    <div v-if="activeRequest.latest_quote.status === 'pendiente'" class="mt-4 flex flex-wrap gap-2">
                         <AppButton
                             variant="primary"
                             size="sm"
-                            :loading="busyId === r.latest_quote.id"
-                            @click="decide(r.latest_quote.id, 'aceptar')"
+                            :loading="busyId === activeRequest.latest_quote.id"
+                            @click="decide(activeRequest.latest_quote.id, 'aceptar')"
                         >
                             Aceptar cotización
                         </AppButton>
                         <AppButton
                             variant="ghost"
                             size="sm"
-                            @click="decide(r.latest_quote.id, 'rechazar')"
+                            @click="decide(activeRequest.latest_quote.id, 'rechazar')"
                         >
                             Rechazar
                         </AppButton>
                     </div>
-                </div>
+                    </div>
 
-                <div v-if="r.latest_quote?.status === 'aceptada' && !r.payment" class="rounded-xl border border-amber-200 bg-amber-50 p-4 mb-4">
-                    <p class="text-sm text-amber-900 mb-3">
-                        Para asegurar el trabajo, paga el monto cotizado a Busca PE. Cuando confirmes que el servicio terminó,
-                        liberamos el dinero al proveedor (menos comisión).
-                    </p>
-                    <AppButton variant="secondary" size="sm" @click="openPay(r.id)">
-                        Registrar pago
-                    </AppButton>
-                </div>
+                    <div v-if="activeRequest.latest_quote?.status === 'aceptada' && !activeRequest.payment" class="rounded-xl border border-amber-200 bg-amber-50 p-4 mb-4">
+                        <p class="text-sm text-amber-900 mb-3">
+                            Para asegurar el trabajo, paga el monto cotizado a Busca PE. Cuando confirmes que el servicio terminó,
+                            liberamos el dinero al proveedor (menos comisión).
+                        </p>
+                        <AppButton variant="secondary" size="sm" @click="openPay(activeRequest.id)">
+                            Registrar pago
+                        </AppButton>
+                    </div>
 
-                <form
-                    v-if="payOpenId === r.id && r.latest_quote"
-                    @submit.prevent="submitPay(r.latest_quote.id)"
-                    class="rounded-xl border border-slate-200 bg-white p-4 mb-4 space-y-3"
-                >
+                    <form
+                        v-if="payOpenId === activeRequest.id && activeRequest.latest_quote"
+                        @submit.prevent="submitPay(activeRequest.latest_quote.id)"
+                        class="rounded-xl border border-slate-200 bg-white p-4 mb-4 space-y-3"
+                    >
                     <p class="text-sm text-slate-700">
                         Paga vía Yape/Plin/Transferencia a Busca PE:
                         <strong>{{ store.platformPayoutInfo?.yape || '999999999' }}</strong>
@@ -281,33 +354,33 @@ async function submitDispute(paymentId) {
                     </label>
                     <div class="flex justify-end gap-2">
                         <AppButton variant="ghost" size="sm" type="button" @click="payOpenId = null">Cancelar</AppButton>
-                        <AppButton variant="primary" size="sm" type="submit" :loading="busyId === r.latest_quote.id">
+                        <AppButton variant="primary" size="sm" type="submit" :loading="busyId === activeRequest.latest_quote.id">
                             Confirmar pago
                         </AppButton>
                     </div>
-                </form>
+                    </form>
 
-                <div v-if="r.payment" class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 mb-4">
+                    <div v-if="activeRequest.payment" class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 mb-4">
                     <div class="flex justify-between items-start gap-4 flex-wrap">
                         <div>
                             <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Pago</p>
                             <p class="text-xl font-black text-[#003874]">
-                                <Money :amount="r.payment.amount" />
+                                <Money :amount="activeRequest.payment.amount" />
                             </p>
                             <p class="text-xs text-slate-600 mt-1">
-                                {{ r.payment.payment_method }} · ref: {{ r.payment.payment_reference || '—' }}
+                                {{ activeRequest.payment.payment_method }} · ref: {{ activeRequest.payment.payment_reference || '—' }}
                             </p>
                         </div>
-                        <StatusPill :status="r.payment.status" />
+                        <StatusPill :status="activeRequest.payment.status" />
                     </div>
                     <a
-                        v-if="r.payment.proof_image_url"
-                        :href="r.payment.proof_image_url"
+                        v-if="activeRequest.payment.proof_image_url"
+                        :href="activeRequest.payment.proof_image_url"
                         target="_blank"
                         rel="noopener"
                         class="inline-block mt-3 text-xs text-[#003874] underline"
                     >Ver mi captura del pago</a>
-                    <div v-if="r.payment.status === 'en_custodia'" class="mt-4 space-y-3">
+                    <div v-if="activeRequest.payment.status === 'en_custodia'" class="mt-4 space-y-3">
                         <p class="text-sm text-slate-700">
                             Cuando el proveedor termine el trabajo y estés conforme, libera el pago.
                             Si algo no está bien, abre una disputa.
@@ -316,18 +389,18 @@ async function submitDispute(paymentId) {
                             <AppButton
                                 variant="primary"
                                 size="sm"
-                                :loading="busyId === r.payment.id"
-                                @click="confirmCompleted(r.payment.id)"
+                                :loading="busyId === activeRequest.payment.id"
+                                @click="confirmCompleted(activeRequest.payment.id)"
                             >
                                 Confirmar trabajo terminado
                             </AppButton>
-                            <AppButton variant="ghost" size="sm" @click="openDispute(r.payment.id)">
+                            <AppButton variant="ghost" size="sm" @click="openDispute(activeRequest.payment.id)">
                                 Reportar problema
                             </AppButton>
                         </div>
                         <form
-                            v-if="disputeOpenId === r.payment.id"
-                            @submit.prevent="submitDispute(r.payment.id)"
+                            v-if="disputeOpenId === activeRequest.payment.id"
+                            @submit.prevent="submitDispute(activeRequest.payment.id)"
                             class="rounded-lg border border-rose-200 bg-rose-50/50 p-3 space-y-2"
                         >
                             <textarea
@@ -339,22 +412,22 @@ async function submitDispute(paymentId) {
                             ></textarea>
                             <div class="flex justify-end gap-2">
                                 <AppButton variant="ghost" size="sm" type="button" @click="disputeOpenId = null">Cancelar</AppButton>
-                                <AppButton variant="primary" size="sm" type="submit" :loading="busyId === r.payment.id">
+                                <AppButton variant="primary" size="sm" type="submit" :loading="busyId === activeRequest.payment.id">
                                     Enviar disputa
                                 </AppButton>
                             </div>
                         </form>
                     </div>
-                </div>
+                    </div>
 
-                <!-- Evidencia del trabajo entregada por el proveedor -->
-                <div v-if="(r.evidence?.length || 0) > 0" class="rounded-xl border border-slate-100 bg-white p-4 mb-4">
+                    <!-- Evidencia del trabajo entregada por el proveedor -->
+                    <div v-if="(activeRequest.evidence?.length || 0) > 0" class="rounded-xl border border-slate-100 bg-white p-4 mb-4">
                     <p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
                         Evidencia entregada por el proveedor
                     </p>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         <a
-                            v-for="ev in r.evidence"
+                            v-for="ev in activeRequest.evidence"
                             :key="ev.id"
                             :href="ev.url"
                             target="_blank"
@@ -365,50 +438,29 @@ async function submitDispute(paymentId) {
                                 class="w-full h-24 object-cover rounded-md border border-slate-200" />
                         </a>
                     </div>
-                    <p v-if="r.delivered_at" class="text-xs text-slate-500 mt-2">
-                        Entregado el {{ new Date(r.delivered_at).toLocaleString() }}.
-                        <span v-if="r.auto_release_at">
+                    <p v-if="activeRequest.delivered_at" class="text-xs text-slate-500 mt-2">
+                        Entregado el {{ new Date(activeRequest.delivered_at).toLocaleString() }}.
+                        <span v-if="activeRequest.auto_release_at">
                             Si no respondes, el pago se libera automáticamente el
-                            {{ new Date(r.auto_release_at).toLocaleDateString() }}.
+                            {{ new Date(activeRequest.auto_release_at).toLocaleDateString() }}.
                         </span>
                     </p>
-                </div>
+                    </div>
 
-                <!-- Timeline -->
-                <details v-if="(r.timeline?.length || 0) > 0" class="rounded-xl border border-slate-100 bg-white p-4 mb-4">
+                    <!-- Timeline -->
+                    <details v-if="(activeRequest.timeline?.length || 0) > 0" class="rounded-xl border border-slate-100 bg-white p-4 mb-4">
                     <summary class="text-xs font-bold uppercase tracking-wide text-slate-500 cursor-pointer">
-                        Historial ({{ r.timeline.length }} eventos)
+                        Historial ({{ activeRequest.timeline.length }} eventos)
                     </summary>
                     <ul class="mt-2 space-y-1 text-xs text-slate-600">
-                        <li v-for="ev in r.timeline" :key="ev.id" class="flex gap-2">
+                        <li v-for="ev in activeRequest.timeline" :key="ev.id" class="flex gap-2">
                             <span class="text-slate-400 shrink-0">{{ new Date(ev.created_at).toLocaleString() }}</span>
                             <span><strong>{{ ev.actor_role || 'sistema' }}</strong>: {{ ev.from_status || '—' }} → {{ ev.to_status }}{{ ev.note ? ' · ' + ev.note : '' }}</span>
                         </li>
                     </ul>
-                </details>
-
-                <div class="flex flex-wrap gap-2 text-sm">
-                    <AppButton
-                        v-if="r.service?.id"
-                        variant="outline"
-                        size="sm"
-                        @click="openListingPreview(r.service.id)"
-                    >
-                        Ver anuncio
-                    </AppButton>
-                    <a
-                        v-if="r.provider?.whatsapp"
-                        :href="`https://wa.me/${String(r.provider.whatsapp).replace(/\\D/g,'')}`"
-                        target="_blank" rel="noopener noreferrer"
-                        class="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 no-underline"
-                    >WhatsApp</a>
-                    <a
-                        v-if="r.provider?.contact_phone"
-                        :href="`tel:${String(r.provider.contact_phone).replace(/\\D/g,'')}`"
-                        class="rounded-lg border border-slate-200 hover:border-[#003874]/40 font-bold px-4 py-2 text-slate-800 no-underline"
-                    >Llamar</a>
+                    </details>
                 </div>
-            </article>
+            </div>
         </div>
 
         <ListingPreviewModal

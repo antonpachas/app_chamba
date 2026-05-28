@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\ProviderProfile;
 use App\Models\ProviderService;
+use App\Models\ProviderVisibilityEvent;
 use App\Models\Review;
+use App\Services\ListingGuestPreviewService;
 use App\Services\ListingLifecycleService;
 use App\Services\ListingPresenterService;
 use App\Services\MediaStorageService;
@@ -16,9 +18,10 @@ final class PublicProviderController extends Controller
     public function __construct(
         private readonly ListingLifecycleService $listings,
         private readonly ListingPresenterService $presenter,
+        private readonly ListingGuestPreviewService $guestPreview,
     ) {}
 
-    public function show(int $providerProfile): JsonResponse
+    public function show(\Illuminate\Http\Request $request, int $providerProfile): JsonResponse
     {
         if (! (bool) chamba_setting('providers.public_profile_enabled', true)) {
             return response()->json([
@@ -37,6 +40,16 @@ final class PublicProviderController extends Controller
             return response()->json(['message' => 'Este negocio no está disponible.'], 404);
         }
 
+        ProviderVisibilityEvent::query()->create([
+            'provider_profile_id' => (int) $p->id,
+            'provider_service_id' => null,
+            'search_event_id' => null,
+            'viewer_user_id' => $request->user('sanctum')?->id,
+            'source' => 'public_profile',
+            'created_at' => now(),
+        ]);
+
+        $isGuest = $request->user('sanctum') === null;
         $showContact = (bool) chamba_setting('providers.show_contact_on_public_profile', true);
         $media = app(MediaStorageService::class);
         $isPro = $this->presenter->resolveIsPro((int) ($p->user_id ?? 0));
@@ -50,11 +63,11 @@ final class PublicProviderController extends Controller
             ->filter(fn (ProviderService $s) => $this->listings->isVisible($s))
             ->values();
 
-        $listingRows = $listings->map(function (ProviderService $s) use ($isPro) {
+        $listingRows = $listings->map(function (ProviderService $s) use ($isPro, $isGuest) {
             $row = $this->presenter->toSearchRow($s, $isPro);
             $row['service_id'] = $s->id;
 
-            return $row;
+            return $isGuest ? $this->guestPreview->scrubRow($row) : $row;
         });
 
         $reviews = Review::query()
@@ -75,7 +88,9 @@ final class PublicProviderController extends Controller
             'data' => [
                 'id' => $p->id,
                 'name' => $p->business_name ?: $p->user?->full_name,
-                'description' => $p->description,
+                'description' => $isGuest ? $this->guestPreview->truncate($p->description) : $p->description,
+                'description_truncated' => $isGuest && $p->description && mb_strlen((string) $p->description) > $this->guestPreview->maxDescriptionChars(),
+                'guest_preview' => $isGuest,
                 'avg_rating' => $p->avg_rating,
                 'total_reviews' => $p->total_reviews,
                 'is_verified' => (bool) $p->is_verified,

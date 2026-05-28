@@ -7,6 +7,7 @@ export const useSearchStore = defineStore('search', {
         keyword: '',
         selectedCategoryId: null,
         results: [],
+        guestMeta: null,
         loading: false,
         searched: false,
         error: null,
@@ -36,8 +37,10 @@ export const useSearchStore = defineStore('search', {
                 }
                 const r = await api.get('/listings/search', { params });
                 this.results = r.data || [];
+                this.guestMeta = r.meta?.guest_preview ? r.meta : null;
             } catch (e) {
                 this.results = [];
+                this.guestMeta = null;
                 this.error = e.message || 'No se pudo buscar.';
             } finally {
                 this.loading = false;
