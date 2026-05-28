@@ -19,55 +19,50 @@ function goHowItWorks(event) {
 </script>
 
 <template>
-    <footer class="bg-[#dce9ff]/60 border-t border-slate-200 pt-14 pb-32 md:pb-14 mt-4">
-        <div class="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
-            <div>
-                <div class="flex items-center gap-2 mb-4">
-                    <img :src="asset('img/chamba-icon.png')" alt="Busca PE" class="w-9 h-9 rounded-lg shadow-md shadow-[#003874]/15 ring-1 ring-slate-200" />
-                    <span class="text-2xl font-black tracking-tighter text-grad-brand">Busca PE</span>
+    <footer class="bg-grad-footer text-white mt-auto pt-14 pb-28 md:pb-12 border-t border-chamba-800">
+        <div class="chamba-container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            <div class="sm:col-span-2 lg:col-span-1">
+                <div class="flex items-center gap-2.5 mb-4">
+                    <img :src="asset('img/chamba-icon.png')" alt="" class="w-10 h-10 rounded-xl ring-2 ring-white/20 shadow-lg" />
+                    <span class="text-2xl font-black tracking-tight">Busca PE</span>
                 </div>
-                <p class="text-slate-600 text-sm leading-relaxed">
-                    Directorio con publicidad en Perú. Encuentra negocios cerca de ti o publica tu anuncio.
+                <p class="text-white/75 text-sm leading-relaxed max-w-xs">
+                    Directorio de negocios en Perú. Encuentra servicios cerca de ti o publica tu anuncio.
                 </p>
             </div>
             <div>
-                <h4 class="font-bold text-[#0b1c30] mb-5 uppercase text-xs tracking-widest">Plataforma</h4>
-                <ul class="space-y-3 text-sm text-slate-600">
+                <h4 class="font-bold mb-4 uppercase text-[11px] tracking-[0.2em] text-white/60">Explorar</h4>
+                <ul class="space-y-2.5 text-sm text-white/85">
                     <li>
-                        <RouterLink :to="{ name: 'search' }" class="hover:text-[#003874]">Buscar anuncios</RouterLink>
+                        <RouterLink :to="{ name: 'search' }" class="hover:text-white transition no-underline">Buscar anuncios</RouterLink>
                     </li>
                     <li>
-                        <a href="#como-funciona" class="hover:text-[#003874] cursor-pointer" @click="goHowItWorks">
-                            Cómo funciona
-                        </a>
+                        <a href="#como-funciona" class="hover:text-white transition cursor-pointer no-underline" @click="goHowItWorks">Cómo funciona</a>
                     </li>
                     <li>
-                        <RouterLink :to="{ name: 'login' }" class="hover:text-[#003874]">
-                            Acceder
-                        </RouterLink>
+                        <RouterLink :to="{ name: 'register' }" class="hover:text-white transition no-underline">Publicar negocio</RouterLink>
                     </li>
                 </ul>
             </div>
             <div>
-                <h4 class="font-bold text-[#0b1c30] mb-5 uppercase text-xs tracking-widest">Soporte</h4>
-                <ul class="space-y-3 text-sm text-slate-600">
+                <h4 class="font-bold mb-4 uppercase text-[11px] tracking-[0.2em] text-white/60">Cuenta</h4>
+                <ul class="space-y-2.5 text-sm text-white/85">
                     <li>
-                        <RouterLink :to="{ name: 'home' }" class="hover:text-[#003874]">Centro de ayuda</RouterLink>
+                        <RouterLink :to="{ name: 'login' }" class="hover:text-white transition no-underline">Iniciar sesión</RouterLink>
                     </li>
-                    <li><span class="text-slate-400">Términos y privacidad (próximamente)</span></li>
+                    <li>
+                        <RouterLink :to="{ name: 'register' }" class="hover:text-white transition no-underline">Crear cuenta</RouterLink>
+                    </li>
                 </ul>
             </div>
             <div>
-                <h4 class="font-bold text-[#0b1c30] mb-5 uppercase text-xs tracking-widest">Social</h4>
-                <div class="flex gap-3 text-xs font-semibold">
-                    <span class="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200">FB</span>
-                    <span class="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200">IG</span>
-                </div>
+                <h4 class="font-bold mb-4 uppercase text-[11px] tracking-[0.2em] text-white/60">Legal</h4>
+                <p class="text-sm text-white/60 leading-relaxed">Términos y privacidad — próximamente.</p>
             </div>
         </div>
-        <div class="max-w-7xl mx-auto px-4 md:px-8 mt-12 pt-8 border-t border-slate-200/80 flex flex-col md:flex-row justify-between gap-4 text-xs text-slate-500">
-            <p>© {{ year }} Busca PE</p>
-            <span>Web app</span>
+        <div class="chamba-container mt-12 pt-8 border-t border-white/15 flex flex-col md:flex-row justify-between gap-3 text-xs text-white/50">
+            <p>© {{ year }} Busca PE · Perú</p>
+            <p>Hecho para conectar negocios y clientes</p>
         </div>
     </footer>
 </template>

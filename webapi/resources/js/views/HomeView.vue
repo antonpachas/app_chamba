@@ -79,7 +79,7 @@ function pickCategory(id) {
             <div class="max-w-7xl mx-auto px-4 -mt-10 md:-mt-12 relative z-10">
             <form
                 @submit.prevent="submitSearch"
-                class="w-full bg-white p-4 md:p-2 rounded-xl md:rounded-full shadow-2xl shadow-[#003874]/10 border border-slate-100 flex flex-col md:flex-row items-center gap-3 md:gap-2"
+                class="ui-card w-full p-4 md:p-2 md:rounded-full flex flex-col md:flex-row items-center gap-3 md:gap-2 glow-blue"
             >
                 <div class="flex-1 w-full flex items-center px-4 gap-3">
                     <span class="material-symbols-outlined text-slate-400">search</span>

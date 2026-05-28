@@ -12,7 +12,6 @@
         'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-display: 'Playfair Display', Georgia, serif;
 
-    /* Marca primaria (azul Chamba) */
     --color-chamba-50: #eef4ff;
     --color-chamba-100: #dce9ff;
     --color-chamba-200: #b6cffa;
@@ -24,7 +23,6 @@
     --color-chamba-800: #002b59;
     --color-chamba-900: #001b3d;
 
-    /* Acentos vibrantes */
     --color-chamba-coral: #ff5e7e;
     --color-chamba-amber: #ff9c2b;
     --color-chamba-orange: #ff7a2b;
@@ -32,17 +30,34 @@
     --color-chamba-teal: #0ea5e9;
     --color-chamba-mint: #10b981;
 
-    /* Fondos de marca */
     --color-chamba-bg: #f8f9ff;
     --color-chamba-bg-soft: #eef2ff;
+    --color-chamba-ink: #0b1c30;
 }
 
-/* Gradientes reutilizables */
+/* Fondo de aplicación con malla suave */
+.app-shell-bg {
+    background-color: var(--color-chamba-bg);
+    background-image:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(14, 165, 233, 0.12), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 0%, rgba(124, 58, 237, 0.06), transparent),
+        radial-gradient(ellipse 50% 30% at 0% 100%, rgba(255, 122, 43, 0.05), transparent);
+}
+
+.auth-shell-bg {
+    background-color: #eef2ff;
+    background-image:
+        radial-gradient(ellipse 70% 60% at 20% 10%, rgba(0, 56, 116, 0.14), transparent),
+        radial-gradient(ellipse 60% 50% at 90% 80%, rgba(255, 122, 43, 0.12), transparent),
+        linear-gradient(160deg, #f0f4ff 0%, #e8eeff 50%, #f5f7ff 100%);
+}
+
+/* Gradientes */
 .bg-grad-hero {
     background-image:
-        radial-gradient(1200px 600px at 100% 0%, rgba(124, 58, 237, 0.18), transparent 60%),
-        radial-gradient(900px 500px at 0% 100%, rgba(255, 122, 43, 0.18), transparent 60%),
-        linear-gradient(135deg, #003874 0%, #1d4ed8 45%, #0ea5e9 100%);
+        radial-gradient(1200px 600px at 100% 0%, rgba(124, 58, 237, 0.2), transparent 60%),
+        radial-gradient(900px 500px at 0% 100%, rgba(255, 122, 43, 0.16), transparent 60%),
+        linear-gradient(135deg, #003874 0%, #1d4ed8 42%, #0ea5e9 100%);
 }
 .bg-grad-brand {
     background-image: linear-gradient(135deg, #003874 0%, #1d4ed8 45%, #0ea5e9 100%);
@@ -56,45 +71,43 @@
 .bg-grad-emerald {
     background-image: linear-gradient(135deg, #059669 0%, #10b981 60%, #34d399 100%);
 }
-.bg-grad-card-amber {
-    background-image: linear-gradient(180deg, #fffaf0 0%, #fff5e1 100%);
-}
-.bg-grad-card-emerald {
-    background-image: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
-}
-.bg-grad-card-blue {
-    background-image: linear-gradient(180deg, #eef4ff 0%, #dce9ff 100%);
-}
-.bg-grad-card-violet {
-    background-image: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%);
-}
-.bg-grad-card-coral {
-    background-image: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%);
+.bg-grad-footer {
+    background-image: linear-gradient(180deg, #001b3d 0%, #003874 55%, #08458b 100%);
 }
 
-/* Tarjeta con halo de color suave */
+.bg-grad-card-amber { background-image: linear-gradient(180deg, #fffaf0 0%, #fff5e1 100%); }
+.bg-grad-card-emerald { background-image: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%); }
+.bg-grad-card-blue { background-image: linear-gradient(180deg, #eef4ff 0%, #dce9ff 100%); }
+.bg-grad-card-violet { background-image: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%); }
+.bg-grad-card-coral { background-image: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%); }
+
 .glow-blue { box-shadow: 0 16px 40px -16px rgba(0, 56, 116, 0.25); }
-.glow-coral { box-shadow: 0 16px 40px -16px rgba(255, 94, 126, 0.30); }
-.glow-amber { box-shadow: 0 16px 40px -16px rgba(255, 156, 43, 0.30); }
-.glow-emerald { box-shadow: 0 16px 40px -16px rgba(16, 185, 129, 0.30); }
+.glow-coral { box-shadow: 0 16px 40px -16px rgba(255, 94, 126, 0.3); }
+.glow-amber { box-shadow: 0 16px 40px -16px rgba(255, 156, 43, 0.3); }
+.glow-emerald { box-shadow: 0 16px 40px -16px rgba(16, 185, 129, 0.3); }
 
-/* Botón premium con gradient */
 .btn-grad-primary {
     background-image: linear-gradient(135deg, #003874 0%, #1d4ed8 100%);
     color: #fff;
-    box-shadow: 0 10px 24px -10px rgba(0, 56, 116, 0.55);
-    transition: all 200ms ease;
+    box-shadow: 0 8px 20px -8px rgba(0, 56, 116, 0.5);
+    transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
 }
-.btn-grad-primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.btn-grad-primary:hover:not(:disabled) {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px -10px rgba(0, 56, 116, 0.55);
+}
 .btn-grad-warm {
     background-image: linear-gradient(135deg, #ff7a2b 0%, #ff5e7e 100%);
     color: #fff;
-    box-shadow: 0 10px 24px -10px rgba(255, 94, 126, 0.55);
-    transition: all 200ms ease;
+    box-shadow: 0 8px 20px -8px rgba(255, 94, 126, 0.45);
+    transition: transform 180ms ease, filter 180ms ease;
 }
-.btn-grad-warm:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.btn-grad-warm:hover:not(:disabled) {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+}
 
-/* Texto con gradient */
 .text-grad-brand {
     background-image: linear-gradient(135deg, #003874 0%, #1d4ed8 50%, #0ea5e9 100%);
     -webkit-background-clip: text;
@@ -108,5 +121,80 @@
     color: transparent;
 }
 
-/* Pequeñas utilidades */
+/* Layout y tipografía de página */
+.chamba-container {
+    @apply max-w-7xl mx-auto px-4 md:px-8;
+}
+
+.page-eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.2em] text-chamba-700 mb-1;
+}
+
+.page-title {
+    @apply text-2xl md:text-3xl font-black text-chamba-ink tracking-tight;
+}
+
+.page-subtitle {
+    @apply text-slate-600 mt-1 text-sm md:text-base max-w-2xl;
+}
+
+/* Tarjetas */
+.ui-card {
+    @apply bg-white rounded-2xl border border-slate-200/90 shadow-sm;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(0, 56, 116, 0.08);
+}
+.ui-card-hover {
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+.ui-card-hover:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0, 56, 116, 0.15);
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.04), 0 16px 32px -12px rgba(0, 56, 116, 0.14);
+}
+
+/* Formularios */
+.ui-input,
+.ui-select,
+.ui-textarea {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-[15px] text-slate-900 placeholder:text-slate-400 outline-none transition;
+}
+.ui-input:focus,
+.ui-select:focus,
+.ui-textarea:focus {
+    @apply border-chamba-700 ring-2 ring-chamba-700/15;
+}
+.ui-select {
+    @apply py-2.5;
+}
+
+/* Header glass */
+.header-glass {
+    @apply bg-white/90 backdrop-blur-md border-b border-slate-200/80;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 4px 20px -12px rgba(0, 56, 116, 0.12);
+}
+
+/* Bottom nav activo */
+.nav-pill-active {
+    @apply text-chamba-700;
+}
+.nav-pill-active .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+.font-display {
+    font-family: var(--font-display);
+}
+
 .no-underline { text-decoration: none; }
+
+/* Scroll suave en anclas */
+html { scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .ui-card-hover:hover,
+    .btn-grad-primary:hover,
+    .btn-grad-warm:hover {
+        transform: none;
+    }
+}

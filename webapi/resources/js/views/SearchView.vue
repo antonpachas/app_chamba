@@ -7,6 +7,8 @@ import { useSearchStore } from '@/stores/search';
 import { categoryStyleFor } from '@/components/common/CategoryIcon';
 import ServiceCard from '@/components/service/ServiceCard.vue';
 import AdSlot from '@/components/ads/AdSlot.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
+import AppAlert from '@/components/ui/AppAlert.vue';
 
 const route = useRoute();
 const geoErr = ref('');
@@ -77,16 +79,18 @@ function clearCategory() {
 </script>
 
 <template>
-    <div class="max-w-7xl mx-auto px-4 md:px-8 pt-8 pb-12">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-[#0b1c30] tracking-tight">Buscar anuncios</h1>
-            <p class="text-slate-600 mt-2">Negocios y profesionales cerca de ti.</p>
-        </header>
-        <p v-if="geoErr" class="text-center text-sm text-red-600 mb-4">{{ geoErr }}</p>
+    <div class="chamba-container pt-8 pb-12">
+        <PageHeader
+            eyebrow="Directorio"
+            title="Buscar anuncios"
+            subtitle="Filtra por rubro, zona o usa tu ubicación para encontrar negocios cerca."
+            class="text-center md:text-left [&_.page-title]:md:text-4xl"
+        />
+        <AppAlert v-if="geoErr" type="error" class="mb-4 max-w-xl mx-auto">{{ geoErr }}</AppAlert>
         <AdSlot placement="search" />
         <form
             @submit.prevent="submitSearch"
-            class="w-full bg-white p-4 md:p-2 rounded-xl md:rounded-full shadow-lg border border-slate-100 flex flex-col md:flex-row items-center gap-3 md:gap-2 mb-10"
+            class="ui-card w-full p-4 md:p-2 md:rounded-full flex flex-col md:flex-row items-center gap-3 md:gap-2 mb-10"
         >
             <div class="flex-1 w-full flex items-center px-4 gap-3">
                 <span class="material-symbols-outlined text-slate-400">search</span>
@@ -136,7 +140,7 @@ function clearCategory() {
             </button>
             <button
                 type="submit"
-                class="w-full md:w-auto shrink-0 bg-[#ff7a2b] text-[#602500] px-8 py-3 rounded-full font-bold hover:brightness-105 active:scale-[0.98] transition-all"
+                class="w-full md:w-auto shrink-0 btn-grad-warm px-8 py-3 rounded-full font-bold active:scale-[0.98]"
             >
                 Buscar
             </button>
@@ -196,9 +200,11 @@ function clearCategory() {
             </div>
             <div
                 v-else-if="search.searched && search.results.length === 0"
-                class="rounded-xl border border-slate-200 bg-white py-16 px-6 text-center text-slate-600"
+                class="ui-card py-16 px-6 text-center"
             >
-                Sin resultados. Prueba otras palabras, rubro o zona.
+                <span class="material-symbols-outlined text-5xl text-slate-300 mb-3">search_off</span>
+                <p class="text-slate-700 font-semibold">Sin resultados</p>
+                <p class="text-sm text-slate-500 mt-1">Prueba otras palabras, rubro o zona.</p>
             </div>
             <div
                 v-else

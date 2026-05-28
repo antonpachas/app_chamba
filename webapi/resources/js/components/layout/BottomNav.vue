@@ -14,61 +14,54 @@ const items = computed(() => {
     if (auth.user?.role === 'admin') {
         return [
             { name: 'admin-dashboard', label: 'Panel', icon: 'dashboard' },
-            { name: 'admin-subscriptions', label: 'Membresías', icon: 'workspace_premium' },
             { name: 'admin-users', label: 'Usuarios', icon: 'group' },
             { name: 'admin-moderation', label: 'Moderar', icon: 'gavel' },
-            { name: 'admin-reports', label: 'Reportes', icon: 'analytics' },
-            { name: 'admin-ledger', label: 'Kardex', icon: 'account_balance' },
-            { name: 'admin-platform-ads', label: 'Ads', icon: 'campaign' },
-            { name: 'admin-settings', label: 'Config', icon: 'settings' },
-            ...(escrow ? [
-                { name: 'admin-payments', label: 'Pagos', icon: 'receipt_long' },
-            ] : []),
+            { name: 'account', label: 'Cuenta', icon: 'person' },
         ];
     }
     if (auth.isProveedor) {
         return [
             { name: 'provider-dashboard', label: 'Panel', icon: 'dashboard' },
             { name: 'provider-listings', label: 'Anuncios', icon: 'campaign' },
-            { name: 'provider-requests', label: 'Solicitudes', icon: 'inbox' },
-            { name: 'provider-subscription', label: 'Pro', icon: 'workspace_premium' },
+            { name: 'provider-requests', label: 'Inbox', icon: 'inbox' },
+            { name: 'account', label: 'Cuenta', icon: 'person' },
         ];
     }
     if (auth.isCliente) {
         return [
             { name: 'search', label: 'Buscar', icon: 'search' },
-            { name: 'client-favorites', label: 'Favoritos', icon: 'favorite' },
-            { name: 'client-requests', label: 'Solicitudes', icon: 'inbox' },
+            { name: 'client-favorites', label: 'Fav', icon: 'favorite' },
+            { name: 'client-requests', label: 'Chat', icon: 'forum' },
             { name: 'account', label: 'Cuenta', icon: 'person' },
         ];
     }
     return [
         { name: 'home', label: 'Inicio', icon: 'home' },
         { name: 'search', label: 'Buscar', icon: 'search' },
-        { name: 'login', label: 'Acceder', icon: 'login' },
+        { name: 'login', label: 'Entrar', icon: 'login' },
     ];
 });
 </script>
 
 <template>
     <nav
-        class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 flex justify-around py-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] rounded-t-xl safe-area-pb"
+        class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-lg border-t border-slate-200/90 flex justify-around items-stretch py-1.5 px-1 shadow-[0_-8px_32px_-8px_rgba(0,56,116,0.15)] rounded-t-2xl safe-area-pb"
     >
         <RouterLink
             v-for="item in items"
             :key="item.name"
             :to="{ name: item.name }"
-            class="flex flex-col items-center px-2 py-1 no-underline relative"
-            :class="route.name === item.name ? 'text-[#003874]' : 'text-slate-400'"
+            class="flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 px-1 no-underline rounded-xl mx-0.5 transition-colors min-w-0"
+            :class="route.name === item.name ? 'nav-pill-active bg-chamba-50' : 'text-slate-400'"
         >
             <span class="relative">
-                <span class="material-symbols-outlined text-[22px]">{{ item.icon }}</span>
+                <span class="material-symbols-outlined text-[24px]">{{ item.icon }}</span>
                 <span
                     v-if="item.name === 'provider-requests' && notifications.unreadCount > 0"
-                    class="absolute -top-1 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-rose-600 text-white text-[9px] font-black flex items-center justify-center"
+                    class="absolute -top-0.5 -right-1.5 min-w-[1rem] h-4 px-1 rounded-full bg-rose-600 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white"
                 >{{ notifications.unreadCount > 9 ? '9+' : notifications.unreadCount }}</span>
             </span>
-            <span class="text-[10px] font-bold uppercase mt-0.5">{{ item.label }}</span>
+            <span class="text-[9px] font-bold uppercase tracking-wide truncate max-w-full">{{ item.label }}</span>
         </RouterLink>
     </nav>
 </template>

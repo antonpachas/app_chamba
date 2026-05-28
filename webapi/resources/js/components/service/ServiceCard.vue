@@ -54,7 +54,7 @@ const priceFooter = computed(() => {
 <template>
     <RouterLink
         :to="{ name: 'listing-detail', params: { id } }"
-        class="group block bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg transition-all no-underline text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#003874] focus-visible:ring-offset-2"
+        class="group block ui-card ui-card-hover overflow-hidden no-underline text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chamba-700/40 focus-visible:ring-offset-2"
     >
         <div class="relative h-48 bg-slate-200 overflow-hidden">
             <img

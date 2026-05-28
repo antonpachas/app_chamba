@@ -58,8 +58,8 @@ async function submit() {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-100 flex flex-col items-center justify-center px-4 py-12">
-        <div class="w-full max-w-[520px] rounded-xl bg-white shadow-lg border border-slate-200/60 overflow-hidden">
+    <div class="min-h-screen auth-shell-bg flex flex-col items-center justify-center px-4 py-12">
+        <div class="w-full max-w-[520px] ui-card overflow-hidden">
             <div class="px-8 pt-10 pb-2">
                 <div class="flex items-center justify-center gap-3 mb-6">
                     <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl overflow-hidden shadow-lg shadow-[#003874]/25 ring-1 ring-slate-200">
@@ -67,13 +67,13 @@ async function submit() {
                     </div>
                     <span class="text-2xl font-black tracking-tight text-grad-brand">Busca PE</span>
                 </div>
-                <h1 class="text-center font-['Playfair_Display',Georgia,serif] text-[1.85rem] font-semibold text-slate-900 mb-6">
+                <h1 class="text-center font-display text-3xl font-semibold text-chamba-ink mb-6">
                     Crear cuenta
                 </h1>
-                <p class="text-center text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                <p class="text-center text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
                     Tipo de cuenta
                 </p>
-                <div class="mb-6 grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-1">
+                <div class="mb-6 grid grid-cols-2 gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-1">
                     <button
                         type="button"
                         class="rounded-md py-2.5 text-sm font-semibold transition"

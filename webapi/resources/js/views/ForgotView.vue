@@ -33,8 +33,8 @@ async function submit() {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-100 flex flex-col items-center justify-center px-4 py-12">
-        <div class="w-full max-w-[420px] rounded-xl bg-white shadow-lg border border-slate-200/60 overflow-hidden">
+    <div class="min-h-screen auth-shell-bg flex flex-col items-center justify-center px-4 py-12">
+        <div class="w-full max-w-[420px] ui-card overflow-hidden">
             <div class="px-8 pt-10 pb-6">
                 <h1 class="text-center font-['Playfair_Display',Georgia,serif] text-[1.85rem] font-semibold text-slate-900 mb-2">
                     Recuperar contraseña

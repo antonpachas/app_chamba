@@ -1,19 +1,25 @@
 <script setup>
 defineProps({
-    type: { type: String, default: 'error' },
+    type: { type: String, default: 'info' },
 });
+
+const styles = {
+    info: 'bg-chamba-50 border-chamba-200 text-chamba-800',
+    success: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+    error: 'bg-rose-50 border-rose-200 text-rose-900',
+    warning: 'bg-amber-50 border-amber-200 text-amber-950',
+};
 </script>
 
 <template>
     <div
-        class="rounded-lg px-4 py-3 text-sm font-medium border"
-        :class="{
-            'bg-red-50 text-red-800 border-red-100': type === 'error',
-            'bg-emerald-50 text-emerald-900 border-emerald-100': type === 'success',
-            'bg-amber-50 text-amber-900 border-amber-100': type === 'warning',
-            'bg-blue-50 text-blue-900 border-blue-100': type === 'info',
-        }"
+        class="rounded-xl border px-4 py-3 text-sm font-medium leading-relaxed flex gap-3 items-start"
+        :class="styles[type] || styles.info"
+        role="alert"
     >
-        <slot />
+        <span class="material-symbols-outlined text-[20px] shrink-0 mt-0.5 opacity-80">
+            {{ type === 'error' ? 'error' : type === 'success' ? 'check_circle' : type === 'warning' ? 'warning' : 'info' }}
+        </span>
+        <div class="min-w-0 flex-1"><slot /></div>
     </div>
 </template>

@@ -38,17 +38,17 @@ watch(
     <div class="chamba-app">
         <template v-if="isPlain">
             <router-view v-slot="{ Component }">
-                <transition name="fade" mode="out-in">
+                <transition name="page-fade" mode="out-in">
                     <component :is="Component" />
                 </transition>
             </router-view>
         </template>
         <template v-else>
-            <div class="min-h-screen flex flex-col bg-[#f8f9ff] pb-[5.25rem] md:pb-0">
+            <div class="min-h-screen flex flex-col app-shell-bg pb-[4.75rem] md:pb-0">
                 <AppHeader />
                 <main class="flex-1 w-full">
                     <router-view v-slot="{ Component }">
-                        <transition name="fade" mode="out-in">
+                        <transition name="page-fade" mode="out-in">
                             <component :is="Component" :key="route.path" />
                         </transition>
                     </router-view>
@@ -61,12 +61,26 @@ watch(
 </template>
 
 <style>
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 160ms ease;
+.page-fade-enter-active,
+.page-fade-leave-active {
+    transition: opacity 200ms ease, transform 200ms ease;
 }
-.fade-enter-from,
-.fade-leave-to {
+.page-fade-enter-from {
     opacity: 0;
+    transform: translateY(6px);
+}
+.page-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+@media (prefers-reduced-motion: reduce) {
+    .page-fade-enter-active,
+    .page-fade-leave-active {
+        transition: opacity 120ms ease;
+    }
+    .page-fade-enter-from,
+    .page-fade-leave-to {
+        transform: none;
+    }
 }
 </style>

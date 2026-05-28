@@ -25,9 +25,10 @@ defineEmits(['update:modelValue']);
             :required="required"
             :minlength="minlength"
             :autocomplete="autocomplete"
-            class="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-[15px] text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#003874] focus:ring-2 focus:ring-[#003874]/15 disabled:opacity-60"
+            class="ui-input disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
+            :class="error ? 'border-rose-300 ring-rose-100 focus:border-rose-500 focus:ring-rose-200' : ''"
             @input="$emit('update:modelValue', $event.target.value)"
         />
-        <span v-if="error" class="mt-1 block text-xs font-medium text-red-700">{{ error }}</span>
+        <span v-if="error" class="mt-1.5 block text-xs font-medium text-rose-700">{{ error }}</span>
     </label>
 </template>

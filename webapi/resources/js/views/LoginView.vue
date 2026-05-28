@@ -48,22 +48,18 @@ async function submit() {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-100 flex flex-col items-center justify-center px-4 py-12">
-        <div class="w-full max-w-[420px] rounded-xl bg-white shadow-lg border border-slate-200/60 overflow-hidden">
+    <div class="min-h-screen auth-shell-bg flex flex-col items-center justify-center px-4 py-12">
+        <div class="w-full max-w-[440px] ui-card overflow-hidden">
             <div class="px-8 pt-10 pb-2">
                 <div class="flex items-center justify-center gap-3 mb-8">
-                    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl overflow-hidden shadow-lg shadow-[#003874]/25 ring-1 ring-slate-200">
-                        <img :src="asset('img/chamba-icon.png')" alt="" class="h-14 w-14" />
-                    </div>
-                    <span class="text-2xl font-black tracking-tight text-grad-brand select-none">Busca PE</span>
+                    <img :src="asset('img/chamba-icon.png')" alt="" class="h-14 w-14 rounded-2xl shadow-lg ring-1 ring-slate-200/80" />
+                    <span class="text-2xl font-black tracking-tight text-grad-brand">Busca PE</span>
                 </div>
-                <h1
-                    class="text-center font-['Playfair_Display',Georgia,serif] text-[1.85rem] font-semibold text-slate-900 leading-tight tracking-tight mb-2"
-                >
+                <h1 class="text-center font-display text-3xl font-semibold text-chamba-ink leading-tight mb-2">
                     Bienvenido
                 </h1>
                 <p class="text-center text-sm text-slate-600 mb-8">
-                    Ingresa con tu correo y contraseña. Tu cuenta sabe si eres cliente o proveedor.
+                    Ingresa con tu correo. Tu cuenta define si eres cliente o proveedor.
                 </p>
                 <AppAlert v-if="flash" type="success" class="mb-4">{{ flash }}</AppAlert>
                 <AppAlert v-if="error" type="error" class="mb-4">{{ error }}</AppAlert>
@@ -81,14 +77,14 @@ async function submit() {
                             v-model="password"
                             label="Contraseña"
                             type="password"
-                            placeholder="Contraseña"
+                            placeholder="••••••••"
                             autocomplete="current-password"
                             required
                             :minlength="8"
                         />
                         <RouterLink
                             :to="{ name: 'forgot' }"
-                            class="mt-3 inline-block text-sm font-medium text-[#003874]/90 hover:text-[#003874] hover:underline"
+                            class="mt-3 inline-block text-sm font-semibold text-chamba-700 hover:underline"
                         >
                             ¿Olvidaste tu contraseña?
                         </RouterLink>
@@ -98,16 +94,16 @@ async function submit() {
                     </AppButton>
                 </form>
             </div>
-            <div class="bg-slate-50 border-t border-slate-200 px-8 py-5 text-center space-y-3">
+            <div class="bg-slate-50/80 border-t border-slate-100 px-8 py-5 text-center space-y-3">
                 <RouterLink
                     :to="{ name: 'register' }"
-                    class="text-[15px] font-medium text-slate-600 hover:text-[#003874] hover:underline no-underline"
+                    class="text-sm font-bold text-chamba-700 hover:underline no-underline"
                 >
-                    Crear una cuenta
+                    Crear una cuenta gratis
                 </RouterLink>
-                <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-500 pt-1">
-                    <RouterLink :to="{ name: 'home' }" class="font-medium text-slate-600 hover:text-[#003874] hover:underline no-underline">
-                        Volver al inicio
+                <div>
+                    <RouterLink :to="{ name: 'home' }" class="text-xs font-medium text-slate-500 hover:text-chamba-700 no-underline">
+                        ← Volver al inicio
                     </RouterLink>
                 </div>
             </div>
