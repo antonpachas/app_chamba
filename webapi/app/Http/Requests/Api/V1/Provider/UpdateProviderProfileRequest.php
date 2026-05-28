@@ -23,6 +23,7 @@ class UpdateProviderProfileRequest extends FormRequest
             'contact_phone' => ['nullable', 'string', 'max:20'],
             'address_text' => ['nullable', 'string', 'max:255'],
             'district_id' => ['required', 'integer', 'exists:districts,id'],
+            'business_hours' => ['nullable', 'array'],
         ];
     }
 }

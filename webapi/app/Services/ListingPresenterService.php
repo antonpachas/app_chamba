@@ -12,6 +12,7 @@ final class ListingPresenterService
     public function __construct(
         private readonly MediaStorageService $media,
         private readonly ListingLifecycleService $listings,
+        private readonly BusinessHoursService $businessHours,
     ) {}
 
     /**
@@ -23,7 +24,7 @@ final class ListingPresenterService
     {
         $service->loadMissing([
             'category:id,name',
-            'providerProfile:id,user_id,business_name,district_id,address_text,whatsapp,contact_phone,avg_rating,total_reviews,is_verified',
+            'providerProfile:id,user_id,business_name,district_id,address_text,business_hours,whatsapp,contact_phone,avg_rating,total_reviews,is_verified',
             'providerProfile.user:id,full_name',
             'providerProfile.district:id,name,province_id,latitude,longitude',
             'providerProfile.district.province:id,name,department_id',
@@ -39,7 +40,7 @@ final class ListingPresenterService
             ? $this->listings->listingMeta($service, $prof, $prof->user)
             : [];
 
-        return array_merge([
+        $row = array_merge([
             'service_id' => $service->id,
             'title' => $service->title,
             'description' => $service->description,
@@ -73,6 +74,25 @@ final class ListingPresenterService
             'published_at' => $service->published_at,
             'expires_at' => $service->expires_at,
         ], static fn ($v) => $v !== null));
+
+        return $this->appendBusinessHours($row, $prof?->business_hours);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    public function appendBusinessHours(array $row, mixed $hours): array
+    {
+        if (! is_array($hours)) {
+            return $row;
+        }
+        $summary = $this->businessHours->summarize($hours);
+        $row['business_hours'] = $summary['schedule'];
+        $row['is_open_now'] = $summary['is_open_now'];
+        $row['hours_summary'] = $summary['hours_summary'];
+
+        return $row;
     }
 
     public function resolveIsPro(int $providerUserId): bool

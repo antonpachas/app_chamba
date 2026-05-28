@@ -7,6 +7,7 @@ use App\Http\Requests\Api\V1\Provider\StoreProviderProfileRequest;
 use App\Http\Requests\Api\V1\Provider\UpdateProviderProfileRequest;
 use App\Http\Resources\Api\V1\ProviderProfileResource;
 use App\Models\ProviderProfile;
+use App\Services\BusinessHoursService;
 use App\Services\StoredProcedureService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ final class ProfileController extends Controller
 {
     public function __construct(
         private readonly StoredProcedureService $storedProcedures,
+        private readonly BusinessHoursService $businessHours,
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -72,6 +74,11 @@ final class ProfileController extends Controller
             $data['address_text'] ?? null,
             (int) $data['district_id'],
         );
+
+        if (array_key_exists('business_hours', $data)) {
+            $profile->business_hours = $this->businessHours->normalizeInput($data['business_hours']);
+            $profile->save();
+        }
 
         $profile->refresh();
 

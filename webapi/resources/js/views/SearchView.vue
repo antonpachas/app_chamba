@@ -11,6 +11,8 @@ import AdSlot from '@/components/ads/AdSlot.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
 import ListingSearchBar from '@/components/search/ListingSearchBar.vue';
+import SearchResultsToolbar from '@/components/search/SearchResultsToolbar.vue';
+import ListingResultsMap from '@/components/search/ListingResultsMap.vue';
 import DiscoverMarketingSections from '@/components/discover/DiscoverMarketingSections.vue';
 import { useAuthStore } from '@/stores/auth';
 
@@ -58,7 +60,7 @@ function clearCategory() {
         <PageHeader
             eyebrow="Directorio · Perú"
             title="Encuentra negocios cerca de ti"
-            subtitle="Filtra por rubro, zona o GPS. Contacta directo al negocio."
+            subtitle="Filtra por rubro, zona o GPS. Abre un anuncio para ver teléfono y WhatsApp."
             class="text-center md:text-left [&_.page-title]:md:text-4xl"
         />
 
@@ -109,12 +111,13 @@ function clearCategory() {
         </section>
 
         <section aria-label="Resultados de búsqueda">
-            <div class="flex justify-between items-baseline gap-4 mb-6">
+            <div class="flex justify-between items-baseline gap-4 mb-2">
                 <h2 class="text-2xl font-semibold text-[#0b1c30] tracking-tight">Anuncios</h2>
                 <p v-if="search.searched && !search.loading && !search.error" class="text-sm text-slate-500">
                     {{ search.results.length }} resultado(s)
                 </p>
             </div>
+            <SearchResultsToolbar v-if="search.searched && !search.loading && !search.error && search.results.length" />
             <p v-if="search.loading" class="py-16 text-center text-slate-500 font-medium">Buscando…</p>
             <div
                 v-else-if="search.error"
@@ -130,6 +133,12 @@ function clearCategory() {
                 <p class="text-slate-700 font-semibold">Sin resultados</p>
                 <p class="text-sm text-slate-500 mt-1">Prueba otras palabras, rubro o zona.</p>
             </div>
+            <ListingResultsMap
+                v-else-if="search.viewMode === 'map'"
+                :results="search.results"
+                :user-lat="geo.useGps ? geo.userLat : null"
+                :user-lng="geo.useGps ? geo.userLng : null"
+            />
             <div
                 v-else
                 class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"

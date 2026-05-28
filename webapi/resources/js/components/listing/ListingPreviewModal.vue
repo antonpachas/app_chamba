@@ -7,8 +7,6 @@ import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import { providerPublicProfileEnabled } from '@/services/features';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
-import ListingContactActions from '@/components/listing/ListingContactActions.vue';
-import { hasListingContact } from '@/utils/whatsapp';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
@@ -48,12 +46,6 @@ watch(
 function close() {
     emit('close');
 }
-
-const showContact = computed(
-    () =>
-        listing.value &&
-        (hasListingContact(listing.value) || !!listing.value.contact_requires_login),
-);
 
 const coverImage = computed(() => {
     const l = listing.value;
@@ -123,16 +115,16 @@ const coverImage = computed(() => {
                             <span class="material-symbols-outlined text-[14px]">storefront</span>
                             Ver perfil del negocio
                         </RouterLink>
-                        <div v-if="showContact" class="my-4 rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
-                            <ListingContactActions :service="listing" compact />
-                        </div>
+                        <p class="text-xs text-slate-500 mt-3">
+                            Teléfono y WhatsApp están en la página completa del anuncio.
+                        </p>
                         <div class="mt-5 flex flex-col sm:flex-row gap-2">
                             <RouterLink
                                 :to="{ name: 'listing-detail', params: { id: listing.service_id } }"
                                 class="flex-1 inline-flex justify-center rounded-full bg-[#003874] text-white font-bold px-4 py-2.5 text-sm no-underline hover:bg-[#08458b]"
                                 @click="close"
                             >
-                                Ver página completa
+                                Ver anuncio y contactar
                             </RouterLink>
                             <AppButton variant="ghost" class="flex-1" @click="close">Cerrar</AppButton>
                         </div>

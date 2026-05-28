@@ -15,6 +15,7 @@ use App\Models\ServiceImage;
 use App\Models\SubscriptionPlan;
 use App\Models\UserSubscription;
 use App\Services\ListingGuestPreviewService;
+use App\Services\ListingListFormatter;
 use App\Services\MediaStorageService;
 use App\Services\StoredProcedureService;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +27,7 @@ final class ServiceSearchController extends Controller
         private readonly StoredProcedureService $storedProcedures,
         private readonly MediaStorageService $media,
         private readonly ListingGuestPreviewService $guestPreview,
+        private readonly ListingListFormatter $listFormatter,
     ) {}
 
     public function index(ServiceSearchRequest $request): JsonResponse
@@ -84,7 +86,32 @@ final class ServiceSearchController extends Controller
             unset($row);
         }
 
-        $rows = $this->sortListings($rows);
+        $minRating = isset($data['min_rating']) ? (float) $data['min_rating'] : null;
+        if ($minRating !== null) {
+            $rows = array_values(array_filter($rows, function (array $row) use ($minRating): bool {
+                $avg = (float) ($row['avg_rating'] ?? 0);
+                $reviews = (int) ($row['total_reviews'] ?? 0);
+
+                return $reviews > 0 && $avg >= $minRating;
+            }));
+        }
+
+        $sort = isset($data['sort']) ? (string) $data['sort'] : null;
+        $hasGps = $userLat !== null && $userLng !== null;
+        if ($sort === null) {
+            $sort = $hasGps ? 'nearest' : 'recent';
+        }
+        $rows = $this->sortListings($rows, $sort, $hasGps);
+
+        $hoursByProfile = [];
+        if ($profileIds->isNotEmpty()) {
+            $hoursByProfile = ProviderProfile::query()
+                ->whereIn('id', $profileIds)
+                ->get(['id', 'business_hours'])
+                ->mapWithKeys(fn (ProviderProfile $p) => [$p->id => $p->business_hours])
+                ->all();
+        }
+        $rows = $this->listFormatter->mapList($rows, $hoursByProfile);
 
         $serviceIds = collect($rows)->pluck('service_id')->filter()->unique()->values();
         if ($serviceIds->isNotEmpty()) {
@@ -118,20 +145,28 @@ final class ServiceSearchController extends Controller
 
         $this->trackSearchImpressions($rows, (int) ($request->user('sanctum')?->id ?? 0), (int) $searchEvent->id);
 
-        $meta = [];
+        $meta = [
+            'sort' => $sort,
+            'has_gps' => $hasGps,
+        ];
         if ($request->user('sanctum') === null) {
-            $rows = array_map(fn (array $row): array => $this->guestPreview->scrubRow($row), $rows);
+            $rows = array_map(function (array $row): array {
+                $row = $this->guestPreview->scrubRow($row);
+                unset($row['whatsapp'], $row['contact_phone']);
+
+                return $row;
+            }, $rows);
             $limited = $this->guestPreview->limitSearchResults($rows);
             $rows = $limited['rows'];
-            $meta = [
+            $meta = array_merge($meta, [
                 'guest_preview' => true,
                 'guest_limit' => $this->guestPreview->maxSearchResults(),
                 'guest_total' => $limited['total'],
                 'guest_limited' => $limited['limited'],
-            ];
+            ]);
         }
 
-        return response()->json(['data' => $rows, 'meta' => $meta !== [] ? $meta : null]);
+        return response()->json(['data' => $rows, 'meta' => $meta]);
     }
 
     /**
@@ -253,7 +288,7 @@ final class ServiceSearchController extends Controller
      * @param  array<int, array<string, mixed>>  $rows
      * @return array<int, array<string, mixed>>
      */
-    private function sortListings(array $rows): array
+    private function sortListings(array $rows, string $sort, bool $hasGps): array
     {
         if ($rows === []) {
             return $rows;
@@ -273,7 +308,23 @@ final class ServiceSearchController extends Controller
         }
         unset($row);
 
-        usort($rows, function (array $a, array $b): int {
+        usort($rows, function (array $a, array $b) use ($sort, $hasGps): int {
+            if ($sort === 'nearest' && $hasGps) {
+                $da = $this->distanceSortKey($a);
+                $db = $this->distanceSortKey($b);
+                if ($da !== $db) {
+                    return $da <=> $db;
+                }
+            }
+
+            if ($sort === 'rating') {
+                $ra = $this->ratingSortKey($a);
+                $rb = $this->ratingSortKey($b);
+                if ($ra !== $rb) {
+                    return $rb <=> $ra;
+                }
+            }
+
             $pro = (int) ($b['is_pro'] ?? 0) <=> (int) ($a['is_pro'] ?? 0);
             if ($pro !== 0) {
                 return $pro;
@@ -289,6 +340,26 @@ final class ServiceSearchController extends Controller
         });
 
         return $rows;
+    }
+
+    private function distanceSortKey(array $row): float
+    {
+        $d = $row['distance_km'] ?? null;
+        if ($d === null || $d === '') {
+            return 99999.0;
+        }
+
+        return (float) $d;
+    }
+
+    private function ratingSortKey(array $row): float
+    {
+        $reviews = (int) ($row['total_reviews'] ?? 0);
+        if ($reviews <= 0) {
+            return -1.0;
+        }
+
+        return (float) ($row['avg_rating'] ?? 0);
     }
 
     /**

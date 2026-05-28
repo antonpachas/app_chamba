@@ -24,6 +24,8 @@ class ServiceSearchRequest extends FormRequest
             'user_lat' => ['nullable', 'numeric'],
             'user_lng' => ['nullable', 'numeric'],
             'radius_km' => ['nullable', 'numeric', 'min:0.1', 'max:200'],
+            'sort' => ['nullable', 'string', 'in:nearest,rating,recent'],
+            'min_rating' => ['nullable', 'numeric', 'min:1', 'max:5'],
         ];
     }
 }

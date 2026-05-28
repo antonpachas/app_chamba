@@ -9,6 +9,7 @@ use App\Models\ProviderVisibilityEvent;
 use App\Models\Review;
 use App\Services\ListingGuestPreviewService;
 use App\Services\ListingLifecycleService;
+use App\Services\ListingListFormatter;
 use App\Services\ListingPresenterService;
 use App\Services\MediaStorageService;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,7 @@ final class PublicProviderController extends Controller
         private readonly ListingLifecycleService $listings,
         private readonly ListingPresenterService $presenter,
         private readonly ListingGuestPreviewService $guestPreview,
+        private readonly ListingListFormatter $listFormatter,
     ) {}
 
     public function show(\Illuminate\Http\Request $request, int $providerProfile): JsonResponse
@@ -50,8 +52,7 @@ final class PublicProviderController extends Controller
         ]);
 
         $isGuest = $request->user('sanctum') === null;
-        $showContact = ! $isGuest && (bool) chamba_setting('providers.show_contact_on_public_profile', true);
-        $profileHasContact = ! empty($p->whatsapp) || ! empty($p->contact_phone);
+        $hoursSummary = app(\App\Services\BusinessHoursService::class)->summarize($p->business_hours);
         $media = app(MediaStorageService::class);
         $isPro = $this->presenter->resolveIsPro((int) ($p->user_id ?? 0));
 
@@ -64,11 +65,16 @@ final class PublicProviderController extends Controller
             ->filter(fn (ProviderService $s) => $this->listings->isVisible($s))
             ->values();
 
-        $listingRows = $listings->map(function (ProviderService $s) use ($isPro, $isGuest) {
+        $listingRows = $listings->map(function (ProviderService $s) use ($isPro, $isGuest, $p) {
             $row = $this->presenter->toSearchRow($s, $isPro);
             $row['service_id'] = $s->id;
+            $row = $this->listFormatter->forList($row, $p->business_hours);
+            if ($isGuest) {
+                $row = $this->guestPreview->scrubRow($row);
+                unset($row['whatsapp'], $row['contact_phone']);
+            }
 
-            return $isGuest ? $this->guestPreview->scrubRow($row) : $row;
+            return $row;
         });
 
         $reviews = Review::query()
@@ -92,14 +98,17 @@ final class PublicProviderController extends Controller
                 'description' => $isGuest ? $this->guestPreview->truncate($p->description) : $p->description,
                 'description_truncated' => $isGuest && $p->description && mb_strlen((string) $p->description) > $this->guestPreview->maxDescriptionChars(),
                 'guest_preview' => $isGuest,
-                'contact_requires_login' => $isGuest && $profileHasContact,
+                'contact_on_detail_only' => ! empty($p->whatsapp) || ! empty($p->contact_phone),
                 'avg_rating' => $p->avg_rating,
+                'is_open_now' => $hoursSummary['is_open_now'],
+                'hours_summary' => $hoursSummary['hours_summary'],
+                'business_hours' => $hoursSummary['schedule'],
                 'total_reviews' => $p->total_reviews,
                 'is_verified' => (bool) $p->is_verified,
                 'is_pro' => $isPro,
                 'avatar_url' => $media->publicUrl($p->user?->avatar_path),
-                'whatsapp' => $showContact ? $p->whatsapp : null,
-                'contact_phone' => $showContact ? $p->contact_phone : null,
+                'whatsapp' => null,
+                'contact_phone' => null,
                 'address_text' => $p->address_text,
                 'district_name' => $p->district?->name,
                 'province_name' => $p->district?->province?->name,

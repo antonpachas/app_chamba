@@ -52,6 +52,7 @@ async function nearMe() {
         geo.clearSelection();
         await geo.useMyLocation();
         search.setKeyword(localKeyword.value);
+        search.setSortBy('nearest');
         emit('search');
     } catch (e) {
         geoErr.value = e.message || 'No se pudo obtener tu ubicación.';

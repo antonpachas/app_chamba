@@ -2,15 +2,10 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
 import { api } from '@/services/api';
-import {
-    buildTelUrl,
-    formatPhoneDisplay,
-    normalizeWhatsAppPhone,
-    providerProfileUrl,
-} from '@/utils/whatsapp';
 import ServiceCard from '@/components/service/ServiceCard.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
+import OpenHoursBadge from '@/components/common/OpenHoursBadge.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
@@ -26,36 +21,6 @@ const locationLine = computed(() => {
     if (!p) return '';
     return [p.district_name, p.province_name, p.department_name].filter(Boolean).join(' · ');
 });
-
-const waUrl = computed(() => {
-    const p = profile.value;
-    if (!p) return null;
-    const digits = normalizeWhatsAppPhone(p.whatsapp || p.contact_phone);
-    if (!digits) return null;
-    const pageUrl = providerProfileUrl(id.value);
-    const name = String(p.name || 'su negocio').trim();
-    const text = `Hola, vi su negocio «${name}» en Busca PE (${pageUrl}). Me interesa contactarlos.`;
-    return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
-});
-
-const telUrl = computed(() => {
-    const p = profile.value;
-    if (!p) return null;
-    return buildTelUrl({ contact_phone: p.contact_phone, whatsapp: p.whatsapp });
-});
-
-const phoneLabel = computed(() => {
-    const p = profile.value;
-    if (!p) return '';
-    return formatPhoneDisplay(p.whatsapp || p.contact_phone) || '';
-});
-
-const showLoginCta = computed(
-    () => !auth.isAuthenticated && !!profile.value?.contact_requires_login,
-);
-const showContact = computed(
-    () => !showLoginCta.value && !!(waUrl.value || telUrl.value),
-);
 
 onMounted(async () => {
     loading.value = true;
@@ -140,52 +105,16 @@ onMounted(async () => {
                     <p v-if="profile.address_text" class="text-sm text-slate-600">
                         <strong>Dirección:</strong> {{ profile.address_text }}
                     </p>
-                    <div v-if="showLoginCta" class="pt-2 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <p class="text-sm text-slate-600">
-                            Inicia sesión para ver teléfono y WhatsApp de este negocio.
-                        </p>
-                        <div class="flex flex-wrap gap-2">
-                            <RouterLink
-                                :to="{ name: 'login', query: { next: route.fullPath } }"
-                                class="inline-flex rounded-xl bg-[#003874] text-white font-bold px-5 py-2.5 text-sm no-underline"
-                            >
-                                Iniciar sesión
-                            </RouterLink>
-                            <RouterLink
-                                :to="{ name: 'register', query: { next: route.fullPath } }"
-                                class="inline-flex rounded-xl border-2 border-[#003874]/30 text-[#003874] font-bold px-5 py-2.5 text-sm no-underline"
-                            >
-                                Crear cuenta
-                            </RouterLink>
-                        </div>
-                    </div>
-                    <div v-else-if="showContact" class="pt-2 space-y-3">
-                        <p v-if="phoneLabel" class="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[#003874]">call</span>
-                            {{ phoneLabel }}
-                        </p>
-                        <div class="flex flex-wrap gap-3">
-                            <a
-                                v-if="waUrl"
-                                :href="waUrl"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 text-sm no-underline shadow-md"
-                            >
-                                <span class="material-symbols-outlined text-[18px]">chat</span>
-                                WhatsApp
-                            </a>
-                            <a
-                                v-if="telUrl"
-                                :href="telUrl"
-                                class="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-200 font-bold px-5 py-2.5 text-sm text-slate-800 no-underline hover:border-[#003874]/40"
-                            >
-                                <span class="material-symbols-outlined text-[18px]">call</span>
-                                Llamar
-                            </a>
-                        </div>
-                        <p class="text-[11px] text-slate-500">WhatsApp incluye enlace a este perfil en Busca PE.</p>
-                    </div>
+                    <OpenHoursBadge
+                        v-if="profile.is_open_now !== null && profile.is_open_now !== undefined"
+                        :is-open="profile.is_open_now"
+                        :summary="profile.hours_summary"
+                        class="pt-2"
+                    />
+                    <p class="text-sm text-slate-600 pt-2 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3">
+                        <span class="material-symbols-outlined text-[#003874] align-middle text-base mr-1">info</span>
+                        Abre un anuncio abajo para ver teléfono, WhatsApp y contactar al negocio.
+                    </p>
                 </div>
             </header>
 

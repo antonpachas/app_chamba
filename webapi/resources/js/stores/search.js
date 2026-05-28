@@ -8,9 +8,13 @@ export const useSearchStore = defineStore('search', {
         selectedCategoryId: null,
         results: [],
         guestMeta: null,
+        searchMeta: null,
         loading: false,
         searched: false,
         error: null,
+        sortBy: 'recent',
+        minRating: null,
+        viewMode: 'list',
     }),
     actions: {
         setKeyword(v) {
@@ -19,8 +23,29 @@ export const useSearchStore = defineStore('search', {
         setCategory(id) {
             this.selectedCategoryId = id ? Number(id) : null;
         },
+        setSortBy(v) {
+            this.sortBy = v || 'recent';
+        },
+        setMinRating(v) {
+            this.minRating = v == null || v === '' ? null : Number(v);
+        },
+        setViewMode(mode) {
+            this.viewMode = mode === 'map' ? 'map' : 'list';
+        },
         clearGuestState() {
             this.guestMeta = null;
+        },
+        resolveSortParam(geo) {
+            if (this.sortBy === 'nearest' && geo.useGps && geo.userLat != null && geo.userLng != null) {
+                return 'nearest';
+            }
+            if (this.sortBy === 'rating') {
+                return 'rating';
+            }
+            if (geo.useGps && geo.userLat != null && geo.userLng != null && this.sortBy === 'recent') {
+                return 'nearest';
+            }
+            return this.sortBy === 'nearest' ? 'recent' : this.sortBy;
         },
         async run() {
             const geo = useGeoStore();
@@ -38,13 +63,22 @@ export const useSearchStore = defineStore('search', {
                     params.user_lng = geo.userLng;
                     params.radius_km = 25;
                 }
+                params.sort = this.resolveSortParam(geo);
+                if (this.minRating != null) {
+                    params.min_rating = this.minRating;
+                }
                 const r = await api.get('/listings/search', { params, auth: true });
                 this.results = r.data || [];
+                this.searchMeta = r.meta || null;
                 this.guestMeta =
                     !getStoredToken() && r.meta?.guest_preview ? r.meta : null;
+                if (r.meta?.sort && this.sortBy === 'recent' && r.meta.sort === 'nearest') {
+                    this.sortBy = 'nearest';
+                }
             } catch (e) {
                 this.results = [];
                 this.guestMeta = null;
+                this.searchMeta = null;
                 this.error = e.message || 'No se pudo buscar.';
             } finally {
                 this.loading = false;

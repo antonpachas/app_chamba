@@ -2,7 +2,10 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { useSearchStore } from '@/stores/search';
+import { useGeoStore } from '@/stores/geo';
 import { useAuthStore } from '@/stores/auth';
+import OpenHoursBadge from '@/components/common/OpenHoursBadge.vue';
+import { formatDistanceKm } from '@/utils/formatDistance';
 import { api } from '@/services/api';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
@@ -17,7 +20,9 @@ import { hasListingContact } from '@/utils/whatsapp';
 const route = useRoute();
 const router = useRouter();
 const search = useSearchStore();
+const geo = useGeoStore();
 const auth = useAuthStore();
+const shareOk = ref('');
 const clientRequests = useClientRequestsStore();
 
 const service = ref(null);
@@ -47,10 +52,16 @@ const ratingValue = computed(() => {
     return { v: v.toFixed(1), n };
 });
 
+const distanceLabel = computed(() => formatDistanceKm(service.value?.distance_km));
+
 const locationLine = computed(() => {
     const s = service.value;
     if (!s) return '';
-    return [s.district_name, s.province_name, s.department_name].filter(Boolean).join(' · ');
+    const parts = [s.district_name, s.province_name, s.department_name].filter(Boolean);
+    if (distanceLabel.value) {
+        parts.unshift(distanceLabel.value);
+    }
+    return parts.join(' · ');
 });
 
 const lat = computed(() => parseFloat(String(service.value?.provider_latitude || '').replace(',', '.')));
@@ -83,13 +94,25 @@ const showProviderProfileLink = computed(
 
 const isGuestPreview = computed(() => !auth.isAuthenticated);
 
+function listingQueryParams() {
+    const params = {};
+    if (geo.useGps && geo.userLat != null && geo.userLng != null) {
+        params.user_lat = geo.userLat;
+        params.user_lng = geo.userLng;
+    }
+    return params;
+}
+
 async function loadListing() {
     loading.value = true;
     error.value = '';
     service.value = null;
     try {
         try {
-            const res = await api.get(`/listings/${id.value}`, { auth: true });
+            const res = await api.get(`/listings/${id.value}`, {
+                auth: true,
+                params: listingQueryParams(),
+            });
             if (res.data) {
                 service.value = res.data;
                 return;
@@ -172,6 +195,22 @@ async function submitRequest() {
 function goLogin() {
     router.push({ name: 'login', query: { next: route.fullPath } });
 }
+
+async function shareListing() {
+    shareOk.value = '';
+    const url = window.location.href;
+    const title = service.value?.title || 'Anuncio en Busca PE';
+    try {
+        if (navigator.share) {
+            await navigator.share({ title, text: title, url });
+        } else if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(url);
+            shareOk.value = 'Enlace copiado.';
+        }
+    } catch {
+        /* cancelado */
+    }
+}
 </script>
 
 <template>
@@ -186,7 +225,16 @@ function goLogin() {
             </button>
             <span class="text-slate-400">·</span>
             <RouterLink :to="{ name: 'home' }" class="text-slate-600 hover:text-[#003874]">Explorar</RouterLink>
+            <span class="text-slate-400">·</span>
+            <button
+                type="button"
+                class="text-[#003874] font-semibold hover:underline bg-transparent border-0 p-0 cursor-pointer"
+                @click="shareListing"
+            >
+                Compartir
+            </button>
         </div>
+        <p v-if="shareOk" class="text-sm text-emerald-700 font-medium mb-4">{{ shareOk }}</p>
 
         <div v-if="loading" class="py-20 text-center text-slate-500 font-medium">Cargando…</div>
         <AppAlert v-else-if="error" type="error">{{ error }}</AppAlert>
@@ -235,6 +283,12 @@ function goLogin() {
                         <span class="material-symbols-outlined text-base">location_on</span>
                         {{ locationLine || '—' }}
                     </p>
+                    <OpenHoursBadge
+                        v-if="service.is_open_now !== null && service.is_open_now !== undefined"
+                        :is-open="service.is_open_now"
+                        :summary="service.hours_summary"
+                        class="mt-4"
+                    />
                     <p
                         v-if="service.description"
                         class="mt-6 text-slate-800 leading-relaxed whitespace-pre-wrap"

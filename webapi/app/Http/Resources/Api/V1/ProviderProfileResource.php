@@ -20,6 +20,7 @@ class ProviderProfileResource extends JsonResource
             'whatsapp' => $this->whatsapp,
             'contact_phone' => $this->contact_phone,
             'address_text' => $this->address_text,
+            'business_hours' => $this->business_hours,
             'district_id' => $this->district_id,
             'is_verified' => (bool) $this->is_verified,
             'avg_rating' => $this->avg_rating,

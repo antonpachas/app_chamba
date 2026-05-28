@@ -5,6 +5,7 @@ import { useGeoStore } from '@/stores/geo';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import BusinessHoursEditor from '@/components/provider/BusinessHoursEditor.vue';
 
 const store = useProviderProfileStore();
 const geo = useGeoStore();
@@ -46,6 +47,7 @@ onMounted(async () => {
             contact_phone: store.profile.contact_phone || '',
             address_text: store.profile.address_text || '',
             district_id: store.profile.district?.id || null,
+            business_hours: store.profile.business_hours || null,
         };
         await preselectGeoFromProfile();
     }
@@ -102,6 +104,8 @@ async function save() {
                 <AppInput v-model="form.contact_phone" label="Teléfono" placeholder="999999999" />
             </div>
             <AppInput v-model="form.address_text" label="Dirección de referencia (opcional)" />
+
+            <BusinessHoursEditor v-model="form.business_hours" />
 
             <div class="grid sm:grid-cols-3 gap-4">
                 <label class="block">

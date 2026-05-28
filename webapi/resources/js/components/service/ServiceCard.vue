@@ -3,8 +3,8 @@ import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { providerPublicProfileEnabled } from '@/services/features';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
-import ListingContactActions from '@/components/listing/ListingContactActions.vue';
-import { hasListingContact } from '@/utils/whatsapp';
+import OpenHoursBadge from '@/components/common/OpenHoursBadge.vue';
+import { formatDistanceKm } from '@/utils/formatDistance';
 
 const props = defineProps({
     service: { type: Object, required: true },
@@ -32,13 +32,19 @@ const ratingNum = computed(() => {
     const v = parseFloat(String(props.service.avg_rating ?? '').replace(',', '.'));
     const reviews = Number(props.service.total_reviews) || 0;
     if (reviews <= 0 || !Number.isFinite(v)) return null;
-    return v.toFixed(1);
+    return { v: v.toFixed(1), n: reviews };
 });
+
+const distanceLabel = computed(() => formatDistanceKm(props.service.distance_km));
 
 const locationLine = computed(() => {
     const a = props.service.district_name;
     const b = props.service.province_name;
-    return [a, b].filter(Boolean).join(', ');
+    const parts = [a, b].filter(Boolean);
+    if (distanceLabel.value) {
+        parts.unshift(distanceLabel.value);
+    }
+    return parts.join(' · ') || '—';
 });
 
 const priceFooter = computed(() => {
@@ -48,13 +54,9 @@ const priceFooter = computed(() => {
     const ptLabels = { cotizar: 'COTIZAR', desde: 'DESDE', fijo: 'PRECIO FIJO' };
     const label = ptLabels[pt] || 'PRECIO';
     const value = has ? `S/\u00A0${pNum}` : 'Consultar';
-    const cta = pt === 'cotizar' ? 'Cotizar' : pt === 'fijo' ? 'Ver más' : 'Consultar';
+    const cta = 'Ver anuncio';
     return { label, value, cta };
 });
-
-const showContact = computed(
-    () => hasListingContact(props.service) || !!props.service?.contact_requires_login,
-);
 </script>
 
 <template>
@@ -90,8 +92,15 @@ const showContact = computed(
                 <span class="material-symbols-outlined text-amber-500 text-sm" style="font-variation-settings: 'FILL' 1">
                     star
                 </span>
-                <span class="text-xs font-bold text-slate-900">{{ ratingNum }}</span>
+                <span class="text-xs font-bold text-slate-900">{{ ratingNum.v }}</span>
+                <span class="text-[10px] text-slate-500">({{ ratingNum.n }})</span>
             </div>
+            <span
+                v-if="distanceLabel"
+                class="absolute bottom-3 left-3 bg-[#003874]/90 text-white text-[10px] font-bold px-2 py-1 rounded-full"
+            >
+                {{ distanceLabel }}
+            </span>
         </div>
         <div class="p-4">
             <div class="flex justify-between items-start gap-2 mb-2">
@@ -103,7 +112,13 @@ const showContact = computed(
                     Destacado
                 </span>
             </div>
-            <p class="text-sm font-semibold text-slate-800 mb-0.5">{{ service.provider_name }}</p>
+            <p class="text-sm font-semibold text-slate-800 mb-1">{{ service.provider_name }}</p>
+            <OpenHoursBadge
+                v-if="service.is_open_now !== null && service.is_open_now !== undefined"
+                :is-open="service.is_open_now"
+                compact
+                class="mb-2"
+            />
             <RouterLink
                 v-if="showProfileLink"
                 :to="{ name: 'provider-public', params: { id: providerProfileId } }"
@@ -115,21 +130,18 @@ const showContact = computed(
             </RouterLink>
             <div class="flex items-center gap-1 text-slate-500 text-sm mb-4">
                 <span class="material-symbols-outlined text-sm">location_on</span>
-                <span>{{ locationLine || '—' }}</span>
+                <span>{{ locationLine }}</span>
             </div>
-            <div class="flex justify-between items-center border-t border-slate-100 pt-4 mb-3">
+            <div class="flex justify-between items-center border-t border-slate-100 pt-4">
                 <div class="flex flex-col min-w-0">
                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wide">
                         {{ priceFooter.label }}
                     </span>
                     <span class="text-lg font-black text-[#003874]" v-html="priceFooter.value"></span>
                 </div>
-                <span class="shrink-0 text-[#9f4200] font-bold text-sm border border-[#9f4200] px-4 py-2 rounded-lg">
+                <span class="shrink-0 text-[#9f4200] font-bold text-sm border border-[#9f4200] px-4 py-2 rounded-lg group-hover:bg-[#9f4200] group-hover:text-white transition-colors">
                     {{ priceFooter.cta }}
                 </span>
-            </div>
-            <div v-if="showContact" class="border-t border-slate-100 pt-3" @click.stop>
-                <ListingContactActions :service="service" compact />
             </div>
         </div>
     </RouterLink>

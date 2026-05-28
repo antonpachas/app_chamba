@@ -15,6 +15,7 @@ class ProviderProfile extends Model
         'whatsapp',
         'contact_phone',
         'address_text',
+        'business_hours',
         'district_id',
         'listing_duration_days_override',
         'is_verified',
@@ -27,6 +28,7 @@ class ProviderProfile extends Model
         return [
             'is_verified' => 'boolean',
             'listing_duration_days_override' => 'integer',
+            'business_hours' => 'array',
         ];
     }
 
