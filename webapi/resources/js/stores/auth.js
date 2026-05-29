@@ -49,7 +49,7 @@ export const useAuthStore = defineStore('auth', {
         },
         roleLabel: (s) =>
             s.user?.role === 'proveedor'
-                ? 'Proveedor'
+                ? 'Negocio'
                 : s.user?.role === 'cliente'
                 ? 'Cliente'
                 : s.user?.role === 'admin'

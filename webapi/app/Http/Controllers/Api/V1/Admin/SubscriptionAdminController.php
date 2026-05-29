@@ -14,6 +14,8 @@ use Throwable;
 
 final class SubscriptionAdminController extends Controller
 {
+    use PaginatesAdminResources;
+
     public function __construct(
         private readonly SubscriptionService $subs,
         private readonly MediaStorageService $media,

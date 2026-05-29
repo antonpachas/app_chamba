@@ -38,7 +38,7 @@ const dashboard = computed(() => profileStore.dashboard || {});
                 </div>
                 <RouterLink
                     v-if="!profileStore.profile"
-                    :to="{ name: 'provider-profile' }"
+                    :to="{ name: 'account', hash: '#perfil-negocio' }"
                     class="rounded-full bg-white text-[#003874] font-bold px-5 py-2.5 text-sm shadow no-underline hover:brightness-105"
                 >
                     Crear mi perfil

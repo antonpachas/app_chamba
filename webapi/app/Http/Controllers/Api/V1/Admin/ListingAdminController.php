@@ -50,6 +50,12 @@ final class ListingAdminController extends Controller
                 ->whereNotNull('expires_at')
                 ->where('expires_at', '<=', now()),
             'home_featured' => $query->where('home_featured', true),
+            'home_featured_pending' => $query
+                ->where('home_featured_requested', true)
+                ->where('home_featured', false)
+                ->where('admin_hidden', false)
+                ->where('is_active', true)
+                ->where(fn ($w) => $w->whereNull('expires_at')->orWhere('expires_at', '>', now())),
             default => null,
         };
 
@@ -112,6 +118,12 @@ final class ListingAdminController extends Controller
 
         $service = ProviderService::query()->findOrFail($listing);
 
+        if (! (bool) $service->home_featured_requested) {
+            return response()->json([
+                'message' => 'El negocio aún no solicitó aparecer en el banner del inicio.',
+            ], 422);
+        }
+
         if (! $this->lifecycle->isVisible($service)) {
             return response()->json([
                 'message' => 'Solo puedes destacar anuncios visibles y activos.',
@@ -126,10 +138,45 @@ final class ListingAdminController extends Controller
             : ($maxSort + 1);
         $service->home_featured_starts_at = $data['starts_at'] ?? null;
         $service->home_featured_ends_at = $data['ends_at'] ?? null;
+        $service->home_featured_rejected_at = null;
+        $service->home_featured_rejection_reason = null;
         $service->save();
 
         return response()->json([
-            'message' => 'Anuncio agregado al carrusel del inicio.',
+            'message' => 'Anuncio aprobado para el banner del inicio.',
+            'data' => $this->toAdminRow($service->load([
+                'category:id,name',
+                'providerProfile.user:id,full_name,email,status',
+                'images' => fn ($q) => $q->orderBy('sort_order')->limit(1),
+            ])),
+        ]);
+    }
+
+    public function rejectHomeFeatured(Request $request, int $listing): JsonResponse
+    {
+        $data = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $service = ProviderService::query()->findOrFail($listing);
+
+        if (! (bool) $service->home_featured_requested || (bool) $service->home_featured) {
+            return response()->json([
+                'message' => 'No hay una solicitud pendiente para este anuncio.',
+            ], 422);
+        }
+
+        $service->home_featured_requested = false;
+        $service->home_featured = false;
+        $service->home_featured_sort = null;
+        $service->home_featured_starts_at = null;
+        $service->home_featured_ends_at = null;
+        $service->home_featured_rejected_at = now();
+        $service->home_featured_rejection_reason = $data['reason'] ?? null;
+        $service->save();
+
+        return response()->json([
+            'message' => 'Solicitud de banner rechazada.',
             'data' => $this->toAdminRow($service->load([
                 'category:id,name',
                 'providerProfile.user:id,full_name,email,status',
@@ -142,6 +189,7 @@ final class ListingAdminController extends Controller
     {
         $service = ProviderService::query()->findOrFail($listing);
         $service->home_featured = false;
+        $service->home_featured_requested = false;
         $service->home_featured_sort = null;
         $service->home_featured_starts_at = null;
         $service->home_featured_ends_at = null;
@@ -192,6 +240,10 @@ final class ListingAdminController extends Controller
             'home_featured_sort' => $s->home_featured_sort,
             'home_featured_starts_at' => $s->home_featured_starts_at,
             'home_featured_ends_at' => $s->home_featured_ends_at,
+            'home_featured_requested' => (bool) $s->home_featured_requested,
+            'home_featured_requested_at' => $s->home_featured_requested_at,
+            'home_featured_rejected_at' => $s->home_featured_rejected_at,
+            'home_featured_rejection_reason' => $s->home_featured_rejection_reason,
             'is_visible' => $this->lifecycle->isVisible($s),
             'expires_at' => $s->expires_at,
             'published_at' => $s->published_at,

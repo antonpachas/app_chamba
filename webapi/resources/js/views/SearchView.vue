@@ -36,8 +36,6 @@ import CategorySuggestCallout from '@/components/search/CategorySuggestCallout.v
 
 import HomeFeaturedSlider from '@/components/home/HomeFeaturedSlider.vue';
 
-import HomeQuickTiles from '@/components/home/HomeQuickTiles.vue';
-
 import HomeCategoriesSection from '@/components/home/HomeCategoriesSection.vue';
 
 import DiscoverMarketingSections from '@/components/discover/DiscoverMarketingSections.vue';
@@ -314,17 +312,13 @@ function applyRecent(item) {
 
 
 
-        <HomeFeaturedSlider class="py-5 md:py-6 bg-[#fafbfc]" />
-
-
-
-        <HomeQuickTiles class="py-5 md:py-6 border-b border-slate-200/60" />
+        <HomeFeaturedSlider />
 
 
 
         <HomeCategoriesSection
 
-            class="py-6 md:py-8 bg-white border-b border-slate-200/60"
+            class="py-4 md:py-5 bg-white border-b border-slate-200/60"
 
             :categories="catalog.categories"
 

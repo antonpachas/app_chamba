@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import ListingImageCarousel from '@/components/listing/ListingImageCarousel.vue';
 
 /**
  * Vista previa estática de cómo se verá el anuncio en búsqueda (sin enlace).
@@ -9,11 +10,14 @@ const props = defineProps({
     featured: { type: Boolean, default: false },
 });
 
-const image = computed(() => {
-    return props.service.cover_image_url
-        || (props.service.images && props.service.images[0])
-        || null;
+const images = computed(() => {
+    const fromList = Array.isArray(props.service.images) ? props.service.images.filter(Boolean) : [];
+    if (fromList.length) return fromList.slice(0, 3);
+    if (props.service.cover_image_url) return [props.service.cover_image_url];
+    return [];
 });
+
+const hasImages = computed(() => images.value.length > 0);
 
 const ratingNum = computed(() => {
     const v = parseFloat(String(props.service.avg_rating ?? '').replace(',', '.'));
@@ -22,12 +26,31 @@ const ratingNum = computed(() => {
     return v.toFixed(1);
 });
 
+const localName = computed(() => {
+    const label = String(props.service.location_label || '').trim();
+    if (label) return label;
+    return props.service.provider_name || 'Tu negocio';
+});
+
+const geoLine = computed(() => {
+    const parts = [
+        props.service.district_name,
+        props.service.province_name,
+        props.service.department_name,
+    ].filter(Boolean);
+    return parts.length ? parts.join(' · ') : null;
+});
+
+const addressLine = computed(() => {
+    const addr = String(props.service.address_text || '').trim();
+    return addr || null;
+});
+
 const locationLine = computed(() => {
-    const a = props.service.district_name;
-    const b = props.service.province_name;
-    const addr = props.service.address_text;
-    if (a || b) return [a, b].filter(Boolean).join(', ');
-    return addr || '—';
+    if (geoLine.value && addressLine.value) {
+        return `${geoLine.value} — ${addressLine.value}`;
+    }
+    return geoLine.value || addressLine.value || '—';
 });
 
 const priceFooter = computed(() => {
@@ -40,8 +63,6 @@ const priceFooter = computed(() => {
     const cta = pt === 'cotizar' ? 'Cotizar' : pt === 'fijo' ? 'Ver más' : 'Consultar';
     return { label, value, cta };
 });
-
-const hasImage = computed(() => !!image.value);
 </script>
 
 <template>
@@ -54,29 +75,28 @@ const hasImage = computed(() => !!image.value);
             aria-hidden="true"
         >
             <div class="relative h-48 bg-slate-200 overflow-hidden">
-                <img
-                    v-if="hasImage"
-                    :src="image"
-                    alt=""
-                    class="w-full h-full object-cover"
+                <ListingImageCarousel
+                    v-if="hasImages"
+                    :images="images"
+                    :alt="service.title || 'Anuncio'"
                 />
                 <div
                     v-else
                     class="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1"
                 >
                     <span class="material-symbols-outlined text-4xl">add_photo_alternate</span>
-                    <span class="text-xs font-semibold">Agrega una foto</span>
+                    <span class="text-xs font-semibold">Agrega hasta 3 fotos</span>
                 </div>
                 <div
                     v-if="service.is_pro"
-                    class="absolute top-3 left-3 bg-grad-warm text-white px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-orange-500/30"
+                    class="absolute top-3 left-3 z-10 bg-grad-warm text-white px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-orange-500/30"
                 >
                     <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1">verified</span>
                     <span class="text-[10px] font-black uppercase tracking-wider">Pro</span>
                 </div>
                 <div
                     v-if="ratingNum"
-                    class="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm"
+                    class="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm"
                 >
                     <span class="material-symbols-outlined text-amber-500 text-sm" style="font-variation-settings: 'FILL' 1">star</span>
                     <span class="text-xs font-bold text-slate-900">{{ ratingNum }}</span>
@@ -95,11 +115,11 @@ const hasImage = computed(() => !!image.value);
                     </span>
                 </div>
                 <p class="text-sm font-semibold text-slate-800 mb-0.5 truncate">
-                    {{ service.provider_name || 'Tu negocio' }}
+                    {{ localName }}
                 </p>
-                <div class="flex items-center gap-1 text-slate-500 text-sm mb-4">
-                    <span class="material-symbols-outlined text-sm">location_on</span>
-                    <span class="truncate">{{ locationLine }}</span>
+                <div class="flex items-start gap-1 text-slate-500 text-sm mb-4">
+                    <span class="material-symbols-outlined text-sm shrink-0 mt-0.5">location_on</span>
+                    <span class="line-clamp-2">{{ locationLine }}</span>
                 </div>
                 <div class="flex justify-between items-center border-t border-slate-100 pt-4">
                     <div class="flex flex-col min-w-0">

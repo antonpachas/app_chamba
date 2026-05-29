@@ -67,6 +67,11 @@ class ProviderServiceResource extends JsonResource
             ])->values(),
             'cover_image_url' => $images->isNotEmpty() ? $media->publicUrl($images->first()->path) : null,
             'business_hours' => $this->business_hours,
+            'home_featured' => (bool) $this->home_featured,
+            'home_featured_requested' => (bool) $this->home_featured_requested,
+            'home_featured_requested_at' => $this->home_featured_requested_at,
+            'home_featured_rejected_at' => $this->home_featured_rejected_at,
+            'home_featured_rejection_reason' => $this->home_featured_rejection_reason,
         ];
     }
 }

@@ -49,7 +49,7 @@ function nextSlide() {
 function startAutoplay() {
     stopAutoplay();
     if (!hasMultiple.value) return;
-    autoplayTimer = window.setInterval(nextSlide, 5500);
+    autoplayTimer = window.setInterval(nextSlide, 6000);
 }
 
 function stopAutoplay() {
@@ -68,96 +68,79 @@ onUnmounted(stopAutoplay);
 </script>
 
 <template>
-    <section v-if="loading || hasItems" class="home-featured" aria-label="Anuncios destacados">
-        <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6">
-            <div class="flex items-center justify-between gap-3 mb-3">
-                <h2 class="text-base font-semibold text-slate-900">Destacados del directorio</h2>
-                <span v-if="hasItems" class="text-xs text-slate-500">{{ items.length }} anuncio{{ items.length === 1 ? '' : 's' }}</span>
-            </div>
+    <section v-if="loading || hasItems" class="home-banner" aria-label="Anuncios destacados">
+        <div v-if="loading" class="home-banner__skeleton" />
 
-            <div v-if="loading" class="home-featured__skeleton rounded-2xl" />
-
+        <div
+            v-else
+            class="home-banner__frame"
+            @mouseenter="stopAutoplay"
+            @mouseleave="startAutoplay"
+        >
             <div
-                v-else
-                class="relative rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm"
-                @mouseenter="stopAutoplay"
-                @mouseleave="startAutoplay"
+                ref="scrollEl"
+                class="home-banner__track"
+                @scroll.passive="onScroll"
             >
-                <div
-                    ref="scrollEl"
-                    class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth touch-pan-x home-featured__track"
-                    @scroll.passive="onScroll"
+                <RouterLink
+                    v-for="item in items"
+                    :key="item.service_id"
+                    :to="listingDetailTo(item)"
+                    class="home-banner__slide snap-center shrink-0 group no-underline text-inherit"
                 >
-                    <RouterLink
-                        v-for="item in items"
-                        :key="item.service_id"
-                        :to="listingDetailTo(item)"
-                        class="home-featured__slide snap-center shrink-0 group no-underline text-inherit"
-                    >
-                        <div class="home-featured__slide-inner">
-                            <div class="home-featured__media">
-                                <img
-                                    v-if="item.cover_image_url || item.images?.[0]"
-                                    :src="item.cover_image_url || item.images?.[0]"
-                                    :alt="item.title"
-                                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                                    loading="lazy"
-                                />
-                                <div v-else class="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300">
-                                    <span class="material-symbols-outlined text-5xl">storefront</span>
-                                </div>
-                                <span class="home-featured__badge">Destacado</span>
-                            </div>
-                            <div class="home-featured__copy">
-                                <p v-if="item.category_name" class="text-xs font-semibold uppercase tracking-wide text-[#003874]/80 mb-1">
-                                    {{ item.category_name }}
-                                </p>
-                                <h3 class="text-lg md:text-xl font-bold text-slate-900 line-clamp-2 group-hover:text-[#003874] transition-colors">
-                                    {{ item.title }}
-                                </h3>
-                                <p class="text-sm text-slate-600 mt-1 line-clamp-2">{{ item.provider_name }}</p>
-                                <p v-if="item.district_name" class="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[14px]">location_on</span>
-                                    {{ item.district_name }}
-                                </p>
-                                <p v-if="item.base_price != null" class="text-base font-bold text-[#003874] mt-3">
-                                    <Money :amount="item.base_price" />
-                                </p>
-                            </div>
-                        </div>
-                    </RouterLink>
-                </div>
-
-                <template v-if="hasMultiple">
-                    <button
-                        type="button"
-                        class="home-featured__nav home-featured__nav--prev"
-                        aria-label="Anterior"
-                        @click="goTo((activeIndex - 1 + items.length) % items.length)"
-                    >
-                        <span class="material-symbols-outlined">chevron_left</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="home-featured__nav home-featured__nav--next"
-                        aria-label="Siguiente"
-                        @click="nextSlide"
-                    >
-                        <span class="material-symbols-outlined">chevron_right</span>
-                    </button>
-                    <div class="home-featured__dots">
-                        <button
-                            v-for="(_, i) in items"
-                            :key="i"
-                            type="button"
-                            class="home-featured__dot"
-                            :class="i === activeIndex ? 'home-featured__dot--active' : ''"
-                            :aria-label="`Ir al slide ${i + 1}`"
-                            @click="goTo(i)"
+                    <div class="home-banner__slide-bg">
+                        <img
+                            v-if="item.cover_image_url || item.images?.[0]"
+                            :src="item.cover_image_url || item.images?.[0]"
+                            :alt="item.title"
+                            class="home-banner__slide-img"
+                            loading="lazy"
                         />
+                        <div v-else class="home-banner__slide-fallback">
+                            <span class="material-symbols-outlined text-6xl opacity-40">storefront</span>
+                        </div>
+                        <div class="home-banner__slide-overlay" />
                     </div>
-                </template>
+                    <div class="home-banner__slide-content chamba-container max-w-6xl mx-auto px-4 md:px-6">
+                        <p v-if="item.category_name" class="home-banner__eyebrow">{{ item.category_name }}</p>
+                        <h2 class="home-banner__title">{{ item.title }}</h2>
+                        <p class="home-banner__provider">{{ item.provider_name }}</p>
+                        <p v-if="item.base_price != null" class="home-banner__price">
+                            <Money :amount="item.base_price" />
+                        </p>
+                    </div>
+                </RouterLink>
             </div>
+
+            <template v-if="hasMultiple">
+                <button
+                    type="button"
+                    class="home-banner__nav home-banner__nav--prev"
+                    aria-label="Anterior"
+                    @click="goTo((activeIndex - 1 + items.length) % items.length)"
+                >
+                    <span class="material-symbols-outlined">chevron_left</span>
+                </button>
+                <button
+                    type="button"
+                    class="home-banner__nav home-banner__nav--next"
+                    aria-label="Siguiente"
+                    @click="nextSlide"
+                >
+                    <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+                <div class="home-banner__dots">
+                    <button
+                        v-for="(_, i) in items"
+                        :key="i"
+                        type="button"
+                        class="home-banner__dot"
+                        :class="i === activeIndex ? 'home-banner__dot--active' : ''"
+                        :aria-label="`Ir al banner ${i + 1}`"
+                        @click="goTo(i)"
+                    />
+                </div>
+            </template>
         </div>
     </section>
 </template>

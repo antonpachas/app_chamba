@@ -1,56 +1,106 @@
 <script setup>
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { categoryStyleFor } from '@/components/common/CategoryIcon';
+import CategoriesBrowseModal from '@/components/home/CategoriesBrowseModal.vue';
 
-defineProps({
+const props = defineProps({
     categories: { type: Array, default: () => [] },
     selectedId: { type: [Number, null], default: null },
 });
 
 const emit = defineEmits(['select', 'clear']);
+
+const showAllModal = ref(false);
+const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
+
+function updateWidth() {
+    viewportWidth.value = window.innerWidth;
+}
+
+onMounted(() => window.addEventListener('resize', updateWidth, { passive: true }));
+onUnmounted(() => window.removeEventListener('resize', updateWidth));
+
+const maxPreview = computed(() => {
+    const w = viewportWidth.value;
+    if (w >= 1280) return 10;
+    if (w >= 1024) return 8;
+    if (w >= 768) return 6;
+    if (w >= 640) return 5;
+    return 4;
+});
+
+const previewCategories = computed(() => props.categories.slice(0, maxPreview.value));
+const hasMore = computed(() => props.categories.length > maxPreview.value);
+
+function onSelect(id) {
+    if (id == null) {
+        emit('clear');
+    } else {
+        emit('select', id);
+    }
+}
 </script>
 
 <template>
     <section id="categorias" class="home-categories scroll-mt-24" aria-label="Categorías">
         <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6">
-            <div class="flex items-center justify-between gap-4 mb-4">
-                <h2 class="text-base font-semibold text-slate-900">Nuestras categorías</h2>
-                <button
-                    v-if="selectedId != null"
-                    type="button"
-                    class="text-sm text-slate-500 hover:text-slate-800"
-                    @click="emit('clear')"
-                >
-                    Ver todas
-                </button>
+            <div class="flex items-center justify-between gap-3 mb-2">
+                <h2 class="text-sm font-semibold text-slate-900">Categorías</h2>
+                <div class="flex items-center gap-3 shrink-0">
+                    <button
+                        v-if="selectedId != null"
+                        type="button"
+                        class="text-xs font-medium text-slate-500 hover:text-slate-800"
+                        @click="emit('clear')"
+                    >
+                        Quitar filtro
+                    </button>
+                    <button
+                        v-if="hasMore || categories.length > 0"
+                        type="button"
+                        class="text-xs font-semibold text-[#003874] hover:underline bg-transparent border-0 p-0 cursor-pointer"
+                        @click="showAllModal = true"
+                    >
+                        Ver todas
+                    </button>
+                </div>
             </div>
 
-            <div class="home-categories__grid">
+            <div class="home-categories__row">
                 <button
                     type="button"
-                    class="home-category-card"
-                    :class="selectedId == null ? 'home-category-card--active' : ''"
+                    class="home-category-chip shrink-0"
+                    :class="selectedId == null ? 'home-category-chip--active' : ''"
                     @click="emit('clear')"
                 >
-                    <span class="home-category-card__icon material-symbols-outlined">apps</span>
-                    <span class="home-category-card__name">Todas</span>
+                    <span class="home-category-chip__icon material-symbols-outlined">apps</span>
+                    <span class="home-category-chip__name">Todas</span>
                 </button>
                 <button
-                    v-for="c in categories"
+                    v-for="c in previewCategories"
                     :key="c.id"
                     type="button"
-                    class="home-category-card"
-                    :class="selectedId === c.id ? 'home-category-card--active' : ''"
+                    class="home-category-chip shrink-0"
+                    :class="selectedId === c.id ? 'home-category-chip--active' : ''"
                     @click="emit('select', c.id)"
                 >
                     <span
-                        class="home-category-card__icon material-symbols-outlined"
+                        class="home-category-chip__icon material-symbols-outlined"
                         :style="{ color: categoryStyleFor(c.name).color }"
                     >
                         {{ categoryStyleFor(c.name).icon }}
                     </span>
-                    <span class="home-category-card__name">{{ c.name }}</span>
+                    <span class="home-category-chip__name">{{ c.name }}</span>
                 </button>
             </div>
         </div>
+
+        <CategoriesBrowseModal
+            :open="showAllModal"
+            :categories="categories"
+            :selected-id="selectedId"
+            @select="onSelect"
+            @close="showAllModal = false"
+        />
     </section>
 </template>

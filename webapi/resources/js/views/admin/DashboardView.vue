@@ -6,11 +6,50 @@ import { escrowEnabled } from '@/services/features';
 import StatusPill from '@/components/common/StatusPill.vue';
 import Money from '@/components/common/Money.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import AdminServerTable from '@/components/admin/AdminServerTable.vue';
 
 const data = ref(null);
 const loading = ref(false);
 const err = ref('');
 const escrow = escrowEnabled();
+
+const subPayments = ref([]);
+const subPaymentsMeta = ref({ current_page: 1, last_page: 1, per_page: 10, total: 0, from: null, to: null });
+const subPaymentsLoading = ref(false);
+const subPayPerPage = ref(10);
+
+const subPayColumns = [
+    { key: 'id', label: '#' },
+    { key: 'user', label: 'Usuario' },
+    { key: 'plan', label: 'Plan' },
+    { key: 'amount', label: 'Monto', align: 'right' },
+    { key: 'status', label: 'Estado' },
+];
+
+async function loadSubPayments(page = 1) {
+    subPaymentsLoading.value = true;
+    try {
+        const r = await api.get('/admin/subscriptions/payments', {
+            auth: true,
+            params: { status: 'all', page, per_page: subPayPerPage.value },
+        });
+        subPayments.value = r.data || [];
+        subPaymentsMeta.value = r.meta || subPaymentsMeta.value;
+    } catch {
+        subPayments.value = [];
+    } finally {
+        subPaymentsLoading.value = false;
+    }
+}
+
+function onSubPayPage(page) {
+    loadSubPayments(page);
+}
+
+function onSubPayPerPage(perPage) {
+    subPayPerPage.value = perPage;
+    loadSubPayments(1);
+}
 
 async function load() {
     loading.value = true;
@@ -18,6 +57,9 @@ async function load() {
     try {
         const r = await api.get('/admin/dashboard', { auth: true });
         data.value = r.data || null;
+        if (data.value?.features?.subscriptions) {
+            loadSubPayments(1);
+        }
     } catch (e) {
         err.value = e.message;
     } finally {
@@ -162,34 +204,39 @@ const subscriptionsActive = computed(() => {
             </section>
 
             <!-- Últimos pagos de membresías -->
-            <section v-if="subscriptionsActive" class="rounded-2xl border border-slate-200 bg-white p-6 mb-6">
-                <header class="flex justify-between items-center mb-4">
+            <section v-if="subscriptionsActive" class="mb-6">
+                <header class="flex justify-between items-center mb-4 px-1">
                     <h2 class="text-lg font-bold text-slate-900">Últimos pagos de membresía</h2>
-                    <RouterLink :to="{ name: 'admin-subscriptions' }" class="text-sm font-bold text-[#003874] hover:underline no-underline">Ver todos →</RouterLink>
+                    <RouterLink :to="{ name: 'admin-subscriptions' }" class="text-sm font-bold text-[#003874] hover:underline no-underline">Revisar pagos →</RouterLink>
                 </header>
-                <p v-if="!data.latest_subscription_payments?.length" class="text-slate-500">Sin pagos de membresía aún.</p>
-                <div v-else class="overflow-x-auto">
-                    <table class="w-full text-sm min-w-[600px]">
-                        <thead class="text-xs font-bold uppercase text-slate-500">
-                            <tr>
-                                <th class="text-left pb-2">#</th>
-                                <th class="text-left pb-2">Usuario</th>
-                                <th class="text-left pb-2">Plan</th>
-                                <th class="text-right pb-2">Monto</th>
-                                <th class="text-left pb-2">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="p in data.latest_subscription_payments" :key="p.id" class="border-t border-slate-100">
-                                <td class="py-2 font-bold">#{{ p.id }}</td>
-                                <td class="py-2">{{ p.user_name }} <span class="text-xs text-slate-500">({{ p.user_role }})</span></td>
-                                <td class="py-2">{{ p.plan_name }}</td>
-                                <td class="py-2 text-right font-bold"><Money :amount="p.amount" /></td>
-                                <td class="py-2"><StatusPill :status="p.status" /></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <AdminServerTable
+                    :columns="subPayColumns"
+                    :rows="subPayments"
+                    :meta="subPaymentsMeta"
+                    :loading="subPaymentsLoading"
+                    empty-message="Sin pagos de membresía aún."
+                    :per-page-options="[10, 25, 50]"
+                    compact
+                    @page="onSubPayPage"
+                    @per-page="onSubPayPerPage"
+                >
+                    <template #cell-id="{ row }">
+                        <span class="font-bold">#{{ row.id }}</span>
+                    </template>
+                    <template #cell-user="{ row }">
+                        {{ row.user?.full_name || '—' }}
+                        <span v-if="row.user?.role" class="text-xs text-slate-500">({{ row.user.role }})</span>
+                    </template>
+                    <template #cell-plan="{ row }">
+                        {{ row.plan?.name || '—' }}
+                    </template>
+                    <template #cell-amount="{ row }">
+                        <span class="font-bold"><Money :amount="row.amount" /></span>
+                    </template>
+                    <template #cell-status="{ row }">
+                        <StatusPill :status="row.status" />
+                    </template>
+                </AdminServerTable>
             </section>
 
             <!-- Últimos pagos en custodia (solo si escrow=on) -->

@@ -147,6 +147,8 @@ Route::prefix('v1')->group(function (): void {
                 Route::put("{$prefix}/{service}", [ServiceController::class, 'update']);
                 Route::patch("{$prefix}/{service}/status", [ServiceController::class, 'updateStatus']);
                 Route::post("{$prefix}/{service}/renew", [ServiceController::class, 'renew']);
+                Route::post("{$prefix}/{service}/request-home-banner", [ServiceController::class, 'requestHomeBanner']);
+                Route::post("{$prefix}/{service}/cancel-home-banner", [ServiceController::class, 'cancelHomeBannerRequest']);
                 Route::post("{$prefix}/{service}/images", [ServiceImageController::class, 'store']);
                 Route::delete("{$prefix}/{service}/images/{image}", [ServiceImageController::class, 'destroy']);
             };
@@ -257,6 +259,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('listings/{listing}/hide', [ListingAdminController::class, 'hide'])->whereNumber('listing');
             Route::post('listings/{listing}/restore', [ListingAdminController::class, 'restore'])->whereNumber('listing');
             Route::post('listings/{listing}/feature-home', [ListingAdminController::class, 'featureHome'])->whereNumber('listing');
+            Route::post('listings/{listing}/reject-home-featured', [ListingAdminController::class, 'rejectHomeFeatured'])->whereNumber('listing');
             Route::post('listings/{listing}/unfeature-home', [ListingAdminController::class, 'unfeatureHome'])->whereNumber('listing');
 
             Route::get('users', [UserAdminController::class, 'index']);

@@ -155,11 +155,22 @@ watch(
     },
 );
 
+function getGeoLabels() {
+    const dept = departments.list.find((row) => num(row.id) === num(model.value.department_id));
+    const prov = provinces.list.find((row) => num(row.id) === num(model.value.province_id));
+    const dist = districts.list.find((row) => num(row.id) === num(model.value.district_id));
+    return {
+        department_name: dept?.name || null,
+        province_name: prov?.name || null,
+        district_name: dist?.name || null,
+    };
+}
+
 onMounted(() => {
     void hydrateCascade();
 });
 
-defineExpose({ hydrateCascade });
+defineExpose({ hydrateCascade, getGeoLabels });
 </script>
 
 <template>
@@ -174,6 +185,7 @@ defineExpose({ hydrateCascade });
                 placeholder="Ej. Sede Los Olivos, Local 2"
                 class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5"
             />
+            <span class="mt-1 block text-xs text-slate-500">Aparece en el anuncio como nombre del local. Si lo dejas vacío, se usa el nombre comercial del perfil.</span>
         </label>
         <label class="block text-sm">
             <span class="font-bold text-slate-600 text-xs uppercase tracking-wide">Dirección</span>

@@ -97,10 +97,15 @@ const coverImage = computed(() => {
                         </div>
                         <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">{{ listing.category_name }}</p>
                         <h3 class="text-xl font-black text-slate-900 mt-1">{{ listing.title }}</h3>
-                        <p class="text-sm font-semibold text-slate-700 mt-1">{{ listing.provider_name }}</p>
-                        <p v-if="listing.district_name" class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                        <p class="text-sm font-semibold text-slate-700 mt-1">{{ listing.location_label || listing.provider_name }}</p>
+                        <p v-if="listing.district_name || listing.address_text" class="text-xs text-slate-500 mt-1 flex items-center gap-1">
                             <span class="material-symbols-outlined text-sm">location_on</span>
-                            {{ [listing.district_name, listing.province_name].filter(Boolean).join(', ') }}
+                            {{
+                                [
+                                    [listing.district_name, listing.province_name, listing.department_name].filter(Boolean).join(' · '),
+                                    listing.address_text,
+                                ].filter(Boolean).join(' — ')
+                            }}
                         </p>
                         <p v-if="listing.description" class="text-sm text-slate-700 mt-3 line-clamp-4 whitespace-pre-wrap">{{ listing.description }}</p>
                         <p class="text-lg font-black text-[#003874] mt-3">

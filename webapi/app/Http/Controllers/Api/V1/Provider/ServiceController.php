@@ -236,4 +236,74 @@ final class ServiceController extends Controller
             'message' => 'Anuncio renovado.',
         ]);
     }
+
+    public function requestHomeBanner(Request $request, int $service): JsonResponse
+    {
+        $profile = $request->user()->providerProfile;
+        if ($profile === null) {
+            return response()->json(['message' => 'Sin perfil de proveedor.'], 422);
+        }
+
+        $model = ProviderService::query()
+            ->where('id', $service)
+            ->where('provider_profile_id', (int) $profile->id)
+            ->withCount('images')
+            ->firstOrFail();
+
+        if ((bool) $model->home_featured) {
+            return response()->json(['message' => 'Este anuncio ya está en el banner del inicio.'], 422);
+        }
+
+        if (! $this->listings->isVisible($model)) {
+            return response()->json([
+                'message' => 'Solo puedes solicitar el banner con un anuncio visible y activo.',
+            ], 422);
+        }
+
+        if ((int) ($model->images_count ?? 0) < 1) {
+            return response()->json([
+                'message' => 'Agrega al menos una foto antes de solicitar el banner.',
+            ], 422);
+        }
+
+        $model->home_featured_requested = true;
+        $model->home_featured_requested_at = now();
+        $model->home_featured_rejected_at = null;
+        $model->home_featured_rejection_reason = null;
+        $model->save();
+        $model->load(['category', 'images', 'district']);
+
+        return response()->json([
+            'message' => 'Solicitud enviada. Un administrador revisará tu anuncio para el banner.',
+            'data' => ProviderServiceResource::make($model),
+        ]);
+    }
+
+    public function cancelHomeBannerRequest(Request $request, int $service): JsonResponse
+    {
+        $profile = $request->user()->providerProfile;
+        if ($profile === null) {
+            return response()->json(['message' => 'Sin perfil de proveedor.'], 422);
+        }
+
+        $model = ProviderService::query()
+            ->where('id', $service)
+            ->where('provider_profile_id', (int) $profile->id)
+            ->firstOrFail();
+
+        if ((bool) $model->home_featured) {
+            return response()->json([
+                'message' => 'Tu anuncio ya está publicado en el banner. Contacta a soporte si deseas retirarlo.',
+            ], 422);
+        }
+
+        $model->home_featured_requested = false;
+        $model->save();
+        $model->load(['category', 'images', 'district']);
+
+        return response()->json([
+            'message' => 'Solicitud de banner cancelada.',
+            'data' => ProviderServiceResource::make($model),
+        ]);
+    }
 }

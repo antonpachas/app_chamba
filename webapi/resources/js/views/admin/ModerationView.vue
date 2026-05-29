@@ -86,16 +86,29 @@ async function restoreListing(row) {
     }
 }
 
-async function toggleFeatured(row) {
+async function approveBanner(row) {
     busy.value = row.id;
     err.value = '';
     ok.value = '';
     try {
-        const path = row.home_featured
-            ? `/admin/listings/${row.id}/unfeature-home`
-            : `/admin/listings/${row.id}/feature-home`;
-        const r = await api.post(path, {}, { auth: true });
-        ok.value = r.message || 'Actualizado.';
+        const r = await api.post(`/admin/listings/${row.id}/feature-home`, {}, { auth: true });
+        ok.value = r.message || 'Banner aprobado.';
+        await loadListings(listingsMeta.value.current_page);
+    } catch (e) {
+        err.value = e.message;
+    } finally {
+        busy.value = null;
+    }
+}
+
+async function removeFromBanner(row) {
+    if (!confirm(`¿Quitar «${row.title}» del banner del inicio?`)) return;
+    busy.value = row.id;
+    err.value = '';
+    ok.value = '';
+    try {
+        const r = await api.post(`/admin/listings/${row.id}/unfeature-home`, {}, { auth: true });
+        ok.value = r.message || 'Quitado del banner.';
         await loadListings(listingsMeta.value.current_page);
     } catch (e) {
         err.value = e.message;
@@ -166,7 +179,8 @@ const listingPages = computed(() => {
                 <select v-model="listingFilter" class="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" @change="loadListings(1)">
                     <option value="all">Todos</option>
                     <option value="visible">Visibles</option>
-                    <option value="home_featured">Destacados inicio</option>
+                    <option value="home_featured">En banner</option>
+                    <option value="home_featured_pending">Banner pendiente</option>
                     <option value="hidden">Ocultos (admin)</option>
                     <option value="paused">Pausados</option>
                     <option value="expired">Vencidos</option>
@@ -210,9 +224,15 @@ const listingPages = computed(() => {
                             </span>
                             <span
                                 v-if="row.home_featured"
+                                class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800"
+                            >
+                                En banner
+                            </span>
+                            <span
+                                v-else-if="row.home_featured_requested"
                                 class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900"
                             >
-                                Carrusel inicio
+                                Banner pendiente
                             </span>
                         </div>
                         <h2 class="text-lg font-bold text-slate-900">{{ row.title }}</h2>
@@ -241,13 +261,22 @@ const listingPages = computed(() => {
                             Ver anuncio
                         </RouterLink>
                         <AppButton
-                            v-if="row.is_visible && !row.admin_hidden"
+                            v-if="row.home_featured_requested && !row.home_featured && row.is_visible"
+                            variant="primary"
+                            size="sm"
+                            :loading="busy === row.id"
+                            @click="approveBanner(row)"
+                        >
+                            Aprobar banner
+                        </AppButton>
+                        <AppButton
+                            v-if="row.home_featured"
                             variant="outline"
                             size="sm"
                             :loading="busy === row.id"
-                            @click="toggleFeatured(row)"
+                            @click="removeFromBanner(row)"
                         >
-                            {{ row.home_featured ? 'Quitar del inicio' : 'Destacar en inicio' }}
+                            Quitar del banner
                         </AppButton>
                         <AppButton
                             v-if="!row.admin_hidden"

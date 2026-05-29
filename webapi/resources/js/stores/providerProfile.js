@@ -78,6 +78,16 @@ export const useProviderProfileStore = defineStore('providerProfile', {
             await this.loadServices();
             return r.data;
         },
+        async requestHomeBanner(id) {
+            const r = await api.post(`/provider/listings/${id}/request-home-banner`, {}, { auth: true });
+            await this.loadServices();
+            return r;
+        },
+        async cancelHomeBannerRequest(id) {
+            const r = await api.post(`/provider/listings/${id}/cancel-home-banner`, {}, { auth: true });
+            await this.loadServices();
+            return r;
+        },
         async addServiceImage(serviceId, file) {
             const { resizeImageFile } = await import('@/services/imageResize');
             const ready = await resizeImageFile(file, { maxDimension: 1600 });

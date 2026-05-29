@@ -12,6 +12,8 @@ use Throwable;
 
 final class ServiceImageController extends Controller
 {
+    public const MAX_IMAGES_PER_SERVICE = 3;
+
     public function __construct(private readonly MediaStorageService $media) {}
 
     public function store(Request $request, ProviderService $service): JsonResponse
@@ -21,6 +23,13 @@ final class ServiceImageController extends Controller
         $request->validate([
             'image' => 'required|file|max:5120',
         ]);
+
+        $currentCount = ServiceImage::where('provider_service_id', $service->id)->count();
+        if ($currentCount >= self::MAX_IMAGES_PER_SERVICE) {
+            return response()->json([
+                'message' => 'Máximo '.self::MAX_IMAGES_PER_SERVICE.' fotos por anuncio.',
+            ], 422);
+        }
 
         try {
             $path = $this->media->storeImage(

@@ -20,7 +20,7 @@ export function buildAdminNav() {
             icon: 'storefront',
             links: [
                 { name: 'admin-moderation', label: 'Moderación' },
-                { name: 'admin-featured-listings', label: 'Destacados inicio' },
+                { name: 'admin-featured-listings', label: 'Banner inicio' },
                 { name: 'admin-category-suggestions', label: 'Categorías' },
                 { name: 'admin-geo', label: 'Ubicación' },
                 { name: 'admin-platform-ads', label: 'Publicidad' },

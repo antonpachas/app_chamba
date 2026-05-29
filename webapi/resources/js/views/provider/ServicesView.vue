@@ -11,7 +11,7 @@ import ListingCardPreview from '@/components/listing/ListingCardPreview.vue';
 import BusinessHoursEditor from '@/components/provider/BusinessHoursEditor.vue';
 import ListingLocationFields from '@/components/provider/ListingLocationFields.vue';
 
-const MAX_PHOTOS = 8;
+const MAX_PHOTOS = 3;
 
 const store = useProviderProfileStore();
 const catalog = useCatalogStore();
@@ -38,6 +38,7 @@ function buildEmptyForm() {
         longitude: '',
         business_hours: null,
         use_profile_hours: true,
+        request_home_banner: false,
     };
 }
 
@@ -63,22 +64,32 @@ const quota = computed(() => store.servicesQuota || {});
 
 const canCreatePromocion = computed(() => (quota.value.promocion?.max ?? 0) > 0);
 
-const previewService = computed(() => ({
-    service_id: editing.value?.id || 0,
-    title: form.value.title.trim() || 'Título del anuncio',
-    base_price: form.value.base_price === '' ? null : form.value.base_price,
-    price_type: form.value.price_type,
-    cover_image_url: previewImages.value[0] || null,
-    images: previewImages.value,
-    provider_name: store.profile?.business_name || auth.user?.full_name || 'Tu negocio',
-    district_name: null,
-    province_name: null,
-    address_text: form.value.address_text || store.profile?.address_text || null,
-    avg_rating: store.profile?.avg_rating,
-    total_reviews: store.profile?.total_reviews,
-    is_pro: auth.isPro,
-    listing_type: form.value.listing_type,
-}));
+const previewService = computed(() => {
+    const { department_id, province_id, district_id } = form.value;
+    void department_id;
+    void province_id;
+    void district_id;
+    const geo = locationFieldsRef.value?.getGeoLabels?.() || {};
+    const locationLabel = form.value.location_label?.trim() || null;
+    return {
+        service_id: editing.value?.id || 0,
+        title: form.value.title.trim() || 'Título del anuncio',
+        base_price: form.value.base_price === '' ? null : form.value.base_price,
+        price_type: form.value.price_type,
+        cover_image_url: previewImages.value[0] || null,
+        images: previewImages.value.slice(0, MAX_PHOTOS),
+        location_label: locationLabel,
+        provider_name: locationLabel || store.profile?.business_name || auth.user?.full_name || 'Tu negocio',
+        department_name: geo.department_name || null,
+        province_name: geo.province_name || null,
+        district_name: geo.district_name || null,
+        address_text: form.value.address_text || store.profile?.address_text || null,
+        avg_rating: store.profile?.avg_rating,
+        total_reviews: store.profile?.total_reviews,
+        is_pro: auth.isPro,
+        listing_type: form.value.listing_type,
+    };
+});
 
 function listingTypeLabel(type) {
     return type === 'promocion' ? 'Destacado' : 'Presencia';
@@ -126,6 +137,7 @@ function startEdit(s) {
         longitude: s.longitude ?? '',
         business_hours: s.business_hours || null,
         use_profile_hours: !s.business_hours,
+        request_home_banner: !!(s.home_featured_requested && !s.home_featured),
     };
     resetPhotos();
     formPhotos.value = (s.images || []).map((img) => ({
@@ -200,6 +212,27 @@ async function uploadPendingPhotos(serviceId) {
     }
 }
 
+function homeBannerLabel(s) {
+    if (s.home_featured) return { text: 'En banner', cls: 'bg-emerald-100 text-emerald-800' };
+    if (s.home_featured_requested) return { text: 'Pendiente', cls: 'bg-amber-100 text-amber-900' };
+    if (s.home_featured_rejected_at) return { text: 'Rechazado', cls: 'bg-rose-100 text-rose-800' };
+    return null;
+}
+
+async function syncHomeBannerRequest(serviceId, previous) {
+    const wants = !!form.value.request_home_banner;
+    const wasPending = !!(previous?.home_featured_requested && !previous?.home_featured);
+    const wasApproved = !!previous?.home_featured;
+    if (wasApproved) return;
+    if (wants && !wasPending) {
+        const r = await store.requestHomeBanner(serviceId);
+        okMsg.value = r.message || okMsg.value;
+    } else if (!wants && wasPending) {
+        const r = await store.cancelHomeBannerRequest(serviceId);
+        okMsg.value = r.message || okMsg.value;
+    }
+}
+
 async function submit() {
     errMsg.value = '';
     okMsg.value = '';
@@ -235,18 +268,25 @@ async function submit() {
             business_hours: form.value.use_profile_hours ? null : form.value.business_hours,
         };
         let serviceId;
+        const previous = editing.value ? { ...editing.value } : null;
         if (editing.value) {
             await store.updateService(editing.value.id, payload);
             serviceId = editing.value.id;
             await uploadPendingPhotos(serviceId);
+            await syncHomeBannerRequest(serviceId, previous);
             await store.loadServices();
-            okMsg.value = 'Anuncio actualizado.';
+            okMsg.value = okMsg.value || 'Anuncio actualizado.';
         } else {
             const created = await store.createService(payload);
             serviceId = created.id;
             await uploadPendingPhotos(serviceId);
+            if (form.value.request_home_banner) {
+                const r = await store.requestHomeBanner(serviceId);
+                okMsg.value = r.message || 'Anuncio publicado con fotos.';
+            } else {
+                okMsg.value = 'Anuncio publicado con fotos.';
+            }
             await store.loadServices();
-            okMsg.value = 'Anuncio publicado con fotos.';
         }
         resetPhotos();
         showForm.value = false;
@@ -380,6 +420,7 @@ watch(showForm, (open) => {
                         <th class="text-left px-4 py-3">Estado</th>
                         <th class="text-left px-4 py-3">Vigencia</th>
                         <th class="text-left px-4 py-3">Precio</th>
+                        <th class="text-left px-4 py-3">Banner</th>
                         <th class="text-left px-4 py-3">Fotos</th>
                         <th class="text-right px-4 py-3">Acciones</th>
                     </tr>
@@ -425,6 +466,17 @@ watch(showForm, (open) => {
                         <td class="px-4 py-3 whitespace-nowrap">
                             <Money :amount="s.base_price" />
                             <span class="text-xs text-slate-500">({{ s.price_type }})</span>
+                        </td>
+                        <td class="px-4 py-3 text-xs">
+                            <span
+                                v-if="homeBannerLabel(s)"
+                                class="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full"
+                                :class="homeBannerLabel(s).cls"
+                            >{{ homeBannerLabel(s).text }}</span>
+                            <span v-else class="text-slate-400">—</span>
+                            <p v-if="s.home_featured_rejection_reason" class="mt-1 text-[11px] text-rose-700 max-w-[180px]">
+                                {{ s.home_featured_rejection_reason }}
+                            </p>
                         </td>
                         <td class="px-4 py-3 text-xs text-slate-600">{{ (s.images || []).length }} foto(s)</td>
                         <td class="px-4 py-3 text-right">
@@ -510,7 +562,7 @@ watch(showForm, (open) => {
                                 Fotos del anuncio <span class="text-rose-600">*</span>
                                 <span class="text-slate-400 font-normal">({{ formPhotos.length }}/{{ MAX_PHOTOS }})</span>
                             </span>
-                            <p class="text-xs text-slate-500 mb-3">La primera foto es la portada en búsqueda. JPG, PNG o WEBP · máx. 5 MB c/u.</p>
+                            <p class="text-xs text-slate-500 mb-3">Máximo {{ MAX_PHOTOS }} fotos. La primera es la portada en búsqueda. JPG, PNG o WEBP · máx. 5 MB c/u.</p>
                             <div class="flex flex-wrap gap-2 mb-3">
                                 <div
                                     v-for="(photo, idx) in formPhotos"
@@ -553,6 +605,30 @@ watch(showForm, (open) => {
                                     />
                                 </label>
                             </div>
+                        </div>
+
+                        <div class="block rounded-xl border border-slate-100 bg-slate-50/80 p-4 space-y-3">
+                            <span class="block text-sm font-bold text-slate-700">Banner principal del inicio</span>
+                            <p v-if="editing?.home_featured" class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                                Tu anuncio está aprobado y visible en el banner superior del directorio.
+                            </p>
+                            <template v-else>
+                                <label class="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
+                                    <input v-model="form.request_home_banner" type="checkbox" class="rounded mt-0.5" />
+                                    <span>
+                                        Solicitar aparecer en el banner del inicio
+                                        <span class="block text-xs text-slate-500 mt-1 font-normal">
+                                            Un administrador revisará tu anuncio antes de publicarlo arriba de todos.
+                                        </span>
+                                    </span>
+                                </label>
+                                <p v-if="editing?.home_featured_requested" class="text-xs text-amber-800">
+                                    Solicitud pendiente de aprobación.
+                                </p>
+                                <p v-if="editing?.home_featured_rejected_at" class="text-xs text-rose-700">
+                                    Solicitud anterior rechazada{{ editing.home_featured_rejection_reason ? `: ${editing.home_featured_rejection_reason}` : '' }}.
+                                </p>
+                            </template>
                         </div>
 
                         <div class="block rounded-xl border border-slate-100 bg-slate-50/80 p-4 space-y-3">

@@ -90,22 +90,6 @@ final class AdminDashboardController extends Controller
             ->where('subscription_plans.price', '>', 0)
             ->sum('subscription_plans.price'));
 
-        $latestSubPayments = SubscriptionPayment::query()
-            ->with(['user:id,full_name,email,role', 'subscription.plan:id,code,name,tier'])
-            ->orderByDesc('created_at')
-            ->limit(8)
-            ->get()
-            ->map(fn (SubscriptionPayment $p) => [
-                'id' => $p->id,
-                'status' => $p->status,
-                'amount' => $p->amount,
-                'created_at' => $p->created_at,
-                'user_name' => $p->user?->full_name,
-                'user_role' => $p->user?->role,
-                'plan_name' => $p->subscription?->plan?->name,
-                'plan_tier' => $p->subscription?->plan?->tier,
-            ]);
-
         return response()->json([
             'data' => [
                 'kpis' => [
@@ -132,7 +116,6 @@ final class AdminDashboardController extends Controller
                     'mrr' => $mrr,
                 ],
                 'latest_payments' => $latestPayments,
-                'latest_subscription_payments' => $latestSubPayments,
                 'features' => [
                     'escrow' => (bool) chamba_setting('features.escrow', config('chamba.features.escrow')),
                     'subscriptions' => (bool) chamba_setting('features.subscriptions', config('chamba.features.subscriptions')),
