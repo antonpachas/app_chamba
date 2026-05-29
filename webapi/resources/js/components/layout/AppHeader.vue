@@ -7,9 +7,11 @@ import { asset } from '@/utils/asset';
 import AdminNavMenu from '@/components/layout/AdminNavMenu.vue';
 import { buildAdminNav } from '@/utils/adminNav';
 import { useUserNotificationsStore } from '@/stores/userNotifications';
+import { useLoginModalStore } from '@/stores/loginModal';
 
 const auth = useAuthStore();
 const notifications = useUserNotificationsStore();
+const loginModal = useLoginModalStore();
 const route = useRoute();
 const router = useRouter();
 const menuOpen = ref(false);
@@ -78,10 +80,15 @@ function goNavLink(link, event) {
     }
 }
 
+function openLogin() {
+    mobileNavOpen.value = false;
+    loginModal.showLogin(route.fullPath);
+}
+
 function navLinkClass(link) {
     return isLinkActive(link)
-        ? 'text-chamba-700 bg-chamba-50 border-chamba-200'
-        : 'text-slate-600 border-transparent hover:text-chamba-700 hover:bg-slate-50';
+        ? 'text-slate-900 font-medium'
+        : 'text-slate-600 hover:text-slate-900';
 }
 </script>
 
@@ -101,9 +108,9 @@ function navLinkClass(link) {
                     <img
                         :src="asset('img/chamba-icon.png')"
                         alt="Busca PE"
-                        class="w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-md shadow-chamba-700/15 ring-1 ring-slate-200/80"
+                        class="w-9 h-9 md:w-10 md:h-10 rounded-xl ring-1 ring-slate-200/80"
                     />
-                    <span class="text-xl md:text-2xl font-black tracking-tight text-grad-brand">Busca PE</span>
+                    <span class="text-lg md:text-xl font-semibold tracking-tight text-slate-900">Busca PE</span>
                 </RouterLink>
             </div>
 
@@ -114,7 +121,7 @@ function navLinkClass(link) {
                     <a
                         v-if="link.hash"
                         :href="link.hash"
-                        class="px-3 py-2 rounded-xl text-sm font-semibold transition no-underline"
+                        class="px-3 py-2 text-sm transition no-underline"
                         :class="navLinkClass(link)"
                         @click="goNavLink(link, $event)"
                     >
@@ -123,7 +130,7 @@ function navLinkClass(link) {
                     <RouterLink
                         v-else
                         :to="{ name: link.name }"
-                        class="px-3 py-2 rounded-xl text-sm font-semibold transition no-underline relative"
+                        class="px-3 py-2 text-sm transition no-underline relative"
                         :class="navLinkClass(link)"
                     >
                         {{ link.label }}
@@ -139,21 +146,23 @@ function navLinkClass(link) {
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
-                <RouterLink
+                <button
                     v-if="!auth.isAuthenticated"
-                    :to="{ name: 'login' }"
-                    class="rounded-full btn-grad-primary text-sm font-bold px-4 py-2 no-underline hidden sm:inline-flex"
+                    type="button"
+                    class="rounded-lg bg-[#003874] text-white text-sm font-semibold px-4 py-2 hidden sm:inline-flex hover:bg-[#002e60] border-0 cursor-pointer"
+                    @click="openLogin"
                 >
                     Acceder
-                </RouterLink>
-                <RouterLink
+                </button>
+                <button
                     v-if="!auth.isAuthenticated"
-                    :to="{ name: 'login' }"
-                    class="sm:hidden flex h-10 w-10 items-center justify-center rounded-full border border-chamba-700/25 text-chamba-700 no-underline"
+                    type="button"
+                    class="sm:hidden flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-slate-700 bg-white"
                     aria-label="Acceder"
+                    @click="openLogin"
                 >
                     <span class="material-symbols-outlined text-[22px]">login</span>
-                </RouterLink>
+                </button>
                 <div v-else class="relative">
                     <button
                         type="button"
@@ -232,7 +241,7 @@ function navLinkClass(link) {
                         v-for="link in adminFlatLinks"
                         :key="'m-admin-' + link.name"
                         :to="{ name: link.name }"
-                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold border no-underline"
+                        class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm no-underline hover:bg-slate-50"
                         :class="navLinkClass(link)"
                         @click="mobileNavOpen = false"
                     >
@@ -244,7 +253,7 @@ function navLinkClass(link) {
                     <a
                         v-if="link.hash"
                         :href="link.hash"
-                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold border no-underline"
+                        class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm no-underline hover:bg-slate-50"
                         :class="navLinkClass(link)"
                         @click="goNavLink(link, $event)"
                     >
@@ -254,7 +263,7 @@ function navLinkClass(link) {
                     <RouterLink
                         v-else
                         :to="{ name: link.name }"
-                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold border no-underline"
+                        class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm no-underline hover:bg-slate-50"
                         :class="navLinkClass(link)"
                         @click="mobileNavOpen = false"
                     >

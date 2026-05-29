@@ -26,6 +26,8 @@ class ServiceSearchRequest extends FormRequest
             'radius_km' => ['nullable', 'numeric', 'min:0.1', 'max:200'],
             'sort' => ['nullable', 'string', 'in:nearest,rating,recent'],
             'min_rating' => ['nullable', 'numeric', 'min:1', 'max:5'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:6', 'max:48'],
         ];
     }
 }

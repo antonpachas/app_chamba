@@ -49,6 +49,7 @@ final class ListingAdminController extends Controller
             'expired' => $query->where('admin_hidden', false)
                 ->whereNotNull('expires_at')
                 ->where('expires_at', '<=', now()),
+            'home_featured' => $query->where('home_featured', true),
             default => null,
         };
 
@@ -101,6 +102,78 @@ final class ListingAdminController extends Controller
         ]);
     }
 
+    public function featureHome(Request $request, int $listing): JsonResponse
+    {
+        $data = $request->validate([
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date'],
+        ]);
+
+        $service = ProviderService::query()->findOrFail($listing);
+
+        if (! $this->lifecycle->isVisible($service)) {
+            return response()->json([
+                'message' => 'Solo puedes destacar anuncios visibles y activos.',
+            ], 422);
+        }
+
+        $maxSort = (int) ProviderService::query()->where('home_featured', true)->max('home_featured_sort');
+
+        $service->home_featured = true;
+        $service->home_featured_sort = isset($data['sort_order'])
+            ? (int) $data['sort_order']
+            : ($maxSort + 1);
+        $service->home_featured_starts_at = $data['starts_at'] ?? null;
+        $service->home_featured_ends_at = $data['ends_at'] ?? null;
+        $service->save();
+
+        return response()->json([
+            'message' => 'Anuncio agregado al carrusel del inicio.',
+            'data' => $this->toAdminRow($service->load([
+                'category:id,name',
+                'providerProfile.user:id,full_name,email,status',
+                'images' => fn ($q) => $q->orderBy('sort_order')->limit(1),
+            ])),
+        ]);
+    }
+
+    public function unfeatureHome(int $listing): JsonResponse
+    {
+        $service = ProviderService::query()->findOrFail($listing);
+        $service->home_featured = false;
+        $service->home_featured_sort = null;
+        $service->home_featured_starts_at = null;
+        $service->home_featured_ends_at = null;
+        $service->save();
+
+        return response()->json([
+            'message' => 'Anuncio quitado del carrusel del inicio.',
+            'data' => $this->toAdminRow($service->load([
+                'category:id,name',
+                'providerProfile.user:id,full_name,email,status',
+                'images' => fn ($q) => $q->orderBy('sort_order')->limit(1),
+            ])),
+        ]);
+    }
+
+    public function reorderHomeFeatured(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        foreach ($data['ids'] as $index => $id) {
+            ProviderService::query()
+                ->where('id', (int) $id)
+                ->where('home_featured', true)
+                ->update(['home_featured_sort' => $index + 1]);
+        }
+
+        return response()->json(['message' => 'Orden del carrusel actualizado.']);
+    }
+
     private function toAdminRow(ProviderService $s): array
     {
         $cover = $s->images->first();
@@ -115,6 +188,10 @@ final class ListingAdminController extends Controller
             'admin_hidden' => (bool) $s->admin_hidden,
             'admin_hidden_at' => $s->admin_hidden_at,
             'admin_hidden_reason' => $s->admin_hidden_reason,
+            'home_featured' => (bool) $s->home_featured,
+            'home_featured_sort' => $s->home_featured_sort,
+            'home_featured_starts_at' => $s->home_featured_starts_at,
+            'home_featured_ends_at' => $s->home_featured_ends_at,
             'is_visible' => $this->lifecycle->isVisible($s),
             'expires_at' => $s->expires_at,
             'published_at' => $s->published_at,

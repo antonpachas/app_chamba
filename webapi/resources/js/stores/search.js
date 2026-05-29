@@ -15,6 +15,8 @@ export const useSearchStore = defineStore('search', {
         sortBy: 'recent',
         minRating: null,
         viewMode: 'list',
+        page: 1,
+        perPage: 24,
     }),
     actions: {
         setKeyword(v) {
@@ -47,13 +49,17 @@ export const useSearchStore = defineStore('search', {
             }
             return this.sortBy === 'nearest' ? 'recent' : this.sortBy;
         },
-        async run() {
+        async run(page = 1) {
             const geo = useGeoStore();
+            this.page = Math.max(1, Number(page) || 1);
             this.loading = true;
             this.error = null;
             this.searched = true;
             try {
-                const params = {};
+                const params = {
+                    page: this.page,
+                    per_page: this.perPage,
+                };
                 if (this.selectedCategoryId != null) params.category_id = this.selectedCategoryId;
                 if (geo.selectedDistrictId != null) params.district_id = geo.selectedDistrictId;
                 const kw = this.keyword.trim();
@@ -70,6 +76,9 @@ export const useSearchStore = defineStore('search', {
                 const r = await api.get('/listings/search', { params, auth: true });
                 this.results = r.data || [];
                 this.searchMeta = r.meta || null;
+                if (r.meta?.pagination?.current_page) {
+                    this.page = r.meta.pagination.current_page;
+                }
                 this.guestMeta =
                     !getStoredToken() && r.meta?.guest_preview ? r.meta : null;
                 if (r.meta?.sort && this.sortBy === 'recent' && r.meta.sort === 'nearest') {

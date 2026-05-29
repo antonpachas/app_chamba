@@ -12,6 +12,8 @@ const geo = useGeoStore();
 
 const form = ref({
     business_name: '',
+    razon_social: '',
+    ruc: '',
     description: '',
     whatsapp: '',
     contact_phone: '',
@@ -41,9 +43,22 @@ async function preselectGeoFromProfile() {
 
 onMounted(async () => {
     await Promise.all([store.loadProfile(), geo.ensureDepartments()]);
+    try {
+        const pending = sessionStorage.getItem('chamba_pending_business_legal');
+        if (pending) {
+            const p = JSON.parse(pending);
+            if (p?.razon_social) form.value.razon_social = p.razon_social;
+            if (p?.ruc) form.value.ruc = p.ruc;
+            sessionStorage.removeItem('chamba_pending_business_legal');
+        }
+    } catch {
+        /* ignore */
+    }
     if (store.profile) {
         form.value = {
             business_name: store.profile.business_name || '',
+            razon_social: store.profile.razon_social || '',
+            ruc: store.profile.ruc || '',
             description: store.profile.description || '',
             whatsapp: store.profile.whatsapp || '',
             contact_phone: store.profile.contact_phone || '',
@@ -105,6 +120,14 @@ async function save() {
         errMsg.value = 'Selecciona departamento, provincia y distrito.';
         return;
     }
+    if (!form.value.razon_social?.trim()) {
+        errMsg.value = 'La razón social es obligatoria.';
+        return;
+    }
+    if (form.value.ruc && !/^\d{11}$/.test(form.value.ruc.trim())) {
+        errMsg.value = 'El RUC debe tener 11 dígitos numéricos.';
+        return;
+    }
     saving.value = true;
     try {
         await store.saveProfile(form.value);
@@ -158,7 +181,15 @@ async function save() {
         </section>
 
         <form @submit.prevent="save" class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
-            <AppInput v-model="form.business_name" label="Nombre del negocio" placeholder="Servicios eléctricos JC" />
+            <AppInput v-model="form.business_name" label="Nombre comercial" placeholder="Servicios eléctricos JC" />
+            <AppInput v-model="form.razon_social" label="Razón social" required placeholder="Empresa SAC" />
+            <AppInput
+                v-model="form.ruc"
+                label="RUC (opcional)"
+                inputmode="numeric"
+                maxlength="11"
+                placeholder="20123456789"
+            />
             <label class="block">
                 <span class="mb-2 block text-sm font-bold text-slate-700">Descripción</span>
                 <textarea v-model="form.description" rows="4" maxlength="2000"

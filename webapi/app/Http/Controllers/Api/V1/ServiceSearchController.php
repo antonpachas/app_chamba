@@ -107,19 +107,36 @@ final class ServiceSearchController extends Controller
         }
         $rows = $this->sortListings($rows, $sort, $hasGps);
 
-        $serviceIds = collect($rows)->pluck('service_id')->filter()->unique()->values();
-        [$hoursByProfile, $hoursByLocation, $primaryLocByProfile] = $this->loadHoursContext($profileIds);
-        $hoursByService = $this->loadListingHours($serviceIds);
-        $rows = $this->listFormatter->mapList($rows, $hoursByProfile, $hoursByLocation, $primaryLocByProfile, $hoursByService);
+        $totalCount = count($rows);
+        $isGuest = $request->user('sanctum') === null;
+        $guestMax = $isGuest ? $this->guestPreview->maxSearchResults() : null;
+        $guestLimited = $isGuest && $totalCount > $guestMax;
 
-        if ($serviceIds->isNotEmpty()) {
+        if ($isGuest) {
+            $rows = array_slice($rows, 0, $guestMax);
+        }
+
+        $perPage = max(6, min(48, (int) ($data['per_page'] ?? 24)));
+        $effectiveTotal = count($rows);
+        $lastPage = max(1, (int) ceil($effectiveTotal / $perPage));
+        $page = max(1, min((int) ($data['page'] ?? 1), $lastPage));
+        $offset = ($page - 1) * $perPage;
+        $pageRows = array_slice($rows, $offset, $perPage);
+
+        $pageProfileIds = collect($pageRows)->pluck('provider_profile_id')->filter()->unique()->values();
+        $pageServiceIds = collect($pageRows)->pluck('service_id')->filter()->unique()->values();
+        [$hoursByProfile, $hoursByLocation, $primaryLocByProfile] = $this->loadHoursContext($pageProfileIds);
+        $hoursByService = $this->loadListingHours($pageServiceIds);
+        $pageRows = $this->listFormatter->mapList($pageRows, $hoursByProfile, $hoursByLocation, $primaryLocByProfile, $hoursByService);
+
+        if ($pageServiceIds->isNotEmpty()) {
             $imagesByService = ServiceImage::query()
-                ->whereIn('provider_service_id', $serviceIds)
+                ->whereIn('provider_service_id', $pageServiceIds)
                 ->orderBy('sort_order')
                 ->get(['provider_service_id', 'path'])
                 ->groupBy('provider_service_id');
 
-            foreach ($rows as &$row) {
+            foreach ($pageRows as &$row) {
                 $sid = (int) ($row['service_id'] ?? 0);
                 $imgs = $imagesByService->get($sid, collect());
                 $row['images'] = $imgs->map(fn ($i) => $this->media->publicUrl($i->path))->all();
@@ -137,34 +154,40 @@ final class ServiceSearchController extends Controller
             'user_lat' => $userLat,
             'user_lng' => $userLng,
             'radius_km' => $radiusKm,
-            'results_count' => count($rows),
+            'results_count' => $totalCount,
             'created_at' => now(),
         ]);
 
-        $this->trackSearchImpressions($rows, (int) ($request->user('sanctum')?->id ?? 0), (int) $searchEvent->id);
+        $this->trackSearchImpressions($pageRows, (int) ($request->user('sanctum')?->id ?? 0), (int) $searchEvent->id);
 
         $meta = [
             'sort' => $sort,
             'has_gps' => $hasGps,
+            'pagination' => [
+                'current_page' => $page,
+                'last_page' => $lastPage,
+                'per_page' => $perPage,
+                'total' => $effectiveTotal,
+                'total_matched' => $totalCount,
+            ],
         ];
-        if ($request->user('sanctum') === null) {
-            $rows = array_map(function (array $row): array {
+
+        if ($isGuest) {
+            $pageRows = array_map(function (array $row): array {
                 $row = $this->guestPreview->scrubRow($row);
                 unset($row['whatsapp'], $row['contact_phone']);
 
                 return $row;
-            }, $rows);
-            $limited = $this->guestPreview->limitSearchResults($rows);
-            $rows = $limited['rows'];
+            }, $pageRows);
             $meta = array_merge($meta, [
                 'guest_preview' => true,
-                'guest_limit' => $this->guestPreview->maxSearchResults(),
-                'guest_total' => $limited['total'],
-                'guest_limited' => $limited['limited'],
+                'guest_limit' => $guestMax,
+                'guest_total' => $totalCount,
+                'guest_limited' => $guestLimited,
             ]);
         }
 
-        return response()->json(['data' => $rows, 'meta' => $meta]);
+        return response()->json(['data' => $pageRows, 'meta' => $meta]);
     }
 
     /**

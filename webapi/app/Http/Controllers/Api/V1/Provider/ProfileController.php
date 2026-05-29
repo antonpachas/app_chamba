@@ -51,6 +51,9 @@ final class ProfileController extends Controller
         );
 
         $profile = ProviderProfile::query()->findOrFail($profileId);
+        $profile->razon_social = $data['razon_social'] ?? null;
+        $profile->ruc = isset($data['ruc']) && $data['ruc'] !== '' ? $data['ruc'] : null;
+        $profile->save();
 
         return response()->json([
             'data' => ProviderProfileResource::make($profile),
@@ -80,8 +83,13 @@ final class ProfileController extends Controller
 
         if (array_key_exists('business_hours', $data)) {
             $profile->business_hours = $this->businessHours->normalizeInput($data['business_hours']);
-            $profile->save();
         }
+
+        $profile->razon_social = $data['razon_social'] ?? $profile->razon_social;
+        $profile->ruc = array_key_exists('ruc')
+            ? ($data['ruc'] !== '' && $data['ruc'] !== null ? $data['ruc'] : null)
+            : $profile->ruc;
+        $profile->save();
 
         $profile->refresh();
 

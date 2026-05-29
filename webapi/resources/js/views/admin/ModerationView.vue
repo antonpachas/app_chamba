@@ -86,6 +86,24 @@ async function restoreListing(row) {
     }
 }
 
+async function toggleFeatured(row) {
+    busy.value = row.id;
+    err.value = '';
+    ok.value = '';
+    try {
+        const path = row.home_featured
+            ? `/admin/listings/${row.id}/unfeature-home`
+            : `/admin/listings/${row.id}/feature-home`;
+        const r = await api.post(path, {}, { auth: true });
+        ok.value = r.message || 'Actualizado.';
+        await loadListings(listingsMeta.value.current_page);
+    } catch (e) {
+        err.value = e.message;
+    } finally {
+        busy.value = null;
+    }
+}
+
 function listingStatusLabel(row) {
     if (row.admin_hidden) return { text: 'Oculto (admin)', cls: 'bg-rose-100 text-rose-800' };
     if (row.is_visible) return { text: 'Visible', cls: 'bg-emerald-100 text-emerald-800' };
@@ -119,6 +137,12 @@ const listingPages = computed(() => {
         <div class="flex flex-wrap gap-3 mb-6 items-center">
             <span class="px-4 py-2.5 text-sm font-bold border-b-2 border-[#003874] text-[#003874]">Anuncios</span>
             <RouterLink
+                :to="{ name: 'admin-featured-listings' }"
+                class="px-4 py-2.5 text-sm font-bold text-slate-500 hover:text-[#003874] no-underline"
+            >
+                Destacados inicio →
+            </RouterLink>
+            <RouterLink
                 :to="{ name: 'admin-users' }"
                 class="px-4 py-2.5 text-sm font-bold text-slate-500 hover:text-[#003874] no-underline"
             >
@@ -142,6 +166,7 @@ const listingPages = computed(() => {
                 <select v-model="listingFilter" class="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" @change="loadListings(1)">
                     <option value="all">Todos</option>
                     <option value="visible">Visibles</option>
+                    <option value="home_featured">Destacados inicio</option>
                     <option value="hidden">Ocultos (admin)</option>
                     <option value="paused">Pausados</option>
                     <option value="expired">Vencidos</option>
@@ -183,6 +208,12 @@ const listingPages = computed(() => {
                             <span v-if="row.category?.name" class="text-[10px] font-bold uppercase text-[#003874]">
                                 {{ row.category.name }}
                             </span>
+                            <span
+                                v-if="row.home_featured"
+                                class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900"
+                            >
+                                Carrusel inicio
+                            </span>
                         </div>
                         <h2 class="text-lg font-bold text-slate-900">{{ row.title }}</h2>
                         <p class="text-sm text-slate-600 mt-1 line-clamp-2">{{ row.description }}</p>
@@ -209,6 +240,15 @@ const listingPages = computed(() => {
                         >
                             Ver anuncio
                         </RouterLink>
+                        <AppButton
+                            v-if="row.is_visible && !row.admin_hidden"
+                            variant="outline"
+                            size="sm"
+                            :loading="busy === row.id"
+                            @click="toggleFeatured(row)"
+                        >
+                            {{ row.home_featured ? 'Quitar del inicio' : 'Destacar en inicio' }}
+                        </AppButton>
                         <AppButton
                             v-if="!row.admin_hidden"
                             variant="ghost"

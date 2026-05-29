@@ -19,6 +19,8 @@ class ProviderProfileResource extends JsonResource
             'id' => $this->id,
             'cover_url' => $this->cover_path ? $media->publicUrl($this->cover_path) : null,
             'business_name' => $this->business_name,
+            'razon_social' => $this->razon_social,
+            'ruc' => $this->ruc,
             'description' => $this->description,
             'whatsapp' => $this->whatsapp,
             'contact_phone' => $this->contact_phone,

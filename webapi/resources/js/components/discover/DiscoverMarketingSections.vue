@@ -1,5 +1,8 @@
 <script setup>
 import { RouterLink } from 'vue-router';
+import { useLoginModalStore } from '@/stores/loginModal';
+
+const loginModal = useLoginModalStore();
 </script>
 
 <template>
@@ -123,12 +126,13 @@ import { RouterLink } from 'vue-router';
             >
                 Publicar mi negocio
             </RouterLink>
-            <RouterLink
-                :to="{ name: 'login' }"
-                class="inline-flex px-8 py-3 rounded-full font-bold border border-white/40 text-white hover:bg-white/10 no-underline transition"
+            <button
+                type="button"
+                class="inline-flex px-8 py-3 rounded-full font-bold border border-white/40 text-white hover:bg-white/10 transition cursor-pointer bg-transparent"
+                @click="loginModal.showLogin()"
             >
                 Ya tengo cuenta
-            </RouterLink>
+            </button>
         </div>
     </section>
 </template>

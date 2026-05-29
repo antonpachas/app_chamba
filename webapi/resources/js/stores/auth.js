@@ -91,6 +91,7 @@ export const useAuthStore = defineStore('auth', {
                 this.user = data.user;
                 setStoredToken(this.token);
                 persistUser(this.user);
+                this.refreshGuestBrowseAfterAuth();
                 return data.user;
             } finally {
                 this.loading = false;

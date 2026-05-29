@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\V1\Client\ReviewController;
 use App\Http\Controllers\Api\V1\Client\ServiceRequestController;
 use App\Http\Controllers\Api\V1\Client\ServiceRequestListController as ClientServiceRequestListController;
 use App\Http\Controllers\Api\V1\GeoController;
+use App\Http\Controllers\Api\V1\HomeFeaturedController;
 use App\Http\Controllers\Api\V1\ListingShowController;
 use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\Client\HistoryController as ClientHistoryController;
@@ -68,6 +69,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('geo/districts/{district}', [GeoController::class, 'district'])->whereNumber('district');
     Route::get('geo/ubigeo', [GeoController::class, 'resolveUbigeo']);
     Route::get('listings/search', [ServiceSearchController::class, 'index']);
+    Route::get('listings/home-featured', [HomeFeaturedController::class, 'index']);
     Route::get('services/search', [ServiceSearchController::class, 'index']);
     Route::get('listings/{listing}', [ListingShowController::class, 'show'])->where('listing', '[A-Za-z0-9_-]+');
     Route::get('services/{listing}', [ListingShowController::class, 'show'])->where('listing', '[A-Za-z0-9_-]+');
@@ -251,8 +253,11 @@ Route::prefix('v1')->group(function (): void {
             Route::get('reports/top-queries', [ReportsAdminController::class, 'topQueries']);
 
             Route::get('listings', [ListingAdminController::class, 'index']);
+            Route::post('listings/home-featured/reorder', [ListingAdminController::class, 'reorderHomeFeatured']);
             Route::post('listings/{listing}/hide', [ListingAdminController::class, 'hide'])->whereNumber('listing');
             Route::post('listings/{listing}/restore', [ListingAdminController::class, 'restore'])->whereNumber('listing');
+            Route::post('listings/{listing}/feature-home', [ListingAdminController::class, 'featureHome'])->whereNumber('listing');
+            Route::post('listings/{listing}/unfeature-home', [ListingAdminController::class, 'unfeatureHome'])->whereNumber('listing');
 
             Route::get('users', [UserAdminController::class, 'index']);
             Route::get('users/{user}/activity', [UserAdminController::class, 'activity'])->whereNumber('user');

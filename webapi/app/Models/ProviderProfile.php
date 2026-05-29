@@ -12,6 +12,8 @@ class ProviderProfile extends Model
         'user_id',
         'cover_path',
         'business_name',
+        'razon_social',
+        'ruc',
         'description',
         'whatsapp',
         'contact_phone',

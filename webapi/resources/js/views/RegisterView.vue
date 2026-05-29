@@ -16,6 +16,8 @@ const role = ref('cliente');
 const fullName = ref('');
 const email = ref('');
 const phone = ref('');
+const razonSocial = ref('');
+const ruc = ref('');
 const password = ref('');
 const passwordConfirm = ref('');
 const loading = ref(false);
@@ -37,6 +39,14 @@ async function submit() {
         error.value = 'Las contraseñas no coinciden.';
         return;
     }
+    if (role.value === 'proveedor' && !razonSocial.value.trim()) {
+        error.value = 'La razón social es obligatoria para registrar un negocio.';
+        return;
+    }
+    if (ruc.value.trim() && !/^\d{11}$/.test(ruc.value.trim())) {
+        error.value = 'El RUC debe tener 11 dígitos numéricos.';
+        return;
+    }
     loading.value = true;
     try {
         const u = await auth.register({
@@ -47,6 +57,15 @@ async function submit() {
             password_confirmation: passwordConfirm.value,
             role: role.value,
         });
+        if (role.value === 'proveedor') {
+            sessionStorage.setItem(
+                'chamba_pending_business_legal',
+                JSON.stringify({
+                    razon_social: razonSocial.value.trim(),
+                    ruc: ruc.value.trim() || null,
+                }),
+            );
+        }
         const next = typeof route.query.next === 'string' ? route.query.next : '';
         if (next) router.replace(next);
         else router.replace(homeForRole(u?.role || role.value));
@@ -97,6 +116,16 @@ async function submit() {
                     <AppInput v-model="fullName" label="Nombre completo" required autocomplete="name" />
                     <AppInput v-model="email" label="Correo electrónico" type="email" required autocomplete="email" />
                     <AppInput v-model="phone" label="Teléfono (opcional)" type="tel" autocomplete="tel" />
+                    <template v-if="role === 'proveedor'">
+                        <AppInput v-model="razonSocial" label="Razón social" required placeholder="Empresa SAC" />
+                        <AppInput
+                            v-model="ruc"
+                            label="RUC (opcional)"
+                            inputmode="numeric"
+                            maxlength="11"
+                            placeholder="20123456789"
+                        />
+                    </template>
                     <div class="grid sm:grid-cols-2 gap-4">
                         <AppPasswordInput v-model="password" label="Contraseña" :minlength="8" required autocomplete="new-password" />
                         <AppPasswordInput v-model="passwordConfirm" label="Confirmar contraseña" :minlength="8" required autocomplete="new-password" />

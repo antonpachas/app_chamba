@@ -18,6 +18,8 @@ class UpdateProviderProfileRequest extends FormRequest
     {
         return [
             'business_name' => ['nullable', 'string', 'max:150'],
+            'razon_social' => ['required', 'string', 'max:200'],
+            'ruc' => ['nullable', 'string', 'size:11', 'regex:/^\d{11}$/'],
             'description' => ['nullable', 'string'],
             'whatsapp' => ['nullable', 'string', 'max:20'],
             'contact_phone' => ['nullable', 'string', 'max:20'],

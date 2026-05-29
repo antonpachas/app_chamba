@@ -181,6 +181,12 @@ const routes = [
         meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Moderación' },
     },
     {
+        path: '/admin/destacados',
+        name: 'admin-featured-listings',
+        component: () => import('@/views/admin/FeaturedListingsAdminView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Destacados inicio' },
+    },
+    {
         path: '/admin/usuarios',
         name: 'admin-users',
         component: () => import('@/views/admin/UsersAdminView.vue'),

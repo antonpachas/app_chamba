@@ -6,6 +6,7 @@ import { useUserNotificationsStore } from '@/stores/userNotifications';
 import AppHeader from '@/components/layout/AppHeader.vue';
 import AppFooter from '@/components/layout/AppFooter.vue';
 import BottomNav from '@/components/layout/BottomNav.vue';
+import LoginModal from '@/components/auth/LoginModal.vue';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -55,6 +56,7 @@ watch(
                 </main>
                 <AppFooter />
                 <BottomNav />
+                <LoginModal />
             </div>
         </template>
     </div>

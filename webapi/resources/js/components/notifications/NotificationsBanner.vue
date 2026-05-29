@@ -25,16 +25,16 @@ const hiddenOnRequests = computed(() =>
 <template>
     <div
         v-if="notifications.unreadCount > 0 && latest.length && !hiddenOnRequests"
-        class="mb-6 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3"
+        class="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-3"
     >
         <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
-            <p class="text-sm font-bold text-violet-950 flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-base">notifications</span>
+            <p class="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-base text-slate-500">notifications</span>
                 Tienes {{ notifications.unreadCount }} aviso(s) nuevo(s)
             </p>
             <RouterLink
                 :to="requestsRoute"
-                class="text-xs font-bold text-[#003874] hover:underline no-underline"
+                class="text-xs font-semibold text-[#003874] hover:underline no-underline"
             >
                 Ver todo
             </RouterLink>
@@ -43,10 +43,10 @@ const hiddenOnRequests = computed(() =>
             <li
                 v-for="n in latest"
                 :key="n.id"
-                class="text-sm text-violet-950/90 leading-snug"
+                class="text-sm text-slate-700 leading-snug"
             >
                 <strong>{{ n.title }}</strong>
-                <span v-if="n.body" class="block text-violet-900/80 text-xs mt-0.5">{{ n.body }}</span>
+                <span v-if="n.body" class="block text-slate-500 text-xs mt-0.5">{{ n.body }}</span>
             </li>
         </ul>
     </div>
