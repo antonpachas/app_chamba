@@ -16,6 +16,8 @@ import { useClientRequestsStore } from '@/stores/clientRequests';
 import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
 import ListingContactActions from '@/components/listing/ListingContactActions.vue';
 import { hasListingContact } from '@/utils/whatsapp';
+import BusinessHoursDisplay from '@/components/common/BusinessHoursDisplay.vue';
+import ListingImageCarousel from '@/components/listing/ListingImageCarousel.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -36,11 +38,22 @@ const sending = ref(false);
 const sendOk = ref('');
 const sendErr = ref('');
 
-const id = computed(() => Number(route.params.id));
-const image = computed(() => service.value?.cover_image_url || `https://picsum.photos/seed/chamba_svc_${id.value}/1200/600`);
-const gallery = computed(() => {
+const listingParam = computed(() => String(route.params.id || '').trim());
+const numericServiceId = computed(() => Number(service.value?.service_id || 0));
+const galleryImages = computed(() => {
+    const urls = [];
+    const cover = service.value?.cover_image_url;
     const list = service.value?.images || [];
-    return Array.isArray(list) ? list.filter(Boolean) : [];
+    if (cover) urls.push(cover);
+    if (Array.isArray(list)) {
+        for (const u of list) {
+            if (u && !urls.includes(u)) urls.push(u);
+        }
+    }
+    if (!urls.length) {
+        urls.push(`https://picsum.photos/seed/chamba_svc_${listingParam.value}/1200/600`);
+    }
+    return urls;
 });
 
 const ratingValue = computed(() => {
@@ -109,7 +122,7 @@ async function loadListing() {
     service.value = null;
     try {
         try {
-            const res = await api.get(`/listings/${id.value}`, {
+            const res = await api.get(`/listings/${encodeURIComponent(listingParam.value)}`, {
                 auth: true,
                 params: listingQueryParams(),
             });
@@ -124,7 +137,11 @@ async function loadListing() {
             }
         }
         if (!auth.isAuthenticated) {
-            const cached = search.findById(id.value);
+            const cached = search.results.find(
+                (row) =>
+                    String(row.listing_ref || '') === listingParam.value
+                    || String(row.service_id) === listingParam.value,
+            );
             if (cached) {
                 service.value = cached;
                 error.value = '';
@@ -155,7 +172,7 @@ async function loadReviewable() {
         await clientRequests.load();
         reviewableRequest.value =
             clientRequests.items.find(
-                (r) => Number(r.service?.id) === id.value && r.can_review,
+                (r) => Number(r.service?.id) === numericServiceId.value && r.can_review,
             ) || null;
     } catch {
         reviewableRequest.value = null;
@@ -163,6 +180,11 @@ async function loadReviewable() {
 }
 
 onMounted(async () => {
+    await loadListing();
+    await loadReviewable();
+});
+
+watch(listingParam, async () => {
     await loadListing();
     await loadReviewable();
 });
@@ -242,13 +264,15 @@ async function shareListing() {
             <GuestBrowseBanner v-if="isGuestPreview" compact class="mb-6" />
             <div class="rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm mb-8">
                 <div class="relative h-64 md:h-96 bg-slate-200">
-                    <img :src="image" alt="" class="w-full h-full object-cover" />
-                    <div class="absolute top-4 left-4 z-10 flex items-center gap-2">
+                    <ListingImageCarousel :images="galleryImages" :alt="service.title || 'Anuncio'" />
+                    <div
+                        v-if="service?.service_id && (auth.isCliente || !auth.isAuthenticated)"
+                        class="absolute top-4 left-4 z-10 flex items-center gap-2"
+                    >
                         <FavoriteButton
-                            v-if="service?.service_id"
                             :provider-service-id="service.service_id"
                             size="lg"
-                            show-label
+                            :show-label="auth.isCliente || !auth.isAuthenticated"
                         />
                     </div>
                     <div
@@ -258,13 +282,6 @@ async function shareListing() {
                         <span class="material-symbols-outlined text-amber-500" style="font-variation-settings: 'FILL' 1">star</span>
                         <span class="text-sm font-bold text-slate-900">{{ ratingValue.v }}</span>
                         <span class="text-xs text-slate-500 font-medium">({{ ratingValue.n }})</span>
-                    </div>
-                </div>
-                <div v-if="gallery.length > 1" class="px-4 md:px-6 py-3 border-t border-slate-100 bg-slate-50/50">
-                    <div class="flex gap-2 overflow-x-auto">
-                        <a v-for="(img, i) in gallery" :key="i" :href="img" target="_blank" rel="noopener" class="shrink-0">
-                            <img :src="img" alt="" class="w-20 h-20 object-cover rounded-lg ring-1 ring-slate-200 hover:ring-chamba-500 transition" />
-                        </a>
                     </div>
                 </div>
                 <div class="p-6 md:p-8">
@@ -290,7 +307,11 @@ async function shareListing() {
                     <OpenHoursBadge
                         v-if="service.is_open_now !== null && service.is_open_now !== undefined"
                         :is-open="service.is_open_now"
-                        :summary="service.hours_summary"
+                        class="mt-4"
+                    />
+                    <BusinessHoursDisplay
+                        v-if="service.business_hours"
+                        :schedule="service.business_hours"
                         class="mt-4"
                     />
                     <p
@@ -363,10 +384,10 @@ async function shareListing() {
 
                 <aside class="lg:col-span-5 lg:sticky lg:top-24 space-y-6">
                     <div v-if="!auth.isAuthenticated" class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 space-y-4">
-                        <div v-if="service?.service_id" class="flex items-center gap-2 pb-4 border-b border-slate-100">
-                            <FavoriteButton :provider-service-id="service.service_id" show-label />
-                            <span class="text-xs text-slate-500">Guarda anuncios que te interesan</span>
-                        </div>
+                        <p class="text-sm text-slate-600 pb-4 border-b border-slate-100">
+                            <span class="material-symbols-outlined text-base align-middle text-rose-400 mr-1">favorite</span>
+                            Inicia sesión como <strong>cliente</strong> para guardar este anuncio en favoritos.
+                        </p>
                         <h2 class="text-base font-bold text-[#0b1c30] mb-2">Solicitud en la plataforma</h2>
                         <p class="text-sm text-slate-600 mb-4">
                             Inicia sesión como <strong>cliente</strong> para ver teléfono/WhatsApp, enviar solicitudes y valorar.
@@ -384,7 +405,7 @@ async function shareListing() {
                         v-else-if="auth.isProveedor"
                         class="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600"
                     >
-                        <p class="font-bold text-[#0b1c30] mb-1">Cuenta de proveedor</p>
+                        <p class="font-bold text-[#0b1c30] mb-1">Cuenta de negocio</p>
                         <p>Usa WhatsApp o teléfono en la sección de contacto. No puedes registrar solicitudes como cliente.</p>
                     </div>
 

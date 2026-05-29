@@ -47,7 +47,7 @@ function fmtDate(d) {
 }
 
 function roleLabel(role) {
-    if (role === 'proveedor') return 'Proveedor';
+    if (role === 'proveedor') return 'Negocio';
     if (role === 'cliente') return 'Cliente';
     return role || '—';
 }
@@ -137,7 +137,7 @@ onMounted(loadTickets);
         <PageHeader
             eyebrow="Admin"
             title="Soporte"
-            :subtitle="`${meta.open_count ?? 0} caso(s) abiertos · atiende consultas de clientes y proveedores`"
+            :subtitle="`${meta.open_count ?? 0} caso(s) abiertos · atiende consultas de clientes y negocios`"
         />
 
         <AppAlert v-if="err" type="error" class="mb-4">{{ err }}</AppAlert>
@@ -158,7 +158,7 @@ onMounted(loadTickets);
             <select v-model="roleFilter" class="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" @change="loadTickets">
                 <option value="all">Rol: todos</option>
                 <option value="cliente">Clientes</option>
-                <option value="proveedor">Proveedores</option>
+                <option value="proveedor">Negocios</option>
             </select>
             <label class="inline-flex items-center gap-2 text-sm rounded-lg border border-slate-200 px-3 py-2.5">
                 <input v-model="onlyUnread" type="checkbox" @change="loadTickets" />

@@ -1,11 +1,14 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import AvatarCropModal from '@/components/common/AvatarCropModal.vue';
 
 const auth = useAuthStore();
 const fileInput = ref(null);
 const uploading = ref(false);
 const error = ref('');
+const cropOpen = ref(false);
+const pendingFile = ref(null);
 
 const initials = computed(() => {
     const n = auth.user?.full_name?.trim() || '';
@@ -16,29 +19,39 @@ const initials = computed(() => {
 
 function pick() { fileInput.value?.click(); }
 
-async function onFile(e) {
+function onFile(e) {
     const f = e.target.files?.[0];
+    if (e.target) e.target.value = '';
     if (!f) return;
     error.value = '';
     if (!/^image\/(jpeg|png|webp)$/.test(f.type)) {
         error.value = 'Solo JPG, PNG o WEBP.';
-        e.target.value = '';
         return;
     }
     if (f.size > 5 * 1024 * 1024) {
         error.value = 'Máximo 5 MB.';
-        e.target.value = '';
         return;
     }
+    pendingFile.value = f;
+    cropOpen.value = true;
+}
+
+async function onCropped(file) {
+    cropOpen.value = false;
+    pendingFile.value = null;
     uploading.value = true;
     try {
-        await auth.uploadAvatar(f);
+        await auth.uploadAvatar(file);
     } catch (err) {
         error.value = err?.message || 'No se pudo subir la foto.';
     } finally {
         uploading.value = false;
-        if (e.target) e.target.value = '';
     }
+}
+
+function cancelCrop() {
+    cropOpen.value = false;
+    pendingFile.value = null;
 }
 
 async function remove() {
@@ -72,7 +85,7 @@ async function remove() {
         </div>
         <div class="flex-1">
             <p class="text-sm font-bold text-[#0b1c30]">Foto de perfil</p>
-            <p class="text-xs text-slate-500 mb-2">JPG, PNG o WEBP · máx. 5 MB. La imagen se procesa para tu seguridad.</p>
+            <p class="text-xs text-slate-500 mb-2">JPG, PNG o WEBP · máx. 5 MB. Puedes recortar antes de subir.</p>
             <div class="flex flex-wrap gap-2">
                 <button type="button" @click="pick" :disabled="uploading"
                     class="rounded-full bg-chamba-700 text-white text-sm font-bold px-4 py-2 hover:bg-chamba-800 disabled:opacity-60">
@@ -86,5 +99,11 @@ async function remove() {
             <p v-if="error" class="text-xs text-rose-700 mt-2">{{ error }}</p>
             <input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp" @change="onFile" class="hidden" />
         </div>
+        <AvatarCropModal
+            :open="cropOpen"
+            :file="pendingFile"
+            @cancel="cancelCrop"
+            @confirm="onCropped"
+        />
     </div>
 </template>

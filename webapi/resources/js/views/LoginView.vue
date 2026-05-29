@@ -4,6 +4,7 @@ import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import AppPasswordInput from '@/components/ui/AppPasswordInput.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import { asset } from '@/utils/asset';
 
@@ -59,7 +60,7 @@ async function submit() {
                     Bienvenido
                 </h1>
                 <p class="text-center text-sm text-slate-600 mb-8">
-                    Ingresa con tu correo. Tu cuenta define si eres cliente o proveedor.
+                    Ingresa con tu correo. Tu cuenta define si eres cliente o negocio.
                 </p>
                 <AppAlert v-if="flash" type="success" class="mb-4">{{ flash }}</AppAlert>
                 <AppAlert v-if="error" type="error" class="mb-4">{{ error }}</AppAlert>
@@ -73,10 +74,9 @@ async function submit() {
                         required
                     />
                     <div>
-                        <AppInput
+                        <AppPasswordInput
                             v-model="password"
                             label="Contraseña"
-                            type="password"
                             placeholder="••••••••"
                             autocomplete="current-password"
                             required

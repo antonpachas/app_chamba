@@ -24,6 +24,10 @@ class ProviderServiceResource extends JsonResource
         $adminHidden = (bool) $this->admin_hidden;
         $visible = ! $adminHidden && (bool) $this->is_active && ! $expired;
 
+        $this->loadMissing(['district.province']);
+        $departmentId = $this->department_id ?? $this->district?->province?->department_id;
+        $provinceId = $this->province_id ?? $this->district?->province_id;
+
         return [
             'id' => $this->id,
             'listing_type' => $this->listing_type ?? 'presencia',
@@ -31,10 +35,10 @@ class ProviderServiceResource extends JsonResource
             'description' => $this->description,
             'location_label' => $this->location_label,
             'address_text' => $this->address_text,
-            'department_id' => $this->department_id,
-            'province_id' => $this->province_id,
+            'department_id' => $departmentId,
+            'province_id' => $provinceId,
             'district_id' => $this->district_id,
-            'ubigeo' => $this->ubigeo,
+            'ubigeo' => $this->ubigeo ?? $this->district?->ubigeo,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'district' => $this->whenLoaded('district', fn () => [

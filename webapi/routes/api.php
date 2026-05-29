@@ -22,6 +22,10 @@ use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\V1\AvatarController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\CategorySuggestionController;
+use App\Http\Controllers\Api\V1\Admin\CategoryAdminController;
+use App\Http\Controllers\Api\V1\Admin\CategorySuggestionAdminController;
+use App\Http\Controllers\Api\V1\Admin\GeoAdminController;
 use App\Http\Controllers\Api\V1\Client\FavoriteController;
 use App\Http\Controllers\Api\V1\Client\PaymentController as ClientPaymentController;
 use App\Http\Controllers\Api\V1\Client\QuoteController as ClientQuoteController;
@@ -61,11 +65,12 @@ Route::prefix('v1')->group(function (): void {
     Route::get('geo/departments', [GeoController::class, 'departments']);
     Route::get('geo/provinces', [GeoController::class, 'provinces']);
     Route::get('geo/districts', [GeoController::class, 'districts']);
+    Route::get('geo/districts/{district}', [GeoController::class, 'district'])->whereNumber('district');
     Route::get('geo/ubigeo', [GeoController::class, 'resolveUbigeo']);
     Route::get('listings/search', [ServiceSearchController::class, 'index']);
     Route::get('services/search', [ServiceSearchController::class, 'index']);
-    Route::get('listings/{listing}', [ListingShowController::class, 'show'])->whereNumber('listing');
-    Route::get('services/{listing}', [ListingShowController::class, 'show'])->whereNumber('listing');
+    Route::get('listings/{listing}', [ListingShowController::class, 'show'])->where('listing', '[A-Za-z0-9_-]+');
+    Route::get('services/{listing}', [ListingShowController::class, 'show'])->where('listing', '[A-Za-z0-9_-]+');
     Route::get('ads/config', [PublicAdsController::class, 'config']);
     Route::get('ads/banners', [PublicAdsController::class, 'banners']);
     Route::post('ads/banners/{ad}/click', [PublicAdsController::class, 'click'])->whereNumber('ad');
@@ -81,6 +86,10 @@ Route::prefix('v1')->group(function (): void {
     Route::get('media/services/{name}', [MediaController::class, 'show'])
         ->defaults('folder', 'services')
         ->name('media.services')
+        ->where('name', '[A-Za-z0-9_.-]+');
+    Route::get('media/covers/{name}', [MediaController::class, 'show'])
+        ->defaults('folder', 'covers')
+        ->name('media.covers')
         ->where('name', '[A-Za-z0-9_.-]+');
     Route::get('media/ads/{name}', [MediaController::class, 'show'])
         ->defaults('folder', 'ads')
@@ -104,6 +113,8 @@ Route::prefix('v1')->group(function (): void {
         Route::post('subscriptions/pay', [SubscriptionController::class, 'pay']);
         Route::post('subscriptions/cancel', [SubscriptionController::class, 'cancel']);
 
+        Route::post('category-suggestions', [CategorySuggestionController::class, 'store']);
+
         Route::post('me/avatar', [AvatarController::class, 'store']);
         Route::delete('me/avatar', [AvatarController::class, 'destroy']);
 
@@ -125,6 +136,8 @@ Route::prefix('v1')->group(function (): void {
             Route::get('profile', [ProfileController::class, 'show']);
             Route::post('profile', [ProfileController::class, 'store']);
             Route::put('profile', [ProfileController::class, 'update']);
+            Route::post('profile/cover', [ProfileController::class, 'uploadCover']);
+            Route::delete('profile/cover', [ProfileController::class, 'deleteCover']);
 
             $registerListings = static function (string $prefix) {
                 Route::get($prefix, [ServiceController::class, 'index']);
@@ -204,6 +217,23 @@ Route::prefix('v1')->group(function (): void {
             Route::put('settings/{key}', [SystemSettingsAdminController::class, 'update'])->where('key', '[A-Za-z0-9_.\-]+');
             Route::put('settings', [SystemSettingsAdminController::class, 'bulkUpdate']);
             Route::get('settings-logs', [SystemSettingsAdminController::class, 'logs']);
+            Route::get('categories', [CategoryAdminController::class, 'index']);
+            Route::post('categories', [CategoryAdminController::class, 'store']);
+            Route::put('categories/{category}', [CategoryAdminController::class, 'update'])->whereNumber('category');
+
+            Route::get('category-suggestions', [CategorySuggestionAdminController::class, 'index']);
+            Route::post('category-suggestions/{suggestion}/approve', [CategorySuggestionAdminController::class, 'approve'])->whereNumber('suggestion');
+            Route::patch('category-suggestions/{suggestion}', [CategorySuggestionAdminController::class, 'updateStatus'])->whereNumber('suggestion');
+
+            Route::get('geo/departments', [GeoAdminController::class, 'departments']);
+            Route::post('geo/departments', [GeoAdminController::class, 'storeDepartment']);
+            Route::put('geo/departments/{department}', [GeoAdminController::class, 'updateDepartment'])->whereNumber('department');
+            Route::get('geo/provinces', [GeoAdminController::class, 'provinces']);
+            Route::post('geo/provinces', [GeoAdminController::class, 'storeProvince']);
+            Route::put('geo/provinces/{province}', [GeoAdminController::class, 'updateProvince'])->whereNumber('province');
+            Route::get('geo/districts', [GeoAdminController::class, 'districts']);
+            Route::post('geo/districts', [GeoAdminController::class, 'storeDistrict']);
+            Route::put('geo/districts/{district}', [GeoAdminController::class, 'updateDistrict'])->whereNumber('district');
 
             Route::get('system-logs', [SystemLogAdminController::class, 'index']);
             Route::get('system-logs/{log}', [SystemLogAdminController::class, 'show'])->whereNumber('log');

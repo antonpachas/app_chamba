@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\PaginatesAdminResources;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformAd;
 use App\Services\MediaStorageService;
@@ -10,15 +11,18 @@ use Illuminate\Http\Request;
 
 final class PlatformAdAdminController extends Controller
 {
+    use PaginatesAdminResources;
+
     public function __construct(private readonly MediaStorageService $media) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $rows = PlatformAd::query()->orderBy('sort_order')->orderByDesc('id')->get();
+        $paginator = PlatformAd::query()
+            ->orderBy('sort_order')
+            ->orderByDesc('id')
+            ->paginate($this->adminPerPage($request));
 
-        return response()->json([
-            'data' => $rows->map(fn (PlatformAd $a) => $this->format($a)),
-        ]);
+        return $this->adminPaginatedResponse($paginator, fn (PlatformAd $a) => $this->format($a));
     }
 
     public function store(Request $request): JsonResponse

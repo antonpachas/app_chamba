@@ -6,9 +6,9 @@ const geo = useGeoStore();
 const search = useSearchStore();
 
 const sortOptions = [
-    { value: 'nearest', label: 'Más cercanos', needsGps: true },
-    { value: 'rating', label: 'Mejor valorados', needsGps: false },
-    { value: 'recent', label: 'Más recientes', needsGps: false },
+    { value: 'nearest', label: 'Cercanos', needsGps: true },
+    { value: 'rating', label: 'Valorados', needsGps: false },
+    { value: 'recent', label: 'Recientes', needsGps: false },
 ];
 
 function onSortChange(e) {
@@ -28,42 +28,42 @@ function setView(mode) {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4 mb-6">
-        <div class="flex flex-wrap items-center gap-2">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 p-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
+        <div
+            class="inline-flex p-1 rounded-xl bg-slate-100 self-start sm:self-auto"
+            role="tablist"
+            aria-label="Vista de resultados"
+        >
             <button
                 type="button"
-                class="px-4 py-2 rounded-full text-sm font-bold border transition"
-                :class="
-                    search.viewMode === 'list'
-                        ? 'bg-[#003874] text-white border-[#003874]'
-                        : 'bg-white text-slate-700 border-slate-200'
-                "
+                role="tab"
+                :aria-selected="search.viewMode === 'list'"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition"
+                :class="search.viewMode === 'list' ? 'bg-white text-[#003874] shadow-sm' : 'text-slate-600'"
                 @click="setView('list')"
             >
-                <span class="material-symbols-outlined text-base align-middle mr-1">view_list</span>
+                <span class="material-symbols-outlined text-[18px]">view_list</span>
                 Lista
             </button>
             <button
                 type="button"
-                class="px-4 py-2 rounded-full text-sm font-bold border transition"
-                :class="
-                    search.viewMode === 'map'
-                        ? 'bg-[#003874] text-white border-[#003874]'
-                        : 'bg-white text-slate-700 border-slate-200'
-                "
+                role="tab"
+                :aria-selected="search.viewMode === 'map'"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition"
+                :class="search.viewMode === 'map' ? 'bg-white text-[#003874] shadow-sm' : 'text-slate-600'"
                 @click="setView('map')"
             >
-                <span class="material-symbols-outlined text-base align-middle mr-1">map</span>
+                <span class="material-symbols-outlined text-[18px]">map</span>
                 Mapa
             </button>
         </div>
 
-        <div class="flex flex-wrap items-end gap-3">
-            <label class="flex flex-col gap-1 text-xs font-bold uppercase tracking-wide text-slate-500">
-                Ordenar
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+            <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <span class="text-xs font-bold uppercase text-slate-400">Orden</span>
                 <select
                     :value="search.sortBy"
-                    class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-[#003874] min-w-[10rem]"
+                    class="border-0 bg-transparent font-semibold text-[#003874] focus:ring-0 text-sm py-0 pr-6"
                     @change="onSortChange"
                 >
                     <option
@@ -72,21 +72,21 @@ function setView(mode) {
                         :value="opt.value"
                         :disabled="opt.needsGps && !geo.useGps"
                     >
-                        {{ opt.label }}{{ opt.needsGps && !geo.useGps ? ' (usa GPS)' : '' }}
+                        {{ opt.label }}{{ opt.needsGps && !geo.useGps ? ' · GPS' : '' }}
                     </option>
                 </select>
             </label>
-            <label class="flex flex-col gap-1 text-xs font-bold uppercase tracking-wide text-slate-500">
-                Mín. estrellas
+            <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <span class="text-xs font-bold uppercase text-slate-400">★</span>
                 <select
                     :value="search.minRating ?? ''"
-                    class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-[#003874] min-w-[8rem]"
+                    class="border-0 bg-transparent font-semibold text-[#003874] focus:ring-0 text-sm py-0 pr-6"
                     @change="onMinRatingChange"
                 >
-                    <option value="">Cualquiera</option>
-                    <option :value="3">3+ ★</option>
-                    <option :value="4">4+ ★</option>
-                    <option :value="4.5">4.5+ ★</option>
+                    <option value="">Todas</option>
+                    <option :value="3">3+</option>
+                    <option :value="4">4+</option>
+                    <option :value="4.5">4.5+</option>
                 </select>
             </label>
         </div>

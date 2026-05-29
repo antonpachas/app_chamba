@@ -14,7 +14,10 @@ final class GeoController extends Controller
 {
     public function departments(): JsonResponse
     {
-        $rows = Department::query()->orderBy('name')->get(['id', 'name', 'latitude', 'longitude']);
+        $rows = Department::query()
+            ->when(Schema::hasColumn('departments', 'is_active'), fn ($q) => $q->where('is_active', true))
+            ->orderBy('name')
+            ->get(['id', 'name', 'latitude', 'longitude']);
 
         return response()->json(['data' => $rows]);
     }
@@ -45,10 +48,30 @@ final class GeoController extends Controller
         }
         $rows = District::query()
             ->where('province_id', $request->integer('province_id'))
+            ->when(Schema::hasColumn('districts', 'is_active'), fn ($q) => $q->where('is_active', true))
             ->orderBy('name')
             ->get($columns);
 
         return response()->json(['data' => $rows]);
+    }
+
+    public function district(int $district): JsonResponse
+    {
+        $row = District::query()->with(['province.department'])->findOrFail($district);
+
+        return response()->json([
+            'data' => [
+                'district_id' => $row->id,
+                'district_name' => $row->name,
+                'ubigeo' => $row->ubigeo ?? null,
+                'province_id' => $row->province_id,
+                'province_name' => $row->province?->name,
+                'department_id' => $row->province?->department_id,
+                'department_name' => $row->province?->department?->name,
+                'latitude' => $row->latitude,
+                'longitude' => $row->longitude,
+            ],
+        ]);
     }
 
     public function resolveUbigeo(Request $request): JsonResponse

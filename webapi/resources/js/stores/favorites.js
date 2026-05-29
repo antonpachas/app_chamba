@@ -56,7 +56,7 @@ export const useFavoritesStore = defineStore('favorites', {
             }
             const r = await api.post(
                 '/client/favorites/toggle',
-                { provider_service_id: id, provider_profile_id: null },
+                { provider_service_id: id },
                 { auth: true },
             );
             if (r.action === 'added' && !this.ids.includes(id)) {

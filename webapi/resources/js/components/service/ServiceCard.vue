@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
+import { listingDetailTo } from '@/utils/listingRef';
 import { providerPublicProfileEnabled } from '@/services/features';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
 import OpenHoursBadge from '@/components/common/OpenHoursBadge.vue';
@@ -61,7 +62,7 @@ const priceFooter = computed(() => {
 
 <template>
     <RouterLink
-        :to="{ name: 'listing-detail', params: { id } }"
+        :to="listingDetailTo(service)"
         class="group block ui-card ui-card-hover overflow-hidden no-underline text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chamba-700/40 focus-visible:ring-offset-2"
     >
         <div class="relative h-48 bg-slate-200 overflow-hidden">

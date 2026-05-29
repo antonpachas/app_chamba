@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import { useAdminSettingsStore } from '@/stores/adminSettings';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
@@ -15,6 +16,7 @@ const planDrafts = reactive({});
 const planLogsOpen = ref(null);
 
 const groupLabels = {
+    ui: 'Interfaz y listados',
     providers: 'Perfiles públicos de negocios',
     listings: 'Anuncios (publicación)',
     limits: 'Límites free / premium',
@@ -27,7 +29,7 @@ const groupLabels = {
     general: 'General',
 };
 
-const groupOrder = ['features', 'notifications', 'providers', 'listings', 'limits', 'ads', 'payouts', 'subscriptions', 'escrow', 'general'];
+const groupOrder = ['features', 'ui', 'notifications', 'providers', 'listings', 'limits', 'ads', 'payouts', 'subscriptions', 'escrow', 'general'];
 
 const orderedGroups = computed(() => {
     const groups = store.settingsByGroup;
@@ -151,6 +153,22 @@ async function toggleSettingsLogs() {
 
         <AppAlert v-if="err" type="error" class="mb-4">{{ err }}</AppAlert>
         <AppAlert v-if="ok" type="success" class="mb-4">{{ ok }}</AppAlert>
+
+        <div class="mb-6 rounded-2xl border border-[#003874]/15 bg-sky-50/80 p-4 md:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <p class="text-sm font-bold text-[#0b1c30]">Categorías del directorio</p>
+                <p class="text-xs text-slate-600 mt-0.5">
+                    Revisa lo que proponen desde Explorar y crea la categoría con un clic.
+                </p>
+            </div>
+            <RouterLink
+                :to="{ name: 'admin-category-suggestions' }"
+                class="inline-flex items-center justify-center gap-2 rounded-full bg-[#003874] text-white font-bold text-sm px-5 py-2.5 no-underline hover:bg-[#002a57] transition shrink-0"
+            >
+                <span class="material-symbols-outlined text-[18px]">category</span>
+                Ir a sugerencias
+            </RouterLink>
+        </div>
 
         <p v-if="store.loading" class="text-slate-500">Cargando…</p>
 

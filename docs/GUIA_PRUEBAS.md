@@ -49,7 +49,7 @@ URL local: `http://localhost:8000/app`
 
 - Hero con gradiente azul → cyan, CTA "Buscar".
 - Servicios destacados: los **Pro aparecen primero** con badge naranja.
-- Sección "¿Cómo funciona?" en 3 pasos.
+- Sección "¿Cómo funciona?" (buscar → revisar ficha con mapa/horario → contactar; bloque para negocios sin sedes).
 
 ---
 

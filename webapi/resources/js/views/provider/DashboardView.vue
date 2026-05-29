@@ -32,7 +32,7 @@ const dashboard = computed(() => profileStore.dashboard || {});
                 <div>
                     <p class="text-xs font-bold uppercase tracking-widest text-white/70">Bienvenido</p>
                     <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1">
-                        Hola, {{ profileStore.profile?.business_name || profileStore.profile?.user?.full_name || 'Proveedor' }}
+                        Hola, {{ profileStore.profile?.business_name || profileStore.profile?.user?.full_name || 'Negocio' }}
                     </h1>
                     <p class="text-white/80 mt-1">Resumen de tu actividad en Busca PE.</p>
                 </div>

@@ -101,7 +101,9 @@ function wirePopupDetailButton(marker, serviceId) {
         L.DomEvent.off(btn);
         L.DomEvent.on(btn, 'click', (ev) => {
             L.DomEvent.stop(ev);
-            router.push({ name: 'listing-detail', params: { id: serviceId } });
+            const row = props.results.find((s) => Number(s.service_id) === serviceId);
+            const param = row?.listing_ref || String(serviceId);
+            router.push({ name: 'listing-detail', params: { id: param } });
         });
     });
 }

@@ -31,7 +31,7 @@ powershell -ExecutionPolicy Bypass -File build-deploy-zip.ps1
 > - `app/`, `bootstrap/`, `config/`, `database/`, `resources/`, `routes/`
 > - `public/` (con `index.php`, `.htaccess`, `build/`, **sin** scripts `_*.php` viejos)
 > - Esqueleto `storage/` con sus `.gitignore` (la app no arranca sin esto)
-> - `public/_reset.php`, `public/_migrate.php` y `public/_cron.php` (utilitarios; migrador/reset se borran al final; `_cron.php` solo si usas cron por URL)
+> - `public/_reset.php`, `public/_migrate.php`, `public/_import_geo.php` y `public/_cron.php` (utilitarios; migrador/import geo se borran al final; `_cron.php` solo si usas cron por URL)
 > - `composer.json`, `composer.lock`, `artisan`
 
 **Tamaño esperado:** ~8-10 MB · ~6500 archivos.
@@ -77,6 +77,32 @@ Donde `<TU_TOKEN>` es el valor de `CHAMBA_SETUP_TOKEN` en tu `.env` (por defecto
 | `?token=XXX&fresh=1&confirm=YES` | **DESTRUCTIVO** — borra todas las tablas y reconstruye |
 
 Al final del output debe aparecer la lista completa con `[N] Ran` en cada migración. Si alguna queda en `Pending`, copiame ese output y lo afino.
+
+---
+
+## 3b) Importar ubicación Perú (UBIGEO + coordenadas)
+
+**No lo hace `_migrate.php`.** Después de migrar, importá el catálogo completo (~25 deptos, ~196 provincias, ~1 893 distritos):
+
+```
+https://jaapsystem.com/v1/chamba/public/_import_geo.php?token=<TU_TOKEN>
+```
+
+| URL | Qué hace |
+|---|---|
+| `?token=XXX` | Importación completa (puede tardar 2–10 min; no cierres la pestaña) |
+| `?token=XXX&status=1` | Solo muestra cuántos deptos/provincias/distritos hay en BD |
+| `?token=XXX&download=1` | Fuerza descarga del CSV en el servidor y luego importa |
+| `?token=XXX&batch=50&offset=0` | Importa por lotes (**recomendado**; 50 filas por request). Al final muestra la URL del siguiente lote |
+| `?token=XXX&release_lock=1` | Quita el bloqueo si un import anterior quedó colgado (`Lock wait timeout`) |
+
+**Importante:** no abras varios lotes a la vez ni corras `php artisan chamba:import-peru-ubigeo` en tu PC al mismo tiempo que el navegador — MySQL bloquea las tablas y verás error 1205.
+
+**Conteos esperados al terminar:** ~25 departamentos, ~196 provincias, ~1893 distritos.
+
+El ZIP generado con `build-deploy-zip.ps1` incluye `storage/app/ubigeo_distrito.csv` si existe en tu PC (recomendado). Si no, el script intenta descargarlo desde GitHub en el servidor.
+
+**Borra `public/_import_geo.php` cuando termines** (junto con `_migrate.php`).
 
 ---
 

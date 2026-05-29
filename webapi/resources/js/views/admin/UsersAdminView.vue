@@ -255,7 +255,7 @@ function exportUsersCsv() {
                 <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">Administración</p>
                 <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Usuarios</h1>
                 <p class="text-slate-600 mt-1">
-                    Clientes y proveedores registrados. Deshabilitar envía un correo con el motivo.
+                    Clientes y negocios registrados. Deshabilitar envía un correo con el motivo.
                 </p>
             </div>
             <RouterLink
@@ -279,7 +279,7 @@ function exportUsersCsv() {
             />
             <select v-model="userRole" class="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" @change="loadUsers(1)">
                 <option value="all">Todos los roles</option>
-                <option value="proveedor">Proveedores</option>
+                <option value="proveedor">Negocios</option>
                 <option value="cliente">Clientes</option>
             </select>
             <select v-model="userStatus" class="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" @change="loadUsers(1)">
@@ -497,7 +497,7 @@ function exportUsersCsv() {
                             Historial de {{ modalActivityUser.full_name }}
                         </h3>
                         <p class="text-sm text-slate-600">
-                            Supervisión de actividad completa (cliente/proveedor).
+                            Supervisión de actividad completa (cliente/negocio).
                         </p>
                     </div>
                     <AppButton variant="ghost" @click="modalActivityUser = null">Cerrar</AppButton>
@@ -511,7 +511,7 @@ function exportUsersCsv() {
                             <p class="text-2xl font-bold text-slate-900">{{ activityData.summary?.client_requests_total ?? 0 }}</p>
                         </div>
                         <div class="rounded-xl border border-slate-200 p-3">
-                            <p class="text-xs text-slate-500">Solicitudes como proveedor</p>
+                            <p class="text-xs text-slate-500">Solicitudes como negocio</p>
                             <p class="text-2xl font-bold text-slate-900">{{ activityData.summary?.provider_requests_total ?? 0 }}</p>
                         </div>
                         <div class="rounded-xl border border-slate-200 p-3">
@@ -570,7 +570,7 @@ function exportUsersCsv() {
                         </section>
 
                         <section class="rounded-xl border border-slate-200 p-4">
-                            <h4 class="font-bold text-slate-900 mb-2">Solicitudes como proveedor</h4>
+                            <h4 class="font-bold text-slate-900 mb-2">Solicitudes como negocio</h4>
                             <div v-if="!(activityData.provider_requests || []).length" class="text-sm text-slate-500">Sin actividad.</div>
                             <div v-else class="overflow-x-auto">
                                 <table class="w-full text-sm min-w-[560px]">

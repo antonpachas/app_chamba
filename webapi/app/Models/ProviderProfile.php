@@ -10,6 +10,7 @@ class ProviderProfile extends Model
 {
     protected $fillable = [
         'user_id',
+        'cover_path',
         'business_name',
         'description',
         'whatsapp',

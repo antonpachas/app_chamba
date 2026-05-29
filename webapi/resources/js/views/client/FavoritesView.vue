@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
+import { listingDetailTo } from '@/utils/listingRef';
 import { useFavoritesStore } from '@/stores/favorites';
 import AppButton from '@/components/ui/AppButton.vue';
 
@@ -35,7 +36,7 @@ onMounted(() => favs.load());
                 </div>
                 <RouterLink
                     v-if="f.provider_service_id"
-                    :to="{ name: 'listing-detail', params: { id: f.provider_service_id } }"
+                    :to="listingDetailTo({ service_id: f.provider_service_id, listing_ref: f.listing_ref })"
                     class="mt-4 text-center rounded-full border-2 border-[#003874]/30 text-[#003874] font-bold text-sm py-2 no-underline hover:bg-[#003874]/5"
                 >
                     Ver anuncio

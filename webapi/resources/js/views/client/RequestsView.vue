@@ -87,7 +87,7 @@ async function confirmCompleted(paymentId) {
     localError.value = '';
     try {
         await store.confirmCompleted(paymentId);
-        localOk.value = 'Confirmaste la finalización. Pago liberado al proveedor.';
+        localOk.value = 'Confirmaste la finalización. Pago liberado al negocio.';
     } catch (e) {
         localError.value = e.message;
     } finally {
@@ -155,7 +155,7 @@ async function submitDispute(paymentId) {
 
         <p v-if="store.loading" class="text-slate-500">Cargando…</p>
         <div v-else-if="!store.items.length" class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-            Aún no tienes solicitudes. Cuando contactes a un proveedor desde un servicio, aparecerá aquí.
+            Aún no tienes solicitudes. Cuando contactes a un negocio desde un anuncio, aparecerá aquí.
         </div>
         <div v-else class="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table class="w-full min-w-[860px] text-sm">
@@ -301,7 +301,7 @@ async function submitDispute(paymentId) {
                     <div v-if="activeRequest.latest_quote?.status === 'aceptada' && !activeRequest.payment" class="rounded-xl border border-amber-200 bg-amber-50 p-4 mb-4">
                         <p class="text-sm text-amber-900 mb-3">
                             Para asegurar el trabajo, paga el monto cotizado a Busca PE. Cuando confirmes que el servicio terminó,
-                            liberamos el dinero al proveedor (menos comisión).
+                            liberamos el dinero al negocio (menos comisión).
                         </p>
                         <AppButton variant="secondary" size="sm" @click="openPay(activeRequest.id)">
                             Registrar pago
@@ -388,7 +388,7 @@ async function submitDispute(paymentId) {
                     >Ver mi captura del pago</a>
                     <div v-if="activeRequest.payment.status === 'en_custodia'" class="mt-4 space-y-3">
                         <p class="text-sm text-slate-700">
-                            Cuando el proveedor termine el trabajo y estés conforme, libera el pago.
+                            Cuando el negocio termine el trabajo y estés conforme, libera el pago.
                             Si algo no está bien, abre una disputa.
                         </p>
                         <div class="flex flex-wrap gap-2">
@@ -426,10 +426,10 @@ async function submitDispute(paymentId) {
                     </div>
                     </div>
 
-                    <!-- Evidencia del trabajo entregada por el proveedor -->
+                    <!-- Evidencia del trabajo entregada por el negocio -->
                     <div v-if="(activeRequest.evidence?.length || 0) > 0" class="rounded-xl border border-slate-100 bg-white p-4 mb-4">
                     <p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
-                        Evidencia entregada por el proveedor
+                        Evidencia entregada por el negocio
                     </p>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         <a

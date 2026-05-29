@@ -26,6 +26,8 @@ class MediaStorageService
     public const FOLDER_PAYMENT = 'payments';
     public const FOLDER_ADS = 'ads';
 
+    public const FOLDER_COVER = 'covers';
+
     private const ALLOWED_MIMES = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
@@ -52,7 +54,7 @@ class MediaStorageService
      */
     public function storeImage(UploadedFile $file, string $folder, array $opts = []): string
     {
-        if (! in_array($folder, [self::FOLDER_AVATAR, self::FOLDER_SERVICE, self::FOLDER_PAYMENT, self::FOLDER_ADS], true)) {
+        if (! in_array($folder, [self::FOLDER_AVATAR, self::FOLDER_SERVICE, self::FOLDER_PAYMENT, self::FOLDER_ADS, self::FOLDER_COVER], true)) {
             throw new RuntimeException("Carpeta no permitida: {$folder}");
         }
 

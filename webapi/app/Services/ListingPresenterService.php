@@ -14,6 +14,7 @@ final class ListingPresenterService
         private readonly ListingLifecycleService $listings,
         private readonly BusinessHoursService $businessHours,
         private readonly ListingLocationFieldsService $listingLocation,
+        private readonly ListingPublicIdService $publicIds,
     ) {}
 
     /**
@@ -44,8 +45,12 @@ final class ListingPresenterService
             ? $this->listings->listingMeta($service, $prof, $prof->user)
             : [];
 
+        $departmentId = $service->department_id ?? $service->district?->province?->department_id;
+        $provinceId = $service->province_id ?? $service->district?->province_id;
+
         $row = array_merge([
             'service_id' => $service->id,
+            'listing_ref' => $this->publicIds->encode((int) $service->id),
             'title' => $service->title,
             'description' => $service->description,
             'base_price' => $service->base_price,
@@ -63,7 +68,12 @@ final class ListingPresenterService
             'avg_rating' => $prof?->avg_rating,
             'total_reviews' => $prof?->total_reviews,
             'is_verified' => (bool) ($prof?->is_verified ?? false),
+            'department_id' => $departmentId,
+            'province_id' => $provinceId,
             'district_id' => $service->district_id ?? $prof?->district_id,
+            'ubigeo' => $service->ubigeo ?? $service->district?->ubigeo,
+            'latitude' => $service->latitude,
+            'longitude' => $service->longitude,
             'district_name' => $service->district?->name ?? $prof?->district?->name,
             'province_name' => $service->district?->province?->name ?? $prof?->district?->province?->name,
             'department_name' => $service->district?->province?->department?->name ?? $prof?->district?->province?->department?->name,

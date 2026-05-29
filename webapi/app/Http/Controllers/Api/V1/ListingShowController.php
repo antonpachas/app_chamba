@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\ListingGuestPreviewService;
 use App\Services\ListingLifecycleService;
 use App\Services\ListingPresenterService;
+use App\Services\ListingPublicIdService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,11 +19,17 @@ final class ListingShowController extends Controller
         private readonly ListingPresenterService $presenter,
         private readonly ListingLifecycleService $listings,
         private readonly ListingGuestPreviewService $guestPreview,
+        private readonly ListingPublicIdService $publicIds,
     ) {}
 
-    public function show(Request $request, int $listing): JsonResponse
+    public function show(Request $request, string $listing): JsonResponse
     {
-        $service = ProviderService::query()->find($listing);
+        $listingId = $this->publicIds->resolve($listing);
+        if ($listingId === null) {
+            return response()->json(['message' => 'Anuncio no encontrado.'], 404);
+        }
+
+        $service = ProviderService::query()->find($listingId);
         if ($service === null) {
             return response()->json(['message' => 'Anuncio no encontrado.'], 404);
         }

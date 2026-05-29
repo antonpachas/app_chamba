@@ -6,8 +6,11 @@ import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import AdminServerTable from '@/components/admin/AdminServerTable.vue';
 
 const rows = ref([]);
+const meta = ref({ current_page: 1, last_page: 1, per_page: 25, total: 0 });
+const perPage = ref(25);
 const summary = ref({ ingresos: 0, egresos: 0, balance: 0 });
 const loading = ref(false);
 const saving = ref(false);
@@ -60,7 +63,16 @@ function closeExpenseModal() {
     expenseModalOpen.value = false;
 }
 
-async function load() {
+const ledgerColumns = [
+    { key: 'occurred_at', label: 'Fecha' },
+    { key: 'type', label: 'Tipo' },
+    { key: 'category', label: 'Categoría' },
+    { key: 'amount', label: 'Monto', align: 'right' },
+    { key: 'description', label: 'Detalle' },
+    { key: 'reference', label: 'Referencia' },
+];
+
+async function load(page = 1) {
     loading.value = true;
     err.value = '';
     try {
@@ -70,10 +82,13 @@ async function load() {
                 type: filters.type === 'all' ? undefined : filters.type,
                 from: filters.from || undefined,
                 to: filters.to || undefined,
+                page,
+                per_page: perPage.value,
             },
         });
         rows.value = r.data || [];
-        summary.value = r.summary || summary.value;
+        meta.value = r.meta || meta.value;
+        summary.value = r.meta?.summary || r.summary || summary.value;
     } catch (e) {
         err.value = e.message;
         rows.value = [];
@@ -94,7 +109,7 @@ async function addExpense() {
         );
         msg.value = 'Egreso registrado correctamente.';
         closeExpenseModal();
-        await load();
+        await load(meta.value.current_page || 1);
     } catch (e) {
         err.value = e.message;
     } finally {
@@ -102,7 +117,16 @@ async function addExpense() {
     }
 }
 
-onMounted(load);
+function onPage(p) {
+    load(p);
+}
+
+function onPerPage(n) {
+    perPage.value = n;
+    load(1);
+}
+
+onMounted(() => load(1));
 </script>
 
 <template>
@@ -153,7 +177,7 @@ onMounted(load);
                     <option value="egreso">Egresos</option>
                 </select>
             </label>
-            <AppButton variant="primary" @click="load">Filtrar</AppButton>
+            <AppButton variant="primary" @click="load(1)">Filtrar</AppButton>
             <AppButton variant="primary" @click="openExpenseModal">
                 <span class="material-symbols-outlined text-lg align-middle mr-1">add</span>
                 Registrar egreso
@@ -166,61 +190,38 @@ onMounted(load);
             </RouterLink>
         </div>
 
-        <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table class="w-full text-sm min-w-[720px]">
-                <thead class="bg-slate-50 text-left text-xs font-bold uppercase text-slate-600">
-                    <tr>
-                        <th class="px-4 py-3">Fecha</th>
-                        <th class="px-4 py-3">Tipo</th>
-                        <th class="px-4 py-3">Categoría</th>
-                        <th class="px-4 py-3 text-right">Monto</th>
-                        <th class="px-4 py-3">Detalle</th>
-                        <th class="px-4 py-3">Referencia</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-if="loading">
-                        <td colspan="6" class="px-4 py-12 text-center text-slate-500">Cargando movimientos…</td>
-                    </tr>
-                    <tr v-else-if="!rows.length">
-                        <td colspan="6" class="px-4 py-12 text-center text-slate-500">
-                            Sin movimientos en el periodo seleccionado.
-                        </td>
-                    </tr>
-                    <tr
-                        v-for="r in rows"
-                        :key="r.id"
-                        class="border-t border-slate-100 hover:bg-slate-50/60 transition"
-                        :class="r.type === 'ingreso' ? 'bg-emerald-50/25' : r.type === 'egreso' ? 'bg-rose-50/15' : ''"
-                    >
-                        <td class="px-4 py-3 whitespace-nowrap text-slate-700">{{ fmtDate(r.occurred_at) }}</td>
-                        <td class="px-4 py-3">
-                            <span
-                                class="inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                                :class="
-                                    r.type === 'ingreso'
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : 'bg-rose-100 text-rose-800'
-                                "
-                            >
-                                {{ typeLabel(r.type) }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 font-medium text-slate-800">{{ r.category || '—' }}</td>
-                        <td
-                            class="px-4 py-3 text-right font-bold whitespace-nowrap"
-                            :class="r.type === 'ingreso' ? 'text-emerald-800' : 'text-rose-800'"
-                        >
-                            <span v-if="r.type === 'egreso'">−</span><Money :amount="r.amount" />
-                        </td>
-                        <td class="px-4 py-3 text-slate-600 max-w-[280px]">
-                            <span class="line-clamp-2">{{ r.description || '—' }}</span>
-                        </td>
-                        <td class="px-4 py-3 text-xs text-slate-500 font-mono">{{ referenceLabel(r) }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <AdminServerTable
+            :columns="ledgerColumns"
+            :rows="rows"
+            :meta="meta"
+            :loading="loading"
+            empty-message="Sin movimientos en el periodo seleccionado."
+            @page="onPage"
+            @per-page="onPerPage"
+        >
+            <template #cell-occurred_at="{ row }">
+                <span class="whitespace-nowrap text-slate-700">{{ fmtDate(row.occurred_at) }}</span>
+            </template>
+            <template #cell-type="{ row }">
+                <span
+                    class="inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase"
+                    :class="row.type === 'ingreso' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'"
+                >
+                    {{ typeLabel(row.type) }}
+                </span>
+            </template>
+            <template #cell-amount="{ row }">
+                <span class="font-bold" :class="row.type === 'ingreso' ? 'text-emerald-800' : 'text-rose-800'">
+                    <span v-if="row.type === 'egreso'">−</span><Money :amount="row.amount" />
+                </span>
+            </template>
+            <template #cell-description="{ row }">
+                <span class="line-clamp-2 text-slate-600">{{ row.description || '—' }}</span>
+            </template>
+            <template #cell-reference="{ row }">
+                <span class="text-xs font-mono text-slate-500">{{ referenceLabel(row) }}</span>
+            </template>
+        </AdminServerTable>
 
         <p class="text-xs text-slate-500 mt-3 text-center">
             Los ingresos se registran al confirmar pagos en Admin → Membresías. Usa «Registrar egreso» para gastos de plataforma.

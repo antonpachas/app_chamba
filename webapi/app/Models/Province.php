@@ -11,9 +11,18 @@ class Province extends Model
     protected $fillable = [
         'department_id',
         'name',
+        'ubigeo_code',
         'latitude',
         'longitude',
+        'is_active',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     public function department(): BelongsTo
     {

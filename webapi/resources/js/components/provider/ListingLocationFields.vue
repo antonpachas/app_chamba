@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, watch } from 'vue';
+import { onMounted, reactive, ref, watch } from 'vue';
 import { api } from '@/services/api';
 
 const model = defineModel({
@@ -10,6 +10,12 @@ const model = defineModel({
 const departments = reactive({ list: [] });
 const provinces = reactive({ list: [] });
 const districts = reactive({ list: [] });
+const hydrating = ref(false);
+
+function num(v) {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : null;
+}
 
 async function loadDepartments() {
     if (departments.list.length) return;
@@ -21,28 +27,34 @@ async function loadDepartments() {
     }
 }
 
-async function onDeptChange() {
-    provinces.list = [];
-    districts.list = [];
-    model.value.province_id = null;
-    model.value.district_id = null;
-    model.value.ubigeo = '';
-    if (!model.value.department_id) return;
+async function onDeptChange(keepChildren = false) {
+    if (!keepChildren) {
+        provinces.list = [];
+        districts.list = [];
+        model.value.province_id = null;
+        model.value.district_id = null;
+        model.value.ubigeo = '';
+    }
+    const deptId = num(model.value.department_id);
+    if (!deptId) return;
     try {
-        const r = await api.get('/geo/provinces', { params: { department_id: model.value.department_id } });
+        const r = await api.get('/geo/provinces', { params: { department_id: deptId } });
         provinces.list = r.data || [];
     } catch {
         provinces.list = [];
     }
 }
 
-async function onProvChange() {
-    districts.list = [];
-    model.value.district_id = null;
-    model.value.ubigeo = '';
-    if (!model.value.province_id) return;
+async function onProvChange(keepDistrict = false) {
+    if (!keepDistrict) {
+        districts.list = [];
+        model.value.district_id = null;
+        model.value.ubigeo = '';
+    }
+    const provId = num(model.value.province_id);
+    if (!provId) return;
     try {
-        const r = await api.get('/geo/districts', { params: { province_id: model.value.province_id } });
+        const r = await api.get('/geo/districts', { params: { province_id: provId } });
         districts.list = r.data || [];
     } catch {
         districts.list = [];
@@ -50,8 +62,8 @@ async function onProvChange() {
 }
 
 function onDistrictChange() {
-    const d = districts.list.find((row) => Number(row.id) === Number(model.value.district_id));
-    model.value.ubigeo = d?.ubigeo ? String(d.ubigeo) : '';
+    const d = districts.list.find((row) => num(row.id) === num(model.value.district_id));
+    model.value.ubigeo = d?.ubigeo ? String(d.ubigeo) : model.value.ubigeo || '';
     if (d?.latitude != null && (model.value.latitude === '' || model.value.latitude == null)) {
         model.value.latitude = d.latitude;
     }
@@ -60,29 +72,94 @@ function onDistrictChange() {
     }
 }
 
+async function hydrateFromDistrictId() {
+    const distId = num(model.value.district_id);
+    if (!distId) return;
+    try {
+        const r = await api.get(`/geo/districts/${distId}`);
+        const d = r.data;
+        if (!d) return;
+        model.value.department_id = num(d.department_id);
+        model.value.province_id = num(d.province_id);
+        model.value.district_id = distId;
+        if (d.ubigeo) model.value.ubigeo = String(d.ubigeo);
+    } catch {
+        /* noop */
+    }
+}
+
+async function hydrateCascade() {
+    hydrating.value = true;
+    await loadDepartments();
+
+    const distId = num(model.value.district_id);
+    if (distId && (!num(model.value.department_id) || !num(model.value.province_id))) {
+        await hydrateFromDistrictId();
+    } else if (model.value.ubigeo && String(model.value.ubigeo).length === 6) {
+        try {
+            const r = await api.get('/geo/ubigeo', { params: { ubigeo: String(model.value.ubigeo) } });
+            const d = r.data;
+            if (d) {
+                model.value.department_id = num(d.department_id);
+                model.value.province_id = num(d.province_id);
+                model.value.district_id = num(d.district_id) ?? distId;
+            }
+        } catch {
+            /* noop */
+        }
+    }
+
+    const deptId = num(model.value.department_id);
+    if (deptId) {
+        await onDeptChange(true);
+        model.value.department_id = deptId;
+    }
+
+    const provId = num(model.value.province_id);
+    if (provId) {
+        await onProvChange(true);
+        model.value.province_id = provId;
+    }
+
+    const finalDist = num(model.value.district_id);
+    if (finalDist) {
+        model.value.district_id = finalDist;
+        onDistrictChange();
+    }
+
+    hydrating.value = false;
+}
+
 watch(
     () => model.value.department_id,
     (id, prev) => {
-        if (id && id !== prev) void onDeptChange();
+        if (hydrating.value || !id || id === prev) return;
+        void onDeptChange();
     },
 );
 
 watch(
     () => model.value.province_id,
     (id, prev) => {
-        if (id && id !== prev) void onProvChange();
+        if (hydrating.value || !id || id === prev) return;
+        void onProvChange();
     },
 );
 
-onMounted(async () => {
-    await loadDepartments();
-    if (model.value.department_id) {
-        await onDeptChange();
-    }
-    if (model.value.province_id) {
-        await onProvChange();
-    }
+watch(
+    () => [model.value.district_id, model.value.department_id, model.value.province_id],
+    () => {
+        if (hydrating.value) return;
+        const needs = num(model.value.district_id) && (!num(model.value.department_id) || !num(model.value.province_id));
+        if (needs) void hydrateCascade();
+    },
+);
+
+onMounted(() => {
+    void hydrateCascade();
 });
+
+defineExpose({ hydrateCascade });
 </script>
 
 <template>
@@ -112,39 +189,39 @@ onMounted(async () => {
             <label class="block text-sm">
                 <span class="text-xs font-bold uppercase text-slate-500">Departamento</span>
                 <select
-                    v-model="model.department_id"
+                    v-model.number="model.department_id"
                     required
                     class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    @change="onDeptChange"
+                    @change="onDeptChange()"
                 >
                     <option :value="null">—</option>
-                    <option v-for="d in departments.list" :key="d.id" :value="d.id">{{ d.name }}</option>
+                    <option v-for="d in departments.list" :key="d.id" :value="Number(d.id)">{{ d.name }}</option>
                 </select>
             </label>
             <label class="block text-sm">
                 <span class="text-xs font-bold uppercase text-slate-500">Provincia</span>
                 <select
-                    v-model="model.province_id"
+                    v-model.number="model.province_id"
                     required
                     :disabled="!model.department_id"
                     class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:opacity-50"
-                    @change="onProvChange"
+                    @change="onProvChange()"
                 >
                     <option :value="null">—</option>
-                    <option v-for="p in provinces.list" :key="p.id" :value="p.id">{{ p.name }}</option>
+                    <option v-for="p in provinces.list" :key="p.id" :value="Number(p.id)">{{ p.name }}</option>
                 </select>
             </label>
             <label class="block text-sm">
                 <span class="text-xs font-bold uppercase text-slate-500">Distrito <span class="text-rose-600">*</span></span>
                 <select
-                    v-model="model.district_id"
+                    v-model.number="model.district_id"
                     required
                     :disabled="!model.province_id"
                     class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:opacity-50"
                     @change="onDistrictChange"
                 >
                     <option :value="null">—</option>
-                    <option v-for="d in districts.list" :key="d.id" :value="d.id">{{ d.name }}</option>
+                    <option v-for="d in districts.list" :key="d.id" :value="Number(d.id)">{{ d.name }}</option>
                 </select>
             </label>
         </div>

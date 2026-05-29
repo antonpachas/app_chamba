@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth';
 import { escrowEnabled } from '@/services/features';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import AppPasswordInput from '@/components/ui/AppPasswordInput.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import AvatarUploader from '@/components/common/AvatarUploader.vue';
 
@@ -45,7 +46,6 @@ async function saveProfile() {
     try {
         const payload = {
             full_name: form.value.full_name.trim(),
-            email: form.value.email.trim(),
             phone: form.value.phone.trim() || null,
         };
         if (showPasswordFields.value && form.value.password) {
@@ -92,7 +92,11 @@ async function doLogout() {
 
                     <form class="space-y-5" @submit.prevent="saveProfile">
                         <AppInput v-model="form.full_name" label="Nombre completo" placeholder="Juan Pérez" autocomplete="name" />
-                        <AppInput v-model="form.email" type="email" label="Correo electrónico" placeholder="correo@ejemplo.com" autocomplete="email" />
+                        <div>
+                            <span class="mb-2 block text-sm font-bold text-slate-700">Correo electrónico</span>
+                            <p class="ui-input bg-slate-50 text-slate-600 cursor-not-allowed">{{ form.email || '—' }}</p>
+                            <p class="mt-1 text-xs text-slate-500">El correo no se puede cambiar desde aquí. Contacta soporte si necesitas actualizarlo.</p>
+                        </div>
                         <AppInput v-model="form.phone" label="Teléfono (opcional)" placeholder="999 999 999" autocomplete="tel" />
 
                         <div class="pt-2 border-t border-slate-100">
@@ -104,21 +108,18 @@ async function doLogout() {
                                 {{ showPasswordFields ? 'Ocultar cambio de contraseña' : 'Cambiar contraseña' }}
                             </button>
                             <div v-if="showPasswordFields" class="mt-4 space-y-4">
-                                <AppInput
+                                <AppPasswordInput
                                     v-model="form.current_password"
-                                    type="password"
                                     label="Contraseña actual"
                                     autocomplete="current-password"
                                 />
-                                <AppInput
+                                <AppPasswordInput
                                     v-model="form.password"
-                                    type="password"
                                     label="Nueva contraseña"
                                     autocomplete="new-password"
                                 />
-                                <AppInput
+                                <AppPasswordInput
                                     v-model="form.password_confirmation"
-                                    type="password"
                                     label="Confirmar nueva contraseña"
                                     autocomplete="new-password"
                                 />
@@ -155,6 +156,7 @@ async function doLogout() {
                 <RouterLink v-if="auth.isProveedor" :to="{ name: 'provider-profile' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Perfil del negocio</RouterLink>
 
                 <RouterLink v-if="auth.user?.role === 'admin'" :to="{ name: 'admin-dashboard' }" class="rounded-full btn-grad-primary text-center no-underline py-3.5 px-6">Panel admin</RouterLink>
+                <RouterLink v-if="auth.user?.role === 'admin'" :to="{ name: 'admin-category-suggestions' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Categorías</RouterLink>
                 <RouterLink v-if="auth.user?.role === 'admin'" :to="{ name: 'admin-support' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Casos de soporte</RouterLink>
                 <RouterLink v-if="auth.user?.role === 'admin'" :to="{ name: 'admin-ledger' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Kardex (ingresos / egresos)</RouterLink>
                 <RouterLink v-if="auth.user?.role === 'admin'" :to="{ name: 'admin-subscriptions' }" class="rounded-full bg-white border-2 border-slate-200 hover:border-[#003874]/40 text-slate-800 font-bold py-3 px-6 text-center no-underline">Membresías</RouterLink>

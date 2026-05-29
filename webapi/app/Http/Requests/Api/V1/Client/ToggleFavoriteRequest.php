@@ -8,7 +8,7 @@ class ToggleFavoriteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user() !== null && $this->user()->role === 'cliente';
     }
 
     /**

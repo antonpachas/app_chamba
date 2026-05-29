@@ -83,6 +83,15 @@ foreach ($s in $storageStructure) {
     }
 }
 
+# CSV UBIGEO para import en producción sin descargar desde GitHub
+$ubigeoCsv = 'storage\app\ubigeo_distrito.csv'
+if (Test-Path $ubigeoCsv) {
+    Copy-Item $ubigeoCsv "$staging\storage\app\ubigeo_distrito.csv" -Force
+    Write-Host "  Incluido storage/app/ubigeo_distrito.csv en el ZIP"
+} else {
+    Write-Host "  [aviso] Sin storage/app/ubigeo_distrito.csv — _import_geo.php intentará descargarlo en el servidor" -ForegroundColor Yellow
+}
+
 # Limpiar scripts de diagnóstico viejos de public/
 Get-ChildItem "$staging\public" -File | Where-Object { $_.Name -like '_*.php' } | Remove-Item -Force
 
@@ -92,7 +101,7 @@ if (Test-Path "$staging\bootstrap\cache") {
 }
 
 # Copiar scripts utilitarios de servidor
-foreach ($script in @('_reset.php','_migrate.php','_cron.php','_fix_htaccess.php','_fix_media_404.php','_fix_service_403.php','_diag.php','_diag_service.php')) {
+foreach ($script in @('_reset.php','_migrate.php','_import_geo.php','_cron.php','_fix_htaccess.php','_fix_media_404.php','_fix_service_403.php','_diag.php','_diag_service.php')) {
     $src = "public\$script"
     if (Test-Path $src) { Copy-Item $src "$staging\public\$script" -Force }
 }
@@ -247,7 +256,7 @@ $mustHave = @(
     'vendor/autoload.php','routes/web.php','routes/api.php',
     'app/Services/MediaStorageService.php',
     'app/Http/Controllers/Api/V1/MediaController.php',
-    'public/_reset.php','public/_migrate.php','public/_cron.php',
+    'public/_reset.php','public/_migrate.php','public/_import_geo.php','public/_cron.php',
     'public/_fix_htaccess.php','public/_fix_media_404.php'
 )
 $missing = @()

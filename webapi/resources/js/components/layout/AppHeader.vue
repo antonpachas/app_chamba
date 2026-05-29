@@ -3,8 +3,9 @@ import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { scrollToHash } from '@/utils/scroll';
 import { useAuthStore } from '@/stores/auth';
-import { escrowEnabled } from '@/services/features';
 import { asset } from '@/utils/asset';
+import AdminNavMenu from '@/components/layout/AdminNavMenu.vue';
+import { buildAdminNav } from '@/utils/adminNav';
 import { useUserNotificationsStore } from '@/stores/userNotifications';
 
 const auth = useAuthStore();
@@ -13,8 +14,6 @@ const route = useRoute();
 const router = useRouter();
 const menuOpen = ref(false);
 const mobileNavOpen = ref(false);
-const escrow = escrowEnabled();
-
 const initials = computed(() => {
     const n = auth.user?.full_name?.trim();
     if (!n) return '?';
@@ -24,21 +23,12 @@ const initials = computed(() => {
     return (a + b).slice(0, 2) || '?';
 });
 
+const isAdmin = computed(() => auth.user?.role === 'admin');
+const adminFlatLinks = computed(() => (isAdmin.value ? buildAdminNav().flatLinks : []));
+
 const navLinks = computed(() => {
-    if (auth.user?.role === 'admin') {
-        return [
-            { name: 'admin-dashboard', label: 'Panel' },
-            { name: 'admin-users', label: 'Usuarios' },
-            { name: 'admin-moderation', label: 'Moderación' },
-            { name: 'admin-subscriptions', label: 'Membresías' },
-            { name: 'admin-system', label: 'Sistema' },
-            { name: 'admin-support', label: 'Soporte' },
-            { name: 'admin-ledger', label: 'Kardex' },
-            { name: 'admin-settings', label: 'Config' },
-            ...(escrow ? [
-                { name: 'admin-payments', label: 'Pagos' },
-            ] : []),
-        ];
+    if (isAdmin.value) {
+        return [];
     }
     if (auth.isProveedor) {
         return [
@@ -117,7 +107,9 @@ function navLinkClass(link) {
                 </RouterLink>
             </div>
 
-            <div class="hidden md:flex items-center gap-1 lg:gap-2">
+            <AdminNavMenu v-if="isAdmin" />
+
+            <div v-if="!isAdmin" class="hidden md:flex items-center gap-1 lg:gap-2">
                 <template v-for="link in navLinks" :key="link.name + (link.hash || '')">
                     <a
                         v-if="link.hash"
@@ -235,6 +227,19 @@ function navLinkClass(link) {
             class="md:hidden border-t border-slate-200/80 bg-white/95 backdrop-blur-md px-4 py-3 max-h-[70vh] overflow-y-auto"
         >
             <div class="grid gap-1">
+                <template v-if="isAdmin">
+                    <RouterLink
+                        v-for="link in adminFlatLinks"
+                        :key="'m-admin-' + link.name"
+                        :to="{ name: link.name }"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold border no-underline"
+                        :class="navLinkClass(link)"
+                        @click="mobileNavOpen = false"
+                    >
+                        <span class="material-symbols-outlined text-[20px] opacity-70">chevron_right</span>
+                        {{ link.label }}
+                    </RouterLink>
+                </template>
                 <template v-for="link in navLinks" :key="'m-' + link.name + (link.hash || '')">
                     <a
                         v-if="link.hash"

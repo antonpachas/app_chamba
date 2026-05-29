@@ -46,6 +46,7 @@ const subscriptionsActive = computed(() => {
                     <RouterLink :to="{ name: 'admin-users' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Usuarios</RouterLink>
                     <RouterLink :to="{ name: 'admin-moderation' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Moderación</RouterLink>
                     <RouterLink :to="{ name: 'admin-ledger' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Kardex</RouterLink>
+                    <RouterLink :to="{ name: 'admin-category-suggestions' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Categorías</RouterLink>
                     <RouterLink :to="{ name: 'admin-settings' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Configuración</RouterLink>
                     <RouterLink v-if="escrow" :to="{ name: 'admin-payments' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Pagos en custodia</RouterLink>
                     <RouterLink v-if="escrow" :to="{ name: 'admin-withdrawals' }" class="rounded-full bg-white/10 border border-white/20 backdrop-blur text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-white/20">Procesar retiros</RouterLink>
@@ -84,7 +85,7 @@ const subscriptionsActive = computed(() => {
                     </div>
                     <p class="text-xs font-bold uppercase tracking-widest text-violet-900">Pro activos</p>
                     <p class="text-4xl font-black text-violet-950 mt-2">{{ data.kpis.subs_pro_active || 0 }}</p>
-                    <p class="text-xs text-violet-900/70 mt-1">Proveedores con plan Pro</p>
+                    <p class="text-xs text-violet-900/70 mt-1">Negocios con plan Pro</p>
                 </div>
                 <div class="rounded-2xl bg-grad-card-coral border border-rose-200 p-5 relative overflow-hidden" style="box-shadow: 0 16px 40px -16px rgba(255, 94, 126, 0.30)">
                     <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-grad-warm flex items-center justify-center text-white">
@@ -130,7 +131,7 @@ const subscriptionsActive = computed(() => {
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 hover:shadow-md transition">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-lg bg-orange-50 text-[#ff7a2b] flex items-center justify-center"><span class="material-symbols-outlined">handyman</span></div>
-                        <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Proveedores</p>
+                        <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Negocios</p>
                     </div>
                     <p class="text-3xl font-black text-[#003874] mt-3">{{ data.kpis.users_providers }}</p>
                     <p class="text-xs text-slate-500 mt-1">{{ data.kpis.providers_with_profile }} con perfil</p>
@@ -145,7 +146,7 @@ const subscriptionsActive = computed(() => {
                 <div v-if="escrow" class="rounded-2xl border border-slate-200 bg-white p-5 hover:shadow-md transition">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center"><span class="material-symbols-outlined">account_balance_wallet</span></div>
-                        <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Saldo proveedores</p>
+                        <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Saldo negocios</p>
                     </div>
                     <p class="text-2xl font-black text-emerald-700 mt-3"><Money :amount="data.kpis.wallets_total_balance" /></p>
                     <p class="text-xs text-slate-500 mt-1">Por retirar</p>
@@ -205,7 +206,7 @@ const subscriptionsActive = computed(() => {
                                 <th class="text-left pb-2">#</th>
                                 <th class="text-left pb-2">Servicio</th>
                                 <th class="text-left pb-2">Cliente</th>
-                                <th class="text-left pb-2">Proveedor</th>
+                                <th class="text-left pb-2">Negocio</th>
                                 <th class="text-right pb-2">Monto</th>
                                 <th class="text-right pb-2">Comisión</th>
                                 <th class="text-left pb-2">Estado</th>

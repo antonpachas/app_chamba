@@ -9,9 +9,18 @@ class Department extends Model
 {
     protected $fillable = [
         'name',
+        'ubigeo_code',
         'latitude',
         'longitude',
+        'is_active',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     public function provinces(): HasMany
     {

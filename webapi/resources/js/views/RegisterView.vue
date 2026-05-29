@@ -4,6 +4,7 @@ import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import AppPasswordInput from '@/components/ui/AppPasswordInput.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import { asset } from '@/utils/asset';
 
@@ -88,7 +89,7 @@ async function submit() {
                         :class="role === 'proveedor' ? 'bg-white text-[#003874] shadow-sm ring-1 ring-slate-200/80' : 'text-slate-600 hover:text-slate-900'"
                         @click="role = 'proveedor'"
                     >
-                        Proveedor
+                        Negocio
                     </button>
                 </div>
                 <AppAlert v-if="error" type="error" class="mb-4">{{ error }}</AppAlert>
@@ -97,8 +98,8 @@ async function submit() {
                     <AppInput v-model="email" label="Correo electrónico" type="email" required autocomplete="email" />
                     <AppInput v-model="phone" label="Teléfono (opcional)" type="tel" autocomplete="tel" />
                     <div class="grid sm:grid-cols-2 gap-4">
-                        <AppInput v-model="password" label="Contraseña" type="password" :minlength="8" required autocomplete="new-password" />
-                        <AppInput v-model="passwordConfirm" label="Confirmar contraseña" type="password" :minlength="8" required autocomplete="new-password" />
+                        <AppPasswordInput v-model="password" label="Contraseña" :minlength="8" required autocomplete="new-password" />
+                        <AppPasswordInput v-model="passwordConfirm" label="Confirmar contraseña" :minlength="8" required autocomplete="new-password" />
                     </div>
                     <AppButton variant="primary" type="submit" :loading="loading" block>
                         Crear mi cuenta

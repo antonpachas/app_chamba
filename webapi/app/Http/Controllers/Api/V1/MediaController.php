@@ -32,7 +32,7 @@ final class MediaController extends Controller
             ?: (string) ($request->route()?->defaults['folder'] ?? '')
             ?: (string) ($request->route()?->parameter('folder') ?? '');
 
-        if (! in_array($folder, ['avatars', 'services', 'payments'], true)) {
+        if (! in_array($folder, ['avatars', 'services', 'payments', 'covers', 'ads'], true)) {
             abort(404);
         }
 

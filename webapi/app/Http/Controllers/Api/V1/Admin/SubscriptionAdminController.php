@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\PaginatesAdminResources;
 use App\Http\Controllers\Controller;
 use App\Models\SubscriptionPayment;
 use App\Models\UserSubscription;
@@ -22,15 +23,13 @@ final class SubscriptionAdminController extends Controller
     {
         $status = (string) $request->query('status', 'pendiente_revision');
 
-        $rows = SubscriptionPayment::query()
+        $paginator = SubscriptionPayment::query()
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->with(['user:id,full_name,email,phone,role', 'subscription.plan'])
             ->orderByDesc('created_at')
-            ->limit(200)
-            ->get();
+            ->paginate($this->adminPerPage($request));
 
-        return response()->json([
-            'data' => $rows->map(fn (SubscriptionPayment $p) => [
+        return $this->adminPaginatedResponse($paginator, fn (SubscriptionPayment $p) => [
                 'id' => $p->id,
                 'amount' => $p->amount,
                 'currency' => $p->currency,
@@ -52,7 +51,6 @@ final class SubscriptionAdminController extends Controller
                     'name' => $p->subscription?->plan?->name,
                     'tier' => $p->subscription?->plan?->tier,
                 ],
-            ]),
         ]);
     }
 
@@ -89,14 +87,13 @@ final class SubscriptionAdminController extends Controller
         $tier = $request->query('tier');
         $status = $request->query('status');
 
-        $rows = UserSubscription::query()
+        $paginator = UserSubscription::query()
             ->with(['user:id,full_name,email,phone,role', 'plan'])
             ->when($status, fn ($q) => $q->where('status', $status))
             ->when($tier, fn ($q) => $q->whereHas('plan', fn ($pq) => $pq->where('tier', $tier)))
             ->orderByDesc('updated_at')
-            ->limit(300)
-            ->get();
+            ->paginate($this->adminPerPage($request));
 
-        return response()->json(['data' => $rows]);
+        return $this->adminPaginatedResponse($paginator, fn (UserSubscription $row) => $row->toArray());
     }
 }

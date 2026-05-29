@@ -52,7 +52,7 @@ async function pay(id) {
         <header class="mb-8 flex justify-between items-end gap-3 flex-wrap">
             <div>
                 <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Retiros</h1>
-                <p class="text-slate-600 mt-1">Procesa los retiros solicitados por proveedores.</p>
+                <p class="text-slate-600 mt-1">Procesa los retiros solicitados por negocios.</p>
             </div>
             <select v-model="filter" @change="load()" class="rounded-lg border border-slate-200 px-3 py-2.5 text-sm">
                 <option value="solicitado">Solicitados</option>
@@ -72,7 +72,7 @@ async function pay(id) {
                 <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
                     <tr>
                         <th class="text-left px-4 py-3">#</th>
-                        <th class="text-left px-4 py-3">Proveedor</th>
+                        <th class="text-left px-4 py-3">Negocio</th>
                         <th class="text-right px-4 py-3">Monto</th>
                         <th class="text-left px-4 py-3">Método</th>
                         <th class="text-left px-4 py-3">Datos de pago</th>

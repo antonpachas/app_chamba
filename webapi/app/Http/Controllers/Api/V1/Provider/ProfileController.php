@@ -8,15 +8,18 @@ use App\Http\Requests\Api\V1\Provider\UpdateProviderProfileRequest;
 use App\Http\Resources\Api\V1\ProviderProfileResource;
 use App\Models\ProviderProfile;
 use App\Services\BusinessHoursService;
+use App\Services\MediaStorageService;
 use App\Services\StoredProcedureService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Throwable;
 
 final class ProfileController extends Controller
 {
     public function __construct(
         private readonly StoredProcedureService $storedProcedures,
         private readonly BusinessHoursService $businessHours,
+        private readonly MediaStorageService $media,
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -85,5 +88,56 @@ final class ProfileController extends Controller
         return response()->json([
             'data' => ProviderProfileResource::make($profile),
         ]);
+    }
+
+    public function uploadCover(Request $request): JsonResponse
+    {
+        $profile = $request->user()->providerProfile;
+        if ($profile === null) {
+            return response()->json(['message' => 'Crea tu perfil de negocio primero.'], 404);
+        }
+
+        $request->validate([
+            'cover' => 'required|file|max:8192',
+        ]);
+
+        try {
+            $oldPath = $profile->cover_path;
+            $newPath = $this->media->storeImage(
+                $request->file('cover'),
+                MediaStorageService::FOLDER_COVER,
+                ['max_w' => 1600, 'max_h' => 600],
+            );
+            $profile->cover_path = $newPath;
+            $profile->save();
+            if ($oldPath && $oldPath !== $newPath) {
+                $this->media->delete($oldPath);
+            }
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'cover_path' => $profile->cover_path,
+                'cover_url' => $this->media->publicUrl($profile->cover_path),
+            ],
+        ]);
+    }
+
+    public function deleteCover(Request $request): JsonResponse
+    {
+        $profile = $request->user()->providerProfile;
+        if ($profile === null) {
+            return response()->json(['message' => 'Perfil no encontrado.'], 404);
+        }
+
+        if ($profile->cover_path) {
+            $this->media->delete($profile->cover_path);
+            $profile->cover_path = null;
+            $profile->save();
+        }
+
+        return response()->json(['data' => ['cover_path' => null, 'cover_url' => null]]);
     }
 }

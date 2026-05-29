@@ -107,6 +107,7 @@ final class PublicProviderController extends Controller
                 'is_verified' => (bool) $p->is_verified,
                 'is_pro' => $isPro,
                 'avatar_url' => $media->publicUrl($p->user?->avatar_path),
+                'cover_image_url' => $media->publicUrl($p->cover_path),
                 'whatsapp' => null,
                 'contact_phone' => null,
                 'address_text' => $p->address_text,

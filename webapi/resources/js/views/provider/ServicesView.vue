@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useProviderProfileStore } from '@/stores/providerProfile';
 import { useCatalogStore } from '@/stores/catalog';
 import { useAuthStore } from '@/stores/auth';
@@ -50,6 +50,7 @@ const okMsg = ref('');
 const loadError = ref('');
 const saving = ref(false);
 const rowActionBusyId = ref(null);
+const locationFieldsRef = ref(null);
 
 const categoryName = computed(() => {
     const id = form.value.category_id;
@@ -136,6 +137,7 @@ function startEdit(s) {
     showForm.value = true;
     errMsg.value = '';
     okMsg.value = '';
+    nextTick(() => locationFieldsRef.value?.hydrateCascade?.());
 }
 
 function closeForm() {
@@ -472,9 +474,9 @@ watch(showForm, (open) => {
                         <p v-else class="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                             Plan Free: solo fichas de presencia. Mejora a Pro para anuncios destacados.
                         </p>
-                        <ListingLocationFields v-model="form" />
+                        <ListingLocationFields ref="locationFieldsRef" v-model="form" />
                         <label class="block">
-                            <span class="mb-2 block text-sm font-bold text-slate-700">Categoría / rubro</span>
+                            <span class="mb-2 block text-sm font-bold text-slate-700">Categoría</span>
                             <select v-model="form.category_id" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#003874]">
                                 <option v-for="c in catalog.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
                             </select>

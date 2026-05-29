@@ -7,6 +7,8 @@ import AppAlert from '@/components/ui/AppAlert.vue';
 const props = defineProps({
     /** Al cambiar ubigeo, vuelve a buscar si ya hubo una búsqueda */
     autoRunOnGeo: { type: Boolean, default: false },
+    /** Oculta selects de zona (se muestran con toggle en SearchView) */
+    compactGeo: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['search']);
@@ -79,7 +81,7 @@ async function nearMe() {
                 />
             </div>
             <div class="hidden md:block w-px h-9 bg-slate-200 shrink-0"></div>
-            <div class="w-full md:w-auto flex flex-col sm:flex-row gap-2 px-2 min-w-0">
+            <div v-if="!compactGeo" class="w-full md:w-auto flex flex-col sm:flex-row gap-2 px-2 min-w-0">
                 <select
                     :value="geo.selectedDepartmentId || ''"
                     @change="onDepartment"

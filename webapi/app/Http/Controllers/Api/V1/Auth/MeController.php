@@ -54,7 +54,6 @@ final class MeController extends Controller
         }
 
         $user->full_name = $data['full_name'];
-        $user->email = $data['email'];
         $user->phone = $data['phone'] ?? null;
         $user->save();
 

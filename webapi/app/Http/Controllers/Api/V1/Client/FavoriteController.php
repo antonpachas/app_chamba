@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Client\ToggleFavoriteRequest;
 use App\Models\Favorite;
 use App\Models\ProviderService;
+use App\Services\ListingPublicIdService;
 use App\Services\MediaStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,12 @@ final class FavoriteController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        if ($request->user()?->role !== 'cliente') {
+            return response()->json([
+                'message' => 'Solo las cuentas de cliente pueden ver favoritos.',
+            ], 403);
+        }
+
         $hasServiceFavorite = Schema::hasColumn('favorites', 'provider_service_id');
 
         if ($hasServiceFavorite) {
@@ -102,6 +109,9 @@ final class FavoriteController extends Controller
                 $sid = (int) ($item['provider_service_id'] ?? 0);
                 $coverPath = $coversByService->get($sid);
                 $item['cover_image_url'] = $coverPath ? $this->media->publicUrl((string) $coverPath) : null;
+                if ($sid > 0) {
+                    $item['listing_ref'] = $this->publicIds->encode($sid);
+                }
                 return $item;
             })->values()->all(),
         ]);
@@ -109,6 +119,12 @@ final class FavoriteController extends Controller
 
     public function toggle(ToggleFavoriteRequest $request): JsonResponse
     {
+        if ($request->user()?->role !== 'cliente') {
+            return response()->json([
+                'message' => 'Inicia sesión como cliente para guardar favoritos.',
+            ], 403);
+        }
+
         $data = $request->validated();
         $userId = (int) $request->user()->id;
         $hasServiceFavorite = Schema::hasColumn('favorites', 'provider_service_id');
@@ -142,6 +158,15 @@ final class FavoriteController extends Controller
                 $fav->delete();
                 $action = 'removed';
             } else {
+                Favorite::query()
+                    ->where('user_id', $userId)
+                    ->where('provider_profile_id', $profileId)
+                    ->where(function ($q) use ($serviceId): void {
+                        $q->whereNull('provider_service_id')
+                            ->orWhere('provider_service_id', '!=', $serviceId);
+                    })
+                    ->delete();
+
                 Favorite::query()->create([
                     'user_id' => $userId,
                     'provider_profile_id' => $profileId,

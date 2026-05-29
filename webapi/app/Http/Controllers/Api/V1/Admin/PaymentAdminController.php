@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\PaginatesAdminResources;
 use App\Http\Controllers\Controller;
 use App\Models\ServicePayment;
 use App\Models\WalletWithdrawal;
@@ -22,7 +23,7 @@ final class PaymentAdminController extends Controller
     {
         $status = (string) $request->query('status', 'pendiente_revision');
 
-        $rows = ServicePayment::query()
+        $paginator = ServicePayment::query()
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->with([
                 'client:id,full_name,email,phone',
@@ -30,11 +31,9 @@ final class PaymentAdminController extends Controller
                 'serviceRequest.providerService:id,title',
             ])
             ->orderByDesc('created_at')
-            ->limit(200)
-            ->get();
+            ->paginate($this->adminPerPage($request));
 
-        return response()->json([
-            'data' => $rows->map(fn (ServicePayment $p) => [
+        return $this->adminPaginatedResponse($paginator, fn (ServicePayment $p) => [
                 'id' => $p->id,
                 'status' => $p->status,
                 'amount' => $p->amount,
@@ -56,7 +55,6 @@ final class PaymentAdminController extends Controller
                     'name' => $p->providerProfile?->business_name ?: $p->providerProfile?->user?->full_name,
                 ],
                 'service_title' => $p->serviceRequest?->providerService?->title,
-            ]),
         ]);
     }
 
@@ -86,15 +84,13 @@ final class PaymentAdminController extends Controller
     public function withdrawals(Request $request): JsonResponse
     {
         $status = (string) $request->query('status', 'solicitado');
-        $rows = WalletWithdrawal::query()
+        $paginator = WalletWithdrawal::query()
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->with(['providerProfile.user:id,full_name,email'])
             ->orderByDesc('created_at')
-            ->limit(200)
-            ->get();
+            ->paginate($this->adminPerPage($request));
 
-        return response()->json([
-            'data' => $rows->map(fn (WalletWithdrawal $w) => [
+        return $this->adminPaginatedResponse($paginator, fn (WalletWithdrawal $w) => [
                 'id' => $w->id,
                 'amount' => $w->amount,
                 'payout_method' => $w->payout_method,
@@ -113,7 +109,6 @@ final class PaymentAdminController extends Controller
                     'bank_account_holder' => $w->providerProfile?->id ? optional(\App\Models\ProviderWallet::query()->firstWhere('provider_profile_id', $w->providerProfile->id))->bank_account_holder : null,
                     'yape_phone' => $w->providerProfile?->id ? optional(\App\Models\ProviderWallet::query()->firstWhere('provider_profile_id', $w->providerProfile->id))->yape_phone : null,
                 ],
-            ]),
         ]);
     }
 

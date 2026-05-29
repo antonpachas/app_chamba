@@ -23,7 +23,7 @@ const categoryLabels = {
 };
 
 function roleLabel(role) {
-    if (role === 'proveedor') return 'Proveedor';
+    if (role === 'proveedor') return 'Negocio';
     if (role === 'cliente') return 'Cliente';
     return role || '—';
 }

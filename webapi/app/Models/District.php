@@ -10,9 +10,18 @@ class District extends Model
     protected $fillable = [
         'province_id',
         'name',
+        'ubigeo',
         'latitude',
         'longitude',
+        'is_active',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     public function province(): BelongsTo
     {

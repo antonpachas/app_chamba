@@ -65,7 +65,7 @@ async function reject(id) {
                     <tr>
                         <th class="text-left px-4 py-3">#</th>
                         <th class="text-left px-4 py-3">Cliente</th>
-                        <th class="text-left px-4 py-3">Proveedor</th>
+                        <th class="text-left px-4 py-3">Negocio</th>
                         <th class="text-left px-4 py-3">Servicio</th>
                         <th class="text-right px-4 py-3">Monto</th>
                         <th class="text-right px-4 py-3">Comisión</th>

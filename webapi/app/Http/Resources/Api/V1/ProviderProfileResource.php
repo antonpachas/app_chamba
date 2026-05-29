@@ -13,8 +13,11 @@ class ProviderProfileResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $media = app(\App\Services\MediaStorageService::class);
+
         return [
             'id' => $this->id,
+            'cover_url' => $this->cover_path ? $media->publicUrl($this->cover_path) : null,
             'business_name' => $this->business_name,
             'description' => $this->description,
             'whatsapp' => $this->whatsapp,

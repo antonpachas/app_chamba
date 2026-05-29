@@ -205,6 +205,18 @@ const routes = [
         meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Configuración' },
     },
     {
+        path: '/admin/categorias-sugeridas',
+        name: 'admin-category-suggestions',
+        component: () => import('@/views/admin/CategorySuggestionsAdminView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Categorías' },
+    },
+    {
+        path: '/admin/ubicacion',
+        name: 'admin-geo',
+        component: () => import('@/views/admin/GeoAdminView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Ubicación' },
+    },
+    {
         path: '/admin/reportes',
         name: 'admin-reports',
         component: () => import('@/views/admin/ReportsView.vue'),

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\PaginatesAdminResources;
 use App\Http\Controllers\Controller;
 use App\Models\LedgerEntry;
 use App\Services\LedgerService;
@@ -10,6 +11,8 @@ use Illuminate\Http\Request;
 
 final class LedgerAdminController extends Controller
 {
+    use PaginatesAdminResources;
+
     public function __construct(private readonly LedgerService $ledger) {}
 
     public function index(Request $request): JsonResponse
@@ -29,19 +32,23 @@ final class LedgerAdminController extends Controller
             $q->where('type', $type);
         }
 
-        $rows = $q->limit(500)->get();
+        $summaryQuery = clone $q;
+        $ingresos = (float) (clone $summaryQuery)->where('type', 'ingreso')->sum('amount');
+        $egresos = (float) (clone $summaryQuery)->where('type', 'egreso')->sum('amount');
 
-        $ingresos = (float) $rows->where('type', 'ingreso')->sum('amount');
-        $egresos = (float) $rows->where('type', 'egreso')->sum('amount');
+        $paginator = $q->paginate($this->adminPerPage($request));
 
-        return response()->json([
-            'data' => $rows,
-            'summary' => [
-                'ingresos' => $ingresos,
-                'egresos' => $egresos,
-                'balance' => $ingresos - $egresos,
+        return $this->adminPaginatedResponse(
+            $paginator,
+            fn (LedgerEntry $row) => $row->toArray(),
+            [
+                'summary' => [
+                    'ingresos' => $ingresos,
+                    'egresos' => $egresos,
+                    'balance' => $ingresos - $egresos,
+                ],
             ],
-        ]);
+        );
     }
 
     public function storeExpense(Request $request): JsonResponse

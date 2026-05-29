@@ -7,6 +7,7 @@ import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import { providerPublicProfileEnabled } from '@/services/features';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
+import { listingDetailTo } from '@/utils/listingRef';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
@@ -120,7 +121,7 @@ const coverImage = computed(() => {
                         </p>
                         <div class="mt-5 flex flex-col sm:flex-row gap-2">
                             <RouterLink
-                                :to="{ name: 'listing-detail', params: { id: listing.service_id } }"
+                                :to="listingDetailTo(listing)"
                                 class="flex-1 inline-flex justify-center rounded-full bg-[#003874] text-white font-bold px-4 py-2.5 text-sm no-underline hover:bg-[#08458b]"
                                 @click="close"
                             >

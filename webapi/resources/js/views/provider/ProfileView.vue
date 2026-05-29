@@ -21,6 +21,8 @@ const form = ref({
 const department_id = ref(null);
 const province_id = ref(null);
 const saving = ref(false);
+const coverBusy = ref(false);
+const coverInput = ref(null);
 const errMsg = ref('');
 const okMsg = ref('');
 
@@ -63,6 +65,39 @@ watch(province_id, async (v) => {
     form.value.district_id = null;
 });
 
+async function onCoverPick(e) {
+    const f = e.target.files?.[0];
+    if (e.target) e.target.value = '';
+    if (!f || !store.profile) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(f.type)) {
+        errMsg.value = 'Solo JPG, PNG o WEBP para la portada.';
+        return;
+    }
+    coverBusy.value = true;
+    errMsg.value = '';
+    try {
+        await store.uploadCover(f);
+        okMsg.value = 'Imagen de fondo actualizada.';
+    } catch (ex) {
+        errMsg.value = ex.message || 'No se pudo subir la portada.';
+    } finally {
+        coverBusy.value = false;
+    }
+}
+
+async function removeCover() {
+    if (!store.profile?.cover_url) return;
+    coverBusy.value = true;
+    try {
+        await store.removeCover();
+        okMsg.value = 'Portada eliminada.';
+    } catch (ex) {
+        errMsg.value = ex.message || 'No se pudo quitar la portada.';
+    } finally {
+        coverBusy.value = false;
+    }
+}
+
 async function save() {
     errMsg.value = '';
     okMsg.value = '';
@@ -85,12 +120,42 @@ async function save() {
 <template>
     <div class="max-w-3xl mx-auto px-4 md:px-8 py-8">
         <header class="mb-8">
-            <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mi perfil de proveedor</h1>
+            <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mi perfil del negocio</h1>
             <p class="text-slate-600 mt-1">Datos visibles para los clientes en tu ficha pública.</p>
         </header>
 
         <AppAlert v-if="errMsg" type="error" class="mb-4">{{ errMsg }}</AppAlert>
         <AppAlert v-if="okMsg" type="success" class="mb-4">{{ okMsg }}</AppAlert>
+
+        <section v-if="store.profile" class="mb-6 rounded-2xl border border-slate-200 overflow-hidden bg-white">
+            <div
+                class="relative h-36 md:h-44 bg-grad-hero bg-cover bg-center"
+                :style="store.profile.cover_url ? { backgroundImage: `url(${store.profile.cover_url})` } : undefined"
+            >
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+            </div>
+            <div class="px-4 py-3 flex flex-wrap gap-2 border-t border-slate-100">
+                <button
+                    type="button"
+                    class="rounded-full bg-[#003874] text-white text-sm font-bold px-4 py-2 disabled:opacity-60"
+                    :disabled="coverBusy"
+                    @click="coverInput?.click()"
+                >
+                    {{ store.profile.cover_url ? 'Cambiar fondo' : 'Subir imagen de fondo' }}
+                </button>
+                <button
+                    v-if="store.profile.cover_url"
+                    type="button"
+                    class="rounded-full border border-slate-200 text-sm font-bold px-4 py-2"
+                    :disabled="coverBusy"
+                    @click="removeCover"
+                >
+                    Quitar fondo
+                </button>
+                <input ref="coverInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onCoverPick" />
+            </div>
+            <p class="px-4 pb-3 text-xs text-slate-500">Se muestra en tu perfil público de negocio. Recomendado: foto ancha del local.</p>
+        </section>
 
         <form @submit.prevent="save" class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
             <AppInput v-model="form.business_name" label="Nombre del negocio" placeholder="Servicios eléctricos JC" />

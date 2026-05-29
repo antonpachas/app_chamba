@@ -107,6 +107,21 @@ export const useProviderProfileStore = defineStore('providerProfile', {
                 };
             });
         },
+        async uploadCover(file) {
+            const fd = new FormData();
+            fd.append('cover', file);
+            const r = await api.post('/provider/profile/cover', fd, { auth: true });
+            if (this.profile) {
+                this.profile = { ...this.profile, cover_url: r.data?.cover_url };
+            }
+            return r.data;
+        },
+        async removeCover() {
+            await api.del('/provider/profile/cover', { auth: true });
+            if (this.profile) {
+                this.profile = { ...this.profile, cover_url: null };
+            }
+        },
         async loadDashboard() {
             try {
                 const r = await api.get('/provider/dashboard', { auth: true });

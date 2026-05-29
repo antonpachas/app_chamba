@@ -115,7 +115,7 @@ function fmtDate(d) {
                     <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Insignia "Cliente Verificado" (te responden más rápido)</li>
                     <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Soporte prioritario 24/7</li>
                     <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Contactos ilimitados y experiencia sin publicidad</li>
-                    <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Acceso anticipado a proveedores top</li>
+                    <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Acceso anticipado a negocios top</li>
                     <li class="flex gap-2"><span class="material-symbols-outlined text-[#fef3c7] text-[20px]">check</span> Sin publicidad en la app</li>
                 </ul>
 
