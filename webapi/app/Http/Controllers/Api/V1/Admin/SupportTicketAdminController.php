@@ -137,7 +137,7 @@ final class SupportTicketAdminController extends Controller
     {
         $admin = $request->user();
         $row = SupportTicket::query()
-            ->with(['messages.author:id,full_name,role', 'user:id,full_name,email,role,phone'])
+            ->with(['messages.author:id,full_name,role', 'messages.attachments', 'user:id,full_name,email,role,phone'])
             ->findOrFail($ticketId);
 
         $this->support->markReadByAdmin($row);

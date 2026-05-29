@@ -17,6 +17,7 @@ final class FavoriteController extends Controller
 {
     public function __construct(
         private readonly MediaStorageService $media,
+        private readonly ListingPublicIdService $publicIds,
     ) {}
 
     public function index(Request $request): JsonResponse

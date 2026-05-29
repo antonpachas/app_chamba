@@ -37,6 +37,10 @@ const initials = computed(() => {
     return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?';
 });
 
+const supportRoute = computed(() =>
+    auth.user?.role === 'admin' ? { name: 'admin-support' } : { name: 'support' },
+);
+
 const tabs = computed(() => {
     const list = [
         { id: 'personal', label: 'Mi perfil', icon: 'person', desc: 'Datos personales y acceso' },
@@ -184,8 +188,17 @@ function linkIconClass(accent) {
             <div class="pointer-events-none absolute -top-16 -left-16 w-64 h-64 bg-[#ff7a2b]/20 rounded-full blur-3xl" />
 
             <div class="relative z-10 px-6 md:px-10 pt-8 pb-28 md:pb-32">
-                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-white/65">Mi cuenta</p>
-                <div class="mt-5 flex flex-col sm:flex-row sm:items-end gap-5">
+                <div class="flex items-center justify-between gap-3 mb-5">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-white/65">Mi cuenta</p>
+                    <RouterLink
+                        :to="supportRoute"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur border border-white/20 text-white text-xs font-bold px-3.5 py-2 no-underline transition-colors shadow-sm"
+                    >
+                        <span class="material-symbols-outlined text-[16px]">support_agent</span>
+                        Soporte
+                    </RouterLink>
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-end gap-5">
                     <div class="relative shrink-0">
                         <img
                             v-if="auth.avatarUrl"

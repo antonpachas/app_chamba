@@ -18,6 +18,7 @@ import ListingContactActions from '@/components/listing/ListingContactActions.vu
 import { hasListingContact } from '@/utils/whatsapp';
 import BusinessHoursDisplay from '@/components/common/BusinessHoursDisplay.vue';
 import ListingImageCarousel from '@/components/listing/ListingImageCarousel.vue';
+import AdSlot from '@/components/ads/AdSlot.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -467,6 +468,8 @@ async function shareListing() {
                         </p>
                         </div>
                     </template>
+
+                    <AdSlot placement="detail" />
                 </aside>
             </div>
         </article>

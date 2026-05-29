@@ -3,12 +3,17 @@
 namespace App\Services;
 
 use App\Models\SupportMessage;
+use App\Models\SupportMessageAttachment;
 use App\Models\SupportTicket;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use RuntimeException;
 
 final class SupportTicketService
 {
+    public const MAX_ATTACHMENTS = 2;
     public function assertUserCanAccess(User $user, SupportTicket $ticket): void
     {
         if ($user->role === 'admin') {
@@ -110,7 +115,8 @@ final class SupportTicketService
      */
     public function formatMessage(SupportMessage $msg): array
     {
-        $msg->loadMissing('author:id,full_name,role');
+        $msg->loadMissing(['author:id,full_name,role', 'attachments']);
+        $media = app(MediaStorageService::class);
 
         return [
             'id' => $msg->id,
@@ -121,7 +127,57 @@ final class SupportTicketService
                 : ($msg->author?->full_name ?? 'Usuario'),
             'author_role' => $msg->author?->role,
             'created_at' => $msg->created_at?->toIso8601String(),
+            'attachments' => $msg->attachments->map(fn (SupportMessageAttachment $a) => [
+                'id' => $a->id,
+                'url' => $media->publicUrl($a->path),
+            ])->values()->all(),
         ];
+    }
+
+    /**
+     * @throws RuntimeException
+     */
+    public function storeMessageAttachments(SupportMessage $message, Request $request, int $max = self::MAX_ATTACHMENTS): void
+    {
+        $files = $this->normalizeUploadedImages($request);
+        if ($files === []) {
+            return;
+        }
+
+        if (count($files) > $max) {
+            throw new RuntimeException("Máximo {$max} imágenes por mensaje.");
+        }
+
+        $media = app(MediaStorageService::class);
+        $sort = 0;
+        foreach ($files as $file) {
+            $path = $media->storeImage(
+                $file,
+                MediaStorageService::FOLDER_SUPPORT,
+                ['max_w' => 1600, 'max_h' => 1600],
+            );
+            SupportMessageAttachment::query()->create([
+                'support_message_id' => (int) $message->id,
+                'path' => $path,
+                'sort_order' => $sort++,
+                'created_at' => Carbon::now(),
+            ]);
+        }
+    }
+
+    /**
+     * @return array<int, UploadedFile>
+     */
+    private function normalizeUploadedImages(Request $request): array
+    {
+        $raw = $request->file('images');
+        if ($raw === null) {
+            return [];
+        }
+
+        $files = is_array($raw) ? $raw : [$raw];
+
+        return array_values(array_filter($files, fn ($f) => $f instanceof UploadedFile && $f->isValid()));
     }
 
     /**

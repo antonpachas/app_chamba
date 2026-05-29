@@ -7,6 +7,7 @@ import Money from '@/components/common/Money.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import { providerPublicProfileEnabled } from '@/services/features';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
+import ListingImageCarousel from '@/components/listing/ListingImageCarousel.vue';
 import { listingDetailTo } from '@/utils/listingRef';
 
 const props = defineProps({
@@ -48,12 +49,20 @@ function close() {
     emit('close');
 }
 
-const coverImage = computed(() => {
+const galleryImages = computed(() => {
     const l = listing.value;
-    if (!l) return '';
-    return l.cover_image_url
-        || (l.images && l.images[0])
-        || `https://picsum.photos/seed/listing_${l.service_id}/800/480`;
+    if (!l) return [];
+    const urls = [];
+    if (l.cover_image_url) urls.push(l.cover_image_url);
+    if (Array.isArray(l.images)) {
+        for (const u of l.images) {
+            if (u && !urls.includes(u)) urls.push(u);
+        }
+    }
+    if (!urls.length && l.service_id) {
+        urls.push(`https://picsum.photos/seed/listing_${l.service_id}/800/480`);
+    }
+    return urls;
 });
 </script>
 
@@ -85,11 +94,14 @@ const coverImage = computed(() => {
                         <div v-if="!listing.is_visible" class="mb-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900">
                             Este anuncio ya no está visible en la búsqueda pública, pero puedes verlo porque tienes una solicitud asociada.
                         </div>
-                        <div class="relative mb-4">
-                            <img :src="coverImage" alt="" class="w-full h-44 object-cover rounded-xl bg-slate-100" />
+                        <div class="relative mb-4 h-44 rounded-xl overflow-hidden bg-slate-100">
+                            <ListingImageCarousel
+                                :images="galleryImages"
+                                :alt="listing.title || 'Anuncio'"
+                            />
                             <div
                                 v-if="listing.service_id"
-                                class="absolute bottom-2 right-2"
+                                class="absolute bottom-2 right-2 z-20"
                                 @click.stop
                             >
                                 <FavoriteButton :provider-service-id="listing.service_id" size="sm" />

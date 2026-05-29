@@ -40,6 +40,7 @@ function goTo(index) {
             class="flex h-full w-full overflow-x-auto snap-x snap-mandatory scroll-smooth touch-pan-x"
             :class="hasMultiple ? 'scrollbar-none' : ''"
             @scroll.passive="onScroll"
+            @click.stop
         >
             <img
                 v-for="(src, i) in slides"

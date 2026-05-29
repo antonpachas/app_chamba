@@ -28,6 +28,8 @@ class MediaStorageService
 
     public const FOLDER_COVER = 'covers';
 
+    public const FOLDER_SUPPORT = 'support';
+
     private const ALLOWED_MIMES = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
@@ -54,7 +56,7 @@ class MediaStorageService
      */
     public function storeImage(UploadedFile $file, string $folder, array $opts = []): string
     {
-        if (! in_array($folder, [self::FOLDER_AVATAR, self::FOLDER_SERVICE, self::FOLDER_PAYMENT, self::FOLDER_ADS, self::FOLDER_COVER], true)) {
+        if (! in_array($folder, [self::FOLDER_AVATAR, self::FOLDER_SERVICE, self::FOLDER_PAYMENT, self::FOLDER_ADS, self::FOLDER_COVER, self::FOLDER_SUPPORT], true)) {
             throw new RuntimeException("Carpeta no permitida: {$folder}");
         }
 
@@ -170,6 +172,14 @@ class MediaStorageService
         if ($folder === 'payments' && $name !== '') {
             return URL::temporarySignedRoute(
                 'media.payments',
+                now()->addHours(24),
+                ['name' => $name],
+            );
+        }
+
+        if ($folder === 'support' && $name !== '') {
+            return URL::temporarySignedRoute(
+                'media.support',
                 now()->addHours(24),
                 ['name' => $name],
             );

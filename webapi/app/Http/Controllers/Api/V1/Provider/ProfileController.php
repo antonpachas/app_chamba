@@ -86,7 +86,7 @@ final class ProfileController extends Controller
         }
 
         $profile->razon_social = $data['razon_social'] ?? $profile->razon_social;
-        $profile->ruc = array_key_exists('ruc')
+        $profile->ruc = array_key_exists('ruc', $data)
             ? ($data['ruc'] !== '' && $data['ruc'] !== null ? $data['ruc'] : null)
             : $profile->ruc;
         $profile->save();

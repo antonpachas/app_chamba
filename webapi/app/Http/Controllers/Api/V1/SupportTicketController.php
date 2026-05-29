@@ -58,29 +58,35 @@ final class SupportTicketController extends Controller
         $this->support->assertEndUser($user);
         $data = $request->validated();
 
-        $ticket = DB::transaction(function () use ($user, $data) {
-            $now = Carbon::now();
-            $ticket = SupportTicket::query()->create([
-                'user_id' => (int) $user->id,
-                'subject' => $data['subject'],
-                'category' => $data['category'],
-                'status' => 'abierto',
-                'last_message_at' => $now,
-                'user_last_read_at' => $now,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+        try {
+            $ticket = DB::transaction(function () use ($user, $data, $request) {
+                $now = Carbon::now();
+                $ticket = SupportTicket::query()->create([
+                    'user_id' => (int) $user->id,
+                    'subject' => $data['subject'],
+                    'category' => $data['category'],
+                    'status' => 'abierto',
+                    'last_message_at' => $now,
+                    'user_last_read_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
 
-            SupportMessage::query()->create([
-                'support_ticket_id' => (int) $ticket->id,
-                'user_id' => (int) $user->id,
-                'is_staff' => false,
-                'body' => trim($data['body']),
-                'created_at' => $now,
-            ]);
+                $msg = SupportMessage::query()->create([
+                    'support_ticket_id' => (int) $ticket->id,
+                    'user_id' => (int) $user->id,
+                    'is_staff' => false,
+                    'body' => trim($data['body']),
+                    'created_at' => $now,
+                ]);
 
-            return $ticket;
-        });
+                $this->support->storeMessageAttachments($msg, $request);
+
+                return $ticket;
+            });
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json([
             'message' => 'Caso de soporte creado.',
@@ -111,13 +117,23 @@ final class SupportTicketController extends Controller
             ], 422);
         }
 
-        $msg = SupportMessage::query()->create([
-            'support_ticket_id' => (int) $row->id,
-            'user_id' => (int) $user->id,
-            'is_staff' => false,
-            'body' => trim($request->validated('body')),
-            'created_at' => Carbon::now(),
-        ]);
+        try {
+            $msg = DB::transaction(function () use ($user, $request, $row) {
+                $msg = SupportMessage::query()->create([
+                    'support_ticket_id' => (int) $row->id,
+                    'user_id' => (int) $user->id,
+                    'is_staff' => false,
+                    'body' => trim($request->validated('body')),
+                    'created_at' => Carbon::now(),
+                ]);
+
+                $this->support->storeMessageAttachments($msg, $request);
+
+                return $msg;
+            });
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         $this->support->afterUserMessage($row->fresh());
         $row->refresh();
@@ -139,7 +155,7 @@ final class SupportTicketController extends Controller
     {
         $user = $request->user();
         $row = SupportTicket::query()
-            ->with(['messages.author:id,full_name,role', 'user:id,full_name,email,role,phone'])
+            ->with(['messages.author:id,full_name,role', 'messages.attachments', 'user:id,full_name,email,role,phone'])
             ->findOrFail($ticketId);
 
         $this->support->assertUserCanAccess($user, $row);

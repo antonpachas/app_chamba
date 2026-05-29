@@ -18,6 +18,8 @@ class StoreSupportMessageRequest extends FormRequest
     {
         return [
             'body' => ['required', 'string', 'min:1', 'max:2000'],
+            'images' => ['nullable', 'array', 'max:2'],
+            'images.*' => ['file', 'mimes:jpeg,png,webp', 'max:5120'],
         ];
     }
 }

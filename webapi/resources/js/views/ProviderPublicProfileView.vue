@@ -5,7 +5,7 @@ import { api } from '@/services/api';
 import ServiceCard from '@/components/service/ServiceCard.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
-import OpenHoursBadge from '@/components/common/OpenHoursBadge.vue';
+import BusinessHoursDisplay from '@/components/common/BusinessHoursDisplay.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
@@ -13,14 +13,44 @@ const auth = useAuthStore();
 const loading = ref(true);
 const error = ref('');
 const profile = ref(null);
+const listingsRef = ref(null);
 
 const id = computed(() => Number(route.params.id));
 
-const headerBackgroundUrl = computed(() => {
+const coverUrl = computed(() => {
     const p = profile.value;
     if (!p) return '';
-    return p.avatar_url || p.cover_image_url || '';
+    return p.cover_image_url || p.cover_url || '';
 });
+
+const initial = computed(() => {
+    const n = profile.value?.name?.trim() || '?';
+    return n.charAt(0).toUpperCase();
+});
+
+const locationLine = computed(() => {
+    const p = profile.value;
+    if (!p) return '';
+    const geo = [p.district_name, p.province_name, p.department_name].filter(Boolean).join(' · ');
+    const addr = String(p.address_text || '').trim();
+    if (geo && addr) return `${geo} — ${addr}`;
+    return geo || addr || '';
+});
+
+const ratingDisplay = computed(() => {
+    const p = profile.value;
+    if (!p) return null;
+    const v = parseFloat(String(p.avg_rating ?? '').replace(',', '.'));
+    const n = Number(p.total_reviews) || 0;
+    if (n <= 0 || !Number.isFinite(v)) return null;
+    return { value: v.toFixed(1), count: n };
+});
+
+const hasDescription = computed(() => !!String(profile.value?.description || '').trim());
+
+function scrollToListings() {
+    listingsRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 onMounted(async () => {
     loading.value = true;
@@ -38,153 +68,265 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="max-w-7xl mx-auto px-4 md:px-8 py-8">
-        <div class="mb-6">
+    <div class="pb-20">
+        <!-- Nav -->
+        <div class="max-w-6xl mx-auto px-4 md:px-8 pt-6">
             <button
                 type="button"
-                class="text-[#003874] font-semibold text-sm hover:underline bg-transparent border-0 p-0 cursor-pointer"
+                class="inline-flex items-center gap-1.5 text-[#003874] font-semibold text-sm hover:underline bg-transparent border-0 p-0 cursor-pointer"
                 @click="$router.back()"
             >
-                ← Volver
+                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                Volver
             </button>
         </div>
 
-        <p v-if="loading" class="text-slate-500 py-16 text-center">Cargando perfil…</p>
-        <AppAlert v-else-if="error" type="error">{{ error }}</AppAlert>
+        <!-- Loading -->
+        <div v-if="loading" class="max-w-6xl mx-auto px-4 md:px-8 py-10 space-y-6 animate-pulse">
+            <div class="h-52 md:h-64 rounded-3xl bg-slate-200" />
+            <div class="h-32 rounded-2xl bg-slate-100 -mt-16 mx-4" />
+            <div class="grid lg:grid-cols-3 gap-6">
+                <div class="h-48 rounded-2xl bg-slate-100 lg:col-span-1" />
+                <div class="h-64 rounded-2xl bg-slate-100 lg:col-span-2" />
+            </div>
+        </div>
+
+        <AppAlert v-else-if="error" type="error" class="max-w-6xl mx-auto px-4 md:px-8 mt-6">
+            {{ error }}
+        </AppAlert>
 
         <template v-else-if="profile">
-            <GuestBrowseBanner v-if="!auth.isAuthenticated" compact class="mb-6" />
-            <header class="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm mb-10">
-                <div
-                    class="relative px-6 md:px-10 py-8 md:py-10 text-white min-h-[10rem] md:min-h-[12rem] flex items-end"
-                    :class="headerBackgroundUrl ? '' : 'bg-grad-hero'"
-                >
+            <GuestBrowseBanner v-if="!auth.isAuthenticated" compact class="max-w-6xl mx-auto px-4 md:px-8 mt-4 mb-2" />
+
+            <!-- Cover -->
+            <div class="max-w-6xl mx-auto px-4 md:px-8 mt-4">
+                <div class="relative rounded-3xl overflow-hidden shadow-xl shadow-[#003874]/10">
                     <div
-                        v-if="headerBackgroundUrl"
-                        class="absolute inset-0 bg-cover bg-center scale-105"
-                        :style="{ backgroundImage: `url(${headerBackgroundUrl})` }"
-                    />
-                    <div class="absolute inset-0 bg-gradient-to-t from-[#003874]/95 via-[#003874]/55 to-[#003874]/25" />
-                    <div class="relative z-10 w-full flex flex-col sm:flex-row gap-6 items-start sm:items-end">
-                        <img
-                            v-if="profile.avatar_url"
-                            :src="profile.avatar_url"
-                            alt=""
-                            class="w-20 h-20 rounded-2xl object-cover ring-2 ring-white/40 shadow-lg"
-                        />
+                        class="relative h-44 sm:h-52 md:h-60 lg:h-64 bg-grad-hero"
+                        :class="coverUrl ? 'bg-cover bg-center' : ''"
+                        :style="coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined"
+                    >
                         <div
-                            v-else
-                            class="w-20 h-20 rounded-2xl bg-white/15 flex items-center justify-center text-3xl font-black ring-2 ring-white/30"
+                            class="absolute inset-0"
+                            :class="coverUrl
+                                ? 'bg-gradient-to-t from-[#0b1c30]/90 via-[#003874]/35 to-[#003874]/10'
+                                : 'bg-gradient-to-br from-[#003874]/90 via-[#0056a8]/70 to-[#7c3aed]/40'"
+                        />
+                        <div class="absolute inset-0 opacity-[0.07] bg-[radial-gradient(circle_at_20%_80%,white,transparent_50%)]" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Identity card (overlaps cover) -->
+            <div class="max-w-6xl mx-auto px-4 md:px-8 -mt-14 md:-mt-16 relative z-10">
+                <div class="rounded-2xl md:rounded-3xl border border-slate-200/80 bg-white shadow-lg shadow-slate-200/60 p-5 md:p-7">
+                    <div class="flex flex-col sm:flex-row gap-5 sm:gap-6">
+                        <div
+                            class="w-20 h-20 md:w-24 md:h-24 rounded-2xl shrink-0 flex items-center justify-center text-3xl md:text-4xl font-black shadow-lg ring-4 ring-white -mt-14 sm:-mt-0 sm:ml-0 mx-auto sm:mx-0"
+                            :class="coverUrl
+                                ? 'bg-[#003874] text-white'
+                                : 'bg-gradient-to-br from-[#003874] to-[#0056a8] text-white'"
                         >
-                            {{ (profile.name || '?').charAt(0) }}
+                            {{ initial }}
                         </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="flex flex-wrap items-center gap-2 mb-1">
-                                <h1 class="text-2xl md:text-3xl font-black tracking-tight">{{ profile.name }}</h1>
+
+                        <div class="flex-1 min-w-0 text-center sm:text-left pt-0 sm:pt-1">
+                            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
+                                <h1 class="text-2xl md:text-3xl font-black tracking-tight text-[#0b1c30] leading-tight">
+                                    {{ profile.name }}
+                                </h1>
                                 <span
                                     v-if="profile.is_pro"
-                                    class="inline-flex items-center gap-1 bg-grad-warm text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full"
+                                    class="inline-flex items-center gap-1 bg-grad-warm text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-sm"
                                 >
-                                    <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1">verified</span>
+                                    <span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1">verified</span>
                                     Pro
                                 </span>
                                 <span
                                     v-if="profile.is_verified"
-                                    class="text-[10px] font-bold uppercase bg-white/20 px-2 py-0.5 rounded-full"
-                                >Verificado</span>
+                                    class="inline-flex items-center gap-1 text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full"
+                                >
+                                    <span class="material-symbols-outlined text-[13px]">verified_user</span>
+                                    Verificado
+                                </span>
                             </div>
-                            <p v-if="profile.avg_rating && profile.total_reviews > 0" class="text-white/90 text-sm mt-2 flex items-center gap-1">
-                                <span class="material-symbols-outlined text-amber-300 text-base" style="font-variation-settings: 'FILL' 1">star</span>
-                                {{ profile.avg_rating }} · {{ profile.total_reviews }} valoración(es)
+
+                            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-2 text-sm">
+                                <span
+                                    v-if="profile.is_open_now === true"
+                                    class="inline-flex items-center gap-1.5 font-bold text-emerald-700"
+                                >
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Abierto ahora
+                                </span>
+                                <span
+                                    v-else-if="profile.is_open_now === false"
+                                    class="inline-flex items-center gap-1.5 font-semibold text-slate-500"
+                                >
+                                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                    Cerrado ahora
+                                </span>
+                                <span v-if="ratingDisplay" class="inline-flex items-center gap-1 text-slate-700 font-semibold">
+                                    <span class="material-symbols-outlined text-amber-500 text-[18px]" style="font-variation-settings: 'FILL' 1">star</span>
+                                    {{ ratingDisplay.value }}
+                                    <span class="text-slate-400 font-normal">({{ ratingDisplay.count }})</span>
+                                </span>
+                                <span v-if="profile.listings_count" class="inline-flex items-center gap-1 text-slate-600">
+                                    <span class="material-symbols-outlined text-[18px] text-[#003874]">campaign</span>
+                                    {{ profile.listings_count }} anuncio{{ profile.listings_count === 1 ? '' : 's' }}
+                                </span>
+                            </div>
+
+                            <p v-if="locationLine" class="mt-3 text-sm text-slate-600 flex items-start justify-center sm:justify-start gap-1.5">
+                                <span class="material-symbols-outlined text-[18px] text-[#003874] shrink-0 mt-0.5">location_on</span>
+                                <span class="text-left">{{ locationLine }}</span>
                             </p>
                         </div>
                     </div>
                 </div>
-                <div class="px-6 md:px-10 py-6 space-y-4">
-                    <p v-if="profile.description" class="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        {{ profile.description }}
-                    </p>
-                    <p v-if="profile.description_truncated" class="text-sm text-slate-500 mt-2">
-                        Descripción abreviada para visitantes.
-                    </p>
-                    <OpenHoursBadge
-                        v-if="profile.is_open_now !== null && profile.is_open_now !== undefined"
-                        :is-open="profile.is_open_now"
-                        :summary="profile.hours_summary"
-                        class="pt-2"
-                    />
-                    <p class="text-sm text-slate-600 pt-2 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3">
-                        <span class="material-symbols-outlined text-[#003874] align-middle text-base mr-1">info</span>
-                        Abre un anuncio abajo para ver teléfono, WhatsApp y contactar al negocio.
-                    </p>
-                </div>
-            </header>
+            </div>
 
-            <section>
-                <div class="flex justify-between items-end gap-4 mb-6 flex-wrap">
-                    <div>
-                        <p class="text-xs font-bold uppercase tracking-widest text-[#7c3aed]">Anuncios</p>
-                        <h2 class="text-2xl font-bold text-[#0b1c30]">
-                            Publicaciones activas
-                            <span class="text-slate-500 font-semibold text-lg">({{ profile.listings_count }})</span>
-                        </h2>
-                    </div>
-                    <RouterLink :to="{ name: 'home' }" class="text-sm font-bold text-[#003874] hover:underline no-underline">
-                        Buscar más negocios
-                    </RouterLink>
-                </div>
+            <!-- Main content -->
+            <div class="max-w-6xl mx-auto px-4 md:px-8 mt-8">
+                <div class="grid lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+                    <!-- Sidebar -->
+                    <aside class="lg:col-span-1 space-y-4 lg:sticky lg:top-24">
+                        <BusinessHoursDisplay
+                            v-if="profile.business_hours"
+                            :schedule="profile.business_hours"
+                        />
 
-                <div
-                    v-if="profile.listings?.length"
-                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                >
-                    <ServiceCard
-                        v-for="listing in profile.listings"
-                        :key="listing.service_id"
-                        :service="listing"
-                        :show-provider-link="false"
-                    />
-                </div>
-                <p v-else class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-                    Este negocio no tiene anuncios visibles en este momento.
-                </p>
-            </section>
-
-            <section v-if="profile.reviews?.length" class="mt-12">
-                <h2 class="text-xl font-bold text-[#0b1c30] mb-4">Valoraciones de clientes</h2>
-                <ul class="grid gap-4 sm:grid-cols-2">
-                    <li
-                        v-for="rev in profile.reviews"
-                        :key="rev.id"
-                        class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
-                    >
-                        <div class="flex items-start justify-between gap-3 mb-3">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div class="w-10 h-10 rounded-full bg-[#003874]/10 text-[#003874] font-black flex items-center justify-center shrink-0">
-                                    {{ (rev.client_name || 'C').charAt(0).toUpperCase() }}
-                                </div>
-                                <div class="min-w-0">
-                                    <p class="font-bold text-slate-900 truncate">{{ rev.client_name || 'Cliente' }}</p>
-                                    <p v-if="rev.created_at" class="text-[10px] text-slate-400 uppercase tracking-wide">
-                                        {{ new Date(rev.created_at).toLocaleDateString('es-PE') }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-0.5 shrink-0 bg-amber-50 rounded-lg px-2 py-1">
-                                <span
-                                    v-for="n in 5"
-                                    :key="n"
-                                    class="material-symbols-outlined text-[14px]"
-                                    :class="n <= rev.rating ? 'text-amber-500' : 'text-slate-200'"
-                                    :style="n <= rev.rating ? { fontVariationSettings: '\'FILL\' 1' } : undefined"
-                                >star</span>
-                            </div>
+                        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <h2 class="text-xs font-bold uppercase tracking-widest text-[#003874] mb-3 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">contact_phone</span>
+                                Contacto
+                            </h2>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                Teléfono y WhatsApp están en cada anuncio para que contactes al local que te interese.
+                            </p>
+                            <button
+                                v-if="profile.listings_count"
+                                type="button"
+                                class="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#003874] text-white text-sm font-bold px-4 py-2.5 hover:bg-[#002a55] transition cursor-pointer border-0"
+                                @click="scrollToListings"
+                            >
+                                Ver anuncios
+                                <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+                            </button>
                         </div>
-                        <p v-if="rev.comment" class="text-sm text-slate-700 leading-relaxed">{{ rev.comment }}</p>
-                        <p v-else class="text-xs text-slate-400 italic">Sin comentario escrito.</p>
-                    </li>
-                </ul>
-            </section>
+
+                        <div
+                            v-if="profile.guest_preview && profile.description_truncated"
+                            class="rounded-2xl border border-amber-100 bg-amber-50/80 p-4 text-sm text-amber-900"
+                        >
+                            <p class="font-bold flex items-center gap-2 mb-1">
+                                <span class="material-symbols-outlined text-[18px]">lock</span>
+                                Vista previa
+                            </p>
+                            <p class="text-amber-800/90 leading-relaxed">
+                                Inicia sesión para leer la descripción completa y contactar sin límites.
+                            </p>
+                        </div>
+                    </aside>
+
+                    <!-- Main column -->
+                    <div class="lg:col-span-2 space-y-8">
+                        <!-- About -->
+                        <section v-if="hasDescription" class="rounded-2xl border border-slate-200 bg-white p-6 md:p-7 shadow-sm">
+                            <h2 class="text-xs font-bold uppercase tracking-widest text-[#7c3aed] mb-4 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">info</span>
+                                Sobre el negocio
+                            </h2>
+                            <p class="text-slate-700 leading-relaxed whitespace-pre-wrap text-[15px]">
+                                {{ profile.description }}
+                            </p>
+                        </section>
+
+                        <!-- Listings -->
+                        <section ref="listingsRef" class="scroll-mt-24">
+                            <div class="flex flex-wrap justify-between items-end gap-4 mb-5">
+                                <div>
+                                    <p class="text-xs font-bold uppercase tracking-widest text-[#7c3aed]">Anuncios</p>
+                                    <h2 class="text-xl md:text-2xl font-black text-[#0b1c30] mt-0.5">
+                                        Publicaciones activas
+                                        <span class="text-slate-400 font-bold text-lg ml-1">{{ profile.listings_count }}</span>
+                                    </h2>
+                                </div>
+                                <RouterLink
+                                    :to="{ name: 'home' }"
+                                    class="text-sm font-bold text-[#003874] hover:underline no-underline inline-flex items-center gap-1"
+                                >
+                                    Explorar más
+                                    <span class="material-symbols-outlined text-[16px]">east</span>
+                                </RouterLink>
+                            </div>
+
+                            <div
+                                v-if="profile.listings?.length"
+                                class="grid grid-cols-1 sm:grid-cols-2 gap-5"
+                            >
+                                <ServiceCard
+                                    v-for="listing in profile.listings"
+                                    :key="listing.service_id"
+                                    :service="listing"
+                                    :show-provider-link="false"
+                                />
+                            </div>
+                            <div
+                                v-else
+                                class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-12 text-center"
+                            >
+                                <span class="material-symbols-outlined text-4xl text-slate-300 mb-3 block">campaign</span>
+                                <p class="text-slate-600 font-medium">Sin anuncios visibles por ahora</p>
+                                <p class="text-sm text-slate-400 mt-1">Vuelve más tarde o explora otros negocios.</p>
+                            </div>
+                        </section>
+
+                        <!-- Reviews -->
+                        <section v-if="profile.reviews?.length">
+                            <div class="mb-5">
+                                <p class="text-xs font-bold uppercase tracking-widest text-[#7c3aed]">Opiniones</p>
+                                <h2 class="text-xl md:text-2xl font-black text-[#0b1c30] mt-0.5">
+                                    Valoraciones de clientes
+                                    <span class="text-slate-400 font-bold text-lg ml-1">{{ profile.reviews.length }}</span>
+                                </h2>
+                            </div>
+                            <ul class="grid gap-4 sm:grid-cols-2">
+                                <li
+                                    v-for="rev in profile.reviews"
+                                    :key="rev.id"
+                                    class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
+                                >
+                                    <div class="flex items-start justify-between gap-3 mb-3">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#003874]/15 to-[#7c3aed]/10 text-[#003874] font-black flex items-center justify-center shrink-0 text-sm">
+                                                {{ (rev.client_name || 'C').charAt(0).toUpperCase() }}
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="font-bold text-slate-900 truncate">{{ rev.client_name || 'Cliente' }}</p>
+                                                <p v-if="rev.created_at" class="text-[10px] text-slate-400 uppercase tracking-wide">
+                                                    {{ new Date(rev.created_at).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }) }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-0.5 shrink-0 bg-amber-50 rounded-lg px-2 py-1 border border-amber-100">
+                                            <span
+                                                v-for="n in 5"
+                                                :key="n"
+                                                class="material-symbols-outlined text-[14px]"
+                                                :class="n <= rev.rating ? 'text-amber-500' : 'text-slate-200'"
+                                                :style="n <= rev.rating ? { fontVariationSettings: '\'FILL\' 1' } : undefined"
+                                            >star</span>
+                                        </div>
+                                    </div>
+                                    <p v-if="rev.comment" class="text-sm text-slate-700 leading-relaxed">{{ rev.comment }}</p>
+                                    <p v-else class="text-xs text-slate-400 italic">Sin comentario escrito.</p>
+                                </li>
+                            </ul>
+                        </section>
+                    </div>
+                </div>
+            </div>
         </template>
     </div>
 </template>

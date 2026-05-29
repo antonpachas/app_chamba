@@ -5,6 +5,7 @@ import { listingDetailTo } from '@/utils/listingRef';
 import { providerPublicProfileEnabled } from '@/services/features';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
 import OpenHoursBadge from '@/components/common/OpenHoursBadge.vue';
+import ListingImageCarousel from '@/components/listing/ListingImageCarousel.vue';
 import { formatDistanceKm } from '@/utils/formatDistance';
 
 const props = defineProps({
@@ -23,11 +24,23 @@ const showProfileLink = computed(
     () => props.showProviderLink && providerPublicProfileEnabled() && providerProfileId.value,
 );
 
-const image = computed(() => {
-    return props.service.cover_image_url
-        || (props.service.images && props.service.images[0])
-        || `https://picsum.photos/seed/chamba_svc_${id.value}/800/480`;
+const galleryImages = computed(() => {
+    const urls = [];
+    const cover = props.service.cover_image_url;
+    const list = props.service.images || [];
+    if (cover) urls.push(cover);
+    if (Array.isArray(list)) {
+        for (const u of list) {
+            if (u && !urls.includes(u)) urls.push(u);
+        }
+    }
+    if (!urls.length) {
+        urls.push(`https://picsum.photos/seed/chamba_svc_${id.value}/800/480`);
+    }
+    return urls;
 });
+
+const hasMultipleImages = computed(() => galleryImages.value.length > 1);
 
 const ratingNum = computed(() => {
     const v = parseFloat(String(props.service.avg_rating ?? '').replace(',', '.'));
@@ -60,52 +73,57 @@ const priceDisplay = computed(() => {
 </script>
 
 <template>
-    <RouterLink
-        :to="listingDetailTo(service)"
-        class="group block rounded-xl border border-slate-200 bg-white overflow-hidden no-underline text-inherit transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#003874]/30 focus-visible:ring-offset-2"
+    <article
+        class="group block rounded-xl border border-slate-200 bg-white overflow-hidden text-inherit transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-[#003874]/30 focus-within:ring-offset-2"
     >
-        <div class="relative aspect-[4/3] bg-slate-100 overflow-hidden">
-            <img
-                :src="image"
-                alt=""
-                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                loading="lazy"
+        <div
+            class="relative aspect-[4/3] bg-slate-100 overflow-hidden"
+            @click.stop
+        >
+            <ListingImageCarousel
+                :images="galleryImages"
+                :alt="service.title || 'Anuncio'"
             />
             <div class="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent pointer-events-none" />
 
             <span
                 v-if="service.listing_type === 'promocion' || featured"
-                class="absolute top-2.5 left-2.5 text-[10px] font-medium uppercase tracking-wide bg-white/95 text-slate-800 px-2 py-0.5 rounded"
+                class="absolute top-2.5 left-2.5 z-10 text-[10px] font-medium uppercase tracking-wide bg-white/95 text-slate-800 px-2 py-0.5 rounded pointer-events-none"
             >
                 Destacado
             </span>
             <span
                 v-else-if="service.is_pro"
-                class="absolute top-2.5 left-2.5 text-[10px] font-medium uppercase tracking-wide bg-[#003874] text-white px-2 py-0.5 rounded"
+                class="absolute top-2.5 left-2.5 z-10 text-[10px] font-medium uppercase tracking-wide bg-[#003874] text-white px-2 py-0.5 rounded pointer-events-none"
             >
                 Pro
             </span>
 
-            <div v-if="id" class="absolute top-2.5 right-2.5 z-10" @click.stop>
+            <div v-if="id" class="absolute top-2.5 right-2.5 z-20">
                 <FavoriteButton :provider-service-id="id" size="sm" />
             </div>
 
             <div
                 v-if="ratingNum"
-                class="absolute bottom-2.5 left-2.5 flex items-center gap-1 text-white text-xs font-medium drop-shadow-sm"
+                class="absolute left-2.5 z-10 flex items-center gap-1 text-white text-xs font-medium drop-shadow-sm pointer-events-none"
+                :class="hasMultipleImages ? 'bottom-8' : 'bottom-2.5'"
             >
                 <span class="material-symbols-outlined text-[14px] text-amber-300" style="font-variation-settings: 'FILL' 1">star</span>
                 {{ ratingNum.v }} <span class="opacity-80">({{ ratingNum.n }})</span>
             </div>
             <span
                 v-if="distanceLabel"
-                class="absolute bottom-2.5 right-2.5 text-[10px] font-medium text-white bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded"
+                class="absolute right-2.5 z-10 text-[10px] font-medium text-white bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded pointer-events-none"
+                :class="hasMultipleImages ? 'bottom-8' : 'bottom-2.5'"
             >
                 {{ distanceLabel }}
             </span>
         </div>
 
-        <div class="p-4">
+        <RouterLink
+            :to="listingDetailTo(service)"
+            class="block p-4 no-underline text-inherit focus-visible:outline-none"
+        >
             <p v-if="service.category_name" class="text-xs font-medium text-slate-500 mb-1 truncate">
                 {{ service.category_name }}
             </p>
@@ -141,6 +159,6 @@ const priceDisplay = computed(() => {
             >
                 Ver todos los anuncios del negocio
             </RouterLink>
-        </div>
-    </RouterLink>
+        </RouterLink>
+    </article>
 </template>

@@ -7,6 +7,7 @@ import AppAlert from '@/components/ui/AppAlert.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import SupportStatusPill from '@/components/support/SupportStatusPill.vue';
 import SupportTicketModal from '@/components/support/SupportTicketModal.vue';
+import SupportImagePicker from '@/components/support/SupportImagePicker.vue';
 
 const auth = useAuthStore();
 
@@ -29,6 +30,9 @@ const form = ref({
     category: 'otro',
     body: '',
 });
+const formImages = ref([]);
+const imagePickerRef = ref(null);
+const attachErr = ref('');
 
 const categories = [
     { value: 'cuenta', label: 'Mi cuenta' },
@@ -106,20 +110,22 @@ function onTicketRefresh(ticket) {
 async function createTicket() {
     creating.value = true;
     err.value = '';
+    attachErr.value = '';
     ok.value = '';
     try {
-        const r = await api.post(
-            '/support-tickets',
-            {
-                subject: form.value.subject.trim(),
-                category: form.value.category,
-                body: form.value.body.trim(),
-            },
-            { auth: true },
-        );
+        const fd = new FormData();
+        fd.append('subject', form.value.subject.trim());
+        fd.append('category', form.value.category);
+        fd.append('body', form.value.body.trim());
+        formImages.value.forEach((item, i) => {
+            if (item.file) fd.append(`images[${i}]`, item.file);
+        });
+        const r = await api.post('/support-tickets', fd, { auth: true });
         ok.value = r.message || 'Caso creado.';
         showNew.value = false;
         form.value = { subject: '', category: 'otro', body: '' };
+        imagePickerRef.value?.clear?.();
+        formImages.value = [];
         await loadTickets();
         if (r.data?.id) await openTicket(r.data.id);
     } catch (e) {
@@ -198,6 +204,13 @@ onMounted(async () => {
                         placeholder="Describe tu problema con el mayor detalle posible…"
                     ></textarea>
                 </label>
+                <SupportImagePicker
+                    ref="imagePickerRef"
+                    v-model="formImages"
+                    :disabled="creating"
+                    @error="(m) => { attachErr = m; }"
+                />
+                <p v-if="attachErr" class="text-xs text-rose-600">{{ attachErr }}</p>
                 <div class="flex gap-2">
                     <AppButton variant="primary" type="submit" :loading="creating">Enviar caso</AppButton>
                     <AppButton variant="ghost" type="button" @click="showNew = false">Cancelar</AppButton>

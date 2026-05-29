@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Favorite extends Model
 {
+    /** La tabla solo tiene `created_at` (sin `updated_at`). */
+    public const UPDATED_AT = null;
+
     protected $fillable = [
         'user_id',
         'provider_profile_id',

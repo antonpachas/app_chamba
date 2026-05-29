@@ -32,7 +32,7 @@ final class MediaController extends Controller
             ?: (string) ($request->route()?->defaults['folder'] ?? '')
             ?: (string) ($request->route()?->parameter('folder') ?? '');
 
-        if (! in_array($folder, ['avatars', 'services', 'payments', 'covers', 'ads'], true)) {
+        if (! in_array($folder, ['avatars', 'services', 'payments', 'covers', 'ads', 'support'], true)) {
             abort(404);
         }
 
@@ -52,7 +52,7 @@ final class MediaController extends Controller
 
         return response($cached['contents'], 200, [
             'Content-Type' => $cached['mime'],
-            'Cache-Control' => $folder === 'payments' ? 'private, max-age=300' : 'public, max-age=3600',
+            'Cache-Control' => in_array($folder, ['payments', 'support'], true) ? 'private, max-age=300' : 'public, max-age=3600',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }

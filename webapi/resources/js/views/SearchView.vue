@@ -106,6 +106,9 @@ const selectedCategoryName = computed(() => {
 
 });
 
+/** Banners admin: `home` al explorar, `search` tras buscar/filtrar. */
+const adPlacement = computed(() => (search.searched ? 'search' : 'home'));
+
 
 
 function applyHashScroll() {
@@ -456,7 +459,7 @@ function applyRecent(item) {
 
 
 
-            <AdSlot placement="home" class="mt-10" />
+            <AdSlot :placement="adPlacement" class="mt-10" />
 
         </div>
 

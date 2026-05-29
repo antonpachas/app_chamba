@@ -4,6 +4,8 @@ import { useAuthStore } from '@/stores/auth';
 import { api } from '@/services/api';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
+import SupportImagePicker from '@/components/support/SupportImagePicker.vue';
+import SupportMessageAttachments from '@/components/support/SupportMessageAttachments.vue';
 
 const props = defineProps({
     ticketId: { type: Number, required: true },
@@ -22,6 +24,9 @@ const loading = ref(false);
 const sending = ref(false);
 const err = ref('');
 const draft = ref('');
+const attachItems = ref([]);
+const attachErr = ref('');
+const imagePickerRef = ref(null);
 const listEl = ref(null);
 
 const apiBase = computed(() => (props.adminMode ? '/admin/support-tickets' : '/support-tickets'));
@@ -81,8 +86,14 @@ async function send() {
     if (!body || !canPost.value) return;
     sending.value = true;
     err.value = '';
+    attachErr.value = '';
     try {
-        const r = await api.post(`${apiBase.value}/${props.ticketId}/messages`, { body }, { auth: true });
+        const fd = new FormData();
+        fd.append('body', body);
+        attachItems.value.forEach((item, i) => {
+            if (item.file) fd.append(`images[${i}]`, item.file);
+        });
+        const r = await api.post(`${apiBase.value}/${props.ticketId}/messages`, fd, { auth: true });
         if (r.ticket?.messages) {
             syncThread(r.ticket.messages);
             canPost.value = r.ticket.can_reply !== false;
@@ -91,6 +102,8 @@ async function send() {
             await load();
         }
         draft.value = '';
+        imagePickerRef.value?.clear?.();
+        attachItems.value = [];
         emit('sent');
         await nextTick();
         scrollToBottom();
@@ -155,6 +168,10 @@ watch(
                         {{ isMine(msg) ? (adminMode ? 'Tú (soporte)' : 'Tú') : msg.author_name }}
                     </p>
                     <p class="text-sm whitespace-pre-wrap break-words">{{ msg.body }}</p>
+                    <SupportMessageAttachments
+                        :attachments="msg.attachments"
+                        :dark="isMine(msg)"
+                    />
                     <p class="text-[10px] mt-1 opacity-70">{{ formatTime(msg.created_at) }}</p>
                 </div>
             </div>
@@ -168,6 +185,14 @@ watch(
                 :placeholder="adminMode ? 'Respuesta de soporte…' : 'Escribe tu mensaje…'"
                 class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#003874] focus:ring-2 focus:ring-[#003874]/15 resize-none"
             ></textarea>
+            <SupportImagePicker
+                v-if="!adminMode"
+                ref="imagePickerRef"
+                v-model="attachItems"
+                :disabled="sending"
+                @error="(m) => { attachErr = m; }"
+            />
+            <p v-if="attachErr" class="text-xs text-rose-600">{{ attachErr }}</p>
             <div class="flex justify-end">
                 <AppButton variant="primary" size="sm" type="submit" :loading="sending" :disabled="!draft.trim()">
                     Enviar

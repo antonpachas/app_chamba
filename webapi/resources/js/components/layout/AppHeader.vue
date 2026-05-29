@@ -38,6 +38,7 @@ const navLinks = computed(() => {
             { name: 'provider-listings', label: 'Anuncios' },
             { name: 'provider-requests', label: 'Solicitudes' },
             { name: 'provider-subscription', label: 'Mi plan' },
+            { name: 'support', label: 'Soporte' },
         ];
     }
     if (auth.isCliente) {
@@ -45,6 +46,7 @@ const navLinks = computed(() => {
             { name: 'home', label: 'Explorar' },
             { name: 'client-favorites', label: 'Favoritos' },
             { name: 'client-requests', label: 'Solicitudes' },
+            { name: 'support', label: 'Soporte' },
         ];
     }
     return [
@@ -216,6 +218,14 @@ function navLinkClass(link) {
                         >
                             <span class="material-symbols-outlined text-[18px] text-slate-400">person</span>
                             Mi cuenta
+                        </RouterLink>
+                        <RouterLink
+                            :to="{ name: 'support' }"
+                            class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 no-underline text-slate-800"
+                            @click="menuOpen = false"
+                        >
+                            <span class="material-symbols-outlined text-[18px] text-slate-400">support_agent</span>
+                            Soporte / ayuda
                         </RouterLink>
                         <button
                             type="button"

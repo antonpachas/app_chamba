@@ -22,6 +22,8 @@ class StoreSupportTicketRequest extends FormRequest
             'subject' => ['required', 'string', 'min:5', 'max:200'],
             'category' => ['required', Rule::in(SupportTicket::CATEGORIES)],
             'body' => ['required', 'string', 'min:10', 'max:2000'],
+            'images' => ['nullable', 'array', 'max:2'],
+            'images.*' => ['file', 'mimes:jpeg,png,webp', 'max:5120'],
         ];
     }
 }

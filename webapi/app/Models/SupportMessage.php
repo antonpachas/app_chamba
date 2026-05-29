@@ -34,4 +34,9 @@ class SupportMessage extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public function attachments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(SupportMessageAttachment::class, 'support_message_id')->orderBy('sort_order');
+    }
 }

@@ -105,6 +105,11 @@ Route::prefix('v1')->group(function (): void {
         ->name('media.payments')
         ->middleware('signed')
         ->where('name', '[A-Za-z0-9_.-]+');
+    Route::get('media/support/{name}', [MediaController::class, 'show'])
+        ->defaults('folder', 'support')
+        ->name('media.support')
+        ->middleware('signed')
+        ->where('name', '[A-Za-z0-9_.-]+');
 
     Route::middleware(['auth:sanctum', 'user.active'])->group(function (): void {
         Route::post('auth/logout', [LogoutController::class, 'store']);
