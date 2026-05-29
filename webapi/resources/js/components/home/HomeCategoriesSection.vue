@@ -6,6 +6,8 @@ import CategoriesBrowseModal from '@/components/home/CategoriesBrowseModal.vue';
 const props = defineProps({
     categories: { type: Array, default: () => [] },
     selectedId: { type: [Number, null], default: null },
+    /** chips = pills compactos; shelf = tarjetas blancas estilo marketplace */
+    layout: { type: String, default: 'shelf' },
 });
 
 const emit = defineEmits(['select', 'clear']);
@@ -42,10 +44,12 @@ function onSelect(id) {
 </script>
 
 <template>
-    <section id="categorias" class="home-categories scroll-mt-24" aria-label="Categorías">
+    <section id="categorias" class="home-categories scroll-mt-24" :class="layout === 'shelf' ? 'home-shelf' : ''" aria-label="Categorías">
         <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6">
-            <div class="flex items-center justify-between gap-3 mb-2">
-                <h2 class="text-sm font-semibold text-slate-900">Categorías</h2>
+            <div class="flex items-center justify-between gap-3 mb-3">
+                <h2 class="text-base font-semibold text-slate-900" :class="layout === 'shelf' ? 'home-shelf__title' : 'text-sm'">
+                    Categorías
+                </h2>
                 <div class="flex items-center gap-3 shrink-0">
                     <button
                         v-if="selectedId != null"
@@ -66,7 +70,37 @@ function onSelect(id) {
                 </div>
             </div>
 
-            <div class="home-categories__row">
+            <!-- Tarjetas horizontales (estilo marketplace) -->
+            <div v-if="layout === 'shelf'" class="home-shelf__track">
+                <button
+                    type="button"
+                    class="home-shelf__card"
+                    :class="selectedId == null ? 'home-shelf__card--active' : ''"
+                    @click="emit('clear')"
+                >
+                    <span class="home-shelf__card-icon material-symbols-outlined">apps</span>
+                    <span class="home-shelf__card-name">Todas</span>
+                </button>
+                <button
+                    v-for="c in previewCategories"
+                    :key="c.id"
+                    type="button"
+                    class="home-shelf__card"
+                    :class="selectedId === c.id ? 'home-shelf__card--active' : ''"
+                    @click="emit('select', c.id)"
+                >
+                    <span
+                        class="home-shelf__card-icon material-symbols-outlined"
+                        :style="{ color: categoryStyleFor(c.name).color }"
+                    >
+                        {{ categoryStyleFor(c.name).icon }}
+                    </span>
+                    <span class="home-shelf__card-name">{{ c.name }}</span>
+                </button>
+            </div>
+
+            <!-- Pills compactos (legacy) -->
+            <div v-else class="home-categories__row">
                 <button
                     type="button"
                     class="home-category-chip shrink-0"

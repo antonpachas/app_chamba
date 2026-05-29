@@ -24,6 +24,8 @@ import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
 
 import ListingSearchBar from '@/components/search/ListingSearchBar.vue';
 
+import SearchResultsSidebar from '@/components/search/SearchResultsSidebar.vue';
+
 import SearchResultsToolbar from '@/components/search/SearchResultsToolbar.vue';
 
 import SearchResultsPagination from '@/components/search/SearchResultsPagination.vue';
@@ -76,23 +78,23 @@ const gridClass = computed(() => {
 
     if (sm >= 2) {
 
-        return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5';
+        return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5';
 
     }
 
     if (md >= 3) {
 
-        return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5';
+        return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5';
 
     }
 
     if (md >= 2) {
 
-        return 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5';
+        return 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5';
 
     }
 
-    return 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5';
+    return 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5';
 
 });
 
@@ -108,6 +110,36 @@ const selectedCategoryName = computed(() => {
 
 /** Banners admin: `home` al explorar, `search` tras buscar/filtrar. */
 const adPlacement = computed(() => (search.searched ? 'search' : 'home'));
+
+/** Vista tipo marketplace (sidebar + grid) al buscar o filtrar. */
+const showSearchLayout = computed(() => {
+    if (!search.searched) return false;
+    return !!(
+        search.keyword.trim()
+        || search.selectedCategoryId != null
+        || geo.selectedDistrictId != null
+        || geo.selectedProvinceId != null
+        || geo.selectedDepartmentId != null
+        || geo.useGps
+    );
+});
+
+const resultsTitle = computed(() => {
+    const kw = search.keyword.trim();
+    if (kw) return kw;
+    if (selectedCategoryName.value) return selectedCategoryName.value;
+    if (geo.useGps) return 'Cerca de ti';
+    return 'Anuncios cerca de ti';
+});
+
+const searchGridClass = computed(() =>
+    'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5',
+);
+
+const resultsCount = computed(() => {
+    if (!search.searched || search.loading || search.error) return null;
+    return search.searchMeta?.pagination?.total ?? search.results.length;
+});
 
 
 
@@ -195,6 +227,14 @@ async function submitSearch() {
 
     recordSearch();
 
+    await nextTick();
+
+    if (search.keyword.trim() || search.selectedCategoryId != null || geo.selectedDistrictId) {
+
+        scrollToHash('#resultados');
+
+    }
+
 }
 
 
@@ -235,240 +275,179 @@ function applyRecent(item) {
 
 <template>
 
-    <div class="home-page">
+    <div class="home-page home-page--market">
 
-        <section class="home-search-strip border-b border-slate-200/80">
-
-            <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-5">
-
+        <!-- 1. Banda superior: búsqueda prominente (como header marketplace) -->
+        <section class="home-hero-band" aria-label="Buscar negocios">
+            <div class="home-hero-band__inner chamba-container max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-5">
                 <div id="buscar" class="scroll-mt-24">
-
                     <ListingSearchBar
-
                         variant="home"
-
                         auto-run-on-geo
-
-                        :compact-geo="!showGeoFilters"
-
+                        :compact-geo="showSearchLayout || !showGeoFilters"
                         @search="submitSearch"
-
                     />
-
                     <button
-
+                        v-if="!showSearchLayout"
                         type="button"
-
-                        class="mt-2 text-sm text-slate-500 hover:text-slate-800 transition-colors"
-
+                        class="home-hero-band__link mt-2"
                         @click="showGeoFilters = !showGeoFilters"
-
                     >
-
                         {{ showGeoFilters ? 'Ocultar filtros de zona' : 'Filtrar por departamento, provincia o distrito' }}
-
                     </button>
-
                 </div>
-
-
 
                 <GuestBrowseBanner :meta="search.guestMeta" compact class="mt-3" />
 
-
-
                 <div
-
                     v-if="recentSearches.length"
-
                     class="mt-3 flex flex-wrap items-center gap-2"
-
                     aria-label="Búsquedas recientes"
-
                 >
-
-                    <span class="text-xs text-slate-400">Recientes:</span>
-
+                    <span class="text-xs text-white/70">Recientes:</span>
                     <button
-
                         v-for="item in recentSearches.slice(0, 5)"
-
                         :key="item.ts"
-
                         type="button"
-
-                        class="filter-chip filter-chip--muted"
-
+                        class="home-hero-band__chip"
                         @click="applyRecent(item)"
-
                     >
-
                         {{ item.label }}
-
                     </button>
-
                 </div>
-
             </div>
-
         </section>
 
 
 
-        <HomeFeaturedSlider />
+        <!-- 2. Banner hero (solo exploración inicial) -->
+        <section v-if="!showSearchLayout" class="home-banner-zone" aria-label="Destacados">
+            <HomeFeaturedSlider />
+        </section>
 
 
 
-        <HomeCategoriesSection
+        <!-- 3. Categorías (solo exploración inicial) -->
+        <template v-if="!showSearchLayout">
+            <HomeCategoriesSection
+                layout="shelf"
+                :categories="catalog.categories"
+                :selected-id="search.selectedCategoryId"
+                @select="pickCategory"
+                @clear="clearCategory"
+            />
 
-            class="py-4 md:py-5 bg-white border-b border-slate-200/60"
-
-            :categories="catalog.categories"
-
-            :selected-id="search.selectedCategoryId"
-
-            @select="pickCategory"
-
-            @clear="clearCategory"
-
-        />
-
-        <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6 pb-2">
-
-            <CategorySuggestCallout inline @open="showSuggestCategory = true" />
-
-        </div>
+            <div class="home-shelf__footer chamba-container max-w-6xl mx-auto px-4 md:px-6 pb-3">
+                <CategorySuggestCallout inline @open="showSuggestCategory = true" />
+            </div>
+        </template>
 
 
 
-        <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-10">
+        <!-- 4. Resultados -->
+        <section class="home-results-zone" :class="showSearchLayout ? 'home-results-zone--search' : ''">
+            <div
+                class="chamba-container mx-auto px-4 md:px-6 py-6 md:py-8"
+                :class="showSearchLayout ? 'max-w-7xl' : 'max-w-6xl home-results-panel'"
+            >
+                <NotificationsBanner v-if="auth.isCliente" class="mb-5" />
 
-            <NotificationsBanner v-if="auth.isCliente" class="mb-6" />
-
-
-
-            <section id="resultados" class="scroll-mt-24" aria-label="Resultados de búsqueda">
-
-                <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-
-                    <div>
-
-                        <h2 class="text-lg font-semibold text-slate-900">Anuncios cerca de ti</h2>
-
-                        <p v-if="selectedCategoryName" class="text-sm text-slate-500 mt-0.5">
-
-                            Categoría: {{ selectedCategoryName }}
-
+                <section id="resultados" class="scroll-mt-24" aria-label="Resultados de búsqueda">
+                    <!-- Cabecera resultados (estilo ML) -->
+                    <div
+                        v-if="showSearchLayout"
+                        class="search-results-header mb-5"
+                    >
+                        <p v-if="selectedCategoryName && search.keyword.trim()" class="search-results-header__crumb text-sm text-slate-500 mb-1">
+                            Categorías · {{ selectedCategoryName }}
                         </p>
-
+                        <div class="flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                                <h2 class="search-results-header__title">{{ resultsTitle }}</h2>
+                                <p v-if="resultsCount != null" class="search-results-header__count">
+                                    {{ resultsCount }} {{ resultsCount === 1 ? 'resultado' : 'resultados' }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
-                    <p
-
-                        v-if="search.searched && !search.loading && !search.error"
-
-                        class="text-sm text-slate-500 tabular-nums"
-
+                    <div
+                        v-else
+                        class="flex flex-wrap items-end justify-between gap-3 mb-4 pb-4 border-b border-slate-100"
                     >
+                        <div>
+                            <h2 class="text-lg md:text-xl font-bold text-slate-900">Anuncios cerca de ti</h2>
+                            <p v-if="selectedCategoryName" class="text-sm text-slate-500 mt-0.5">
+                                Categoría: {{ selectedCategoryName }}
+                            </p>
+                        </div>
+                        <p v-if="resultsCount != null" class="text-sm text-slate-500 tabular-nums font-medium">
+                            {{ resultsCount }} {{ resultsCount === 1 ? 'anuncio' : 'anuncios' }}
+                        </p>
+                    </div>
 
-                        {{ search.searchMeta?.pagination?.total ?? search.results.length }}
+                    <div
+                        class="search-results-layout"
+                        :class="showSearchLayout ? 'search-results-layout--with-sidebar' : ''"
+                    >
+                        <SearchResultsSidebar
+                            v-if="showSearchLayout"
+                            class="search-results-layout__sidebar"
+                            @apply="submitSearch"
+                        />
 
-                        {{ (search.searchMeta?.pagination?.total ?? search.results.length) === 1 ? 'anuncio' : 'anuncios' }}
+                        <div class="search-results-layout__main min-w-0">
+                            <SearchResultsToolbar
+                                v-if="!showSearchLayout && search.searched && !search.loading && !search.error && search.results.length"
+                                class="mb-5"
+                            />
 
-                    </p>
+                            <p v-if="search.loading" class="py-20 text-center text-slate-500">Buscando…</p>
 
-                </div>
+                            <div
+                                v-else-if="search.error"
+                                class="rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm px-4 py-3"
+                            >
+                                {{ search.error }}
+                            </div>
 
+                            <div
+                                v-else-if="search.searched && search.results.length === 0"
+                                class="rounded-xl border border-slate-200 bg-slate-50 py-16 px-6 text-center"
+                            >
+                                <span class="material-symbols-outlined text-4xl text-slate-300 mb-3 block">search_off</span>
+                                <p class="text-slate-800 font-medium">No encontramos anuncios</p>
+                                <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+                                    Prueba con otras palabras, otra categoría o amplía la zona de búsqueda.
+                                </p>
+                            </div>
 
+                            <ListingResultsMap
+                                v-else-if="search.viewMode === 'map'"
+                                :results="search.results"
+                                :user-lat="geo.mapDisplayLat"
+                                :user-lng="geo.mapDisplayLng"
+                                :location-loading="geo.mapLocationLoading"
+                            />
 
-                <SearchResultsToolbar
+                            <div v-else :class="showSearchLayout ? searchGridClass : gridClass">
+                                <ServiceCard v-for="s in search.results" :key="s.service_id" :service="s" />
+                            </div>
 
-                    v-if="search.searched && !search.loading && !search.error && search.results.length"
+                            <SearchResultsPagination v-if="search.viewMode === 'list' && search.results.length" />
 
-                />
-
-
-
-                <p v-if="search.loading" class="py-20 text-center text-slate-500">Buscando…</p>
-
-
-
-                <div
-
-                    v-else-if="search.error"
-
-                    class="rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm px-4 py-3"
-
-                >
-
-                    {{ search.error }}
-
-                </div>
-
-
-
-                <div
-
-                    v-else-if="search.searched && search.results.length === 0"
-
-                    class="rounded-xl border border-slate-200 bg-white py-16 px-6 text-center"
-
-                >
-
-                    <span class="material-symbols-outlined text-4xl text-slate-300 mb-3 block">search_off</span>
-
-                    <p class="text-slate-800 font-medium">No encontramos anuncios</p>
-
-                    <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-
-                        Prueba con otras palabras, otra categoría o amplía la zona de búsqueda.
-
-                    </p>
-
-                </div>
-
-
-
-                <ListingResultsMap
-
-                    v-else-if="search.viewMode === 'map'"
-
-                    :results="search.results"
-
-                    :user-lat="geo.mapDisplayLat"
-
-                    :user-lng="geo.mapDisplayLng"
-
-                    :location-loading="geo.mapLocationLoading"
-
-                />
+                            <AdSlot :placement="adPlacement" class="mt-8" />
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </section>
 
 
 
-                <div v-else :class="gridClass">
-
-                    <ServiceCard v-for="s in search.results" :key="s.service_id" :service="s" />
-
-                </div>
-
-
-
-                <SearchResultsPagination v-if="search.viewMode === 'list' && search.results.length" />
-
-            </section>
-
-
-
-            <AdSlot :placement="adPlacement" class="mt-10" />
-
-        </div>
-
-
-
-        <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6 pb-12 md:pb-16">
-
+        <!-- 5. Marketing al pie (solo exploración) -->
+        <div v-if="!showSearchLayout" class="home-marketing chamba-container max-w-6xl mx-auto px-4 md:px-6 pb-12 md:pb-16">
             <DiscoverMarketingSections />
-
         </div>
 
 
