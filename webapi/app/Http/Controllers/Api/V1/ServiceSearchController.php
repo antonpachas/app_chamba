@@ -17,6 +17,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\UserSubscription;
 use App\Services\ListingGuestPreviewService;
 use App\Services\ListingListFormatter;
+use App\Services\ListingPresenterService;
 use App\Services\MediaStorageService;
 use App\Services\StoredProcedureService;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +30,7 @@ final class ServiceSearchController extends Controller
         private readonly MediaStorageService $media,
         private readonly ListingGuestPreviewService $guestPreview,
         private readonly ListingListFormatter $listFormatter,
+        private readonly ListingPresenterService $presenter,
     ) {}
 
     public function index(ServiceSearchRequest $request): JsonResponse
@@ -67,6 +69,7 @@ final class ServiceSearchController extends Controller
         }
 
         $rows = $this->filterVisibleListings($rows);
+        $rows = $this->presenter->enrichSearchRows($rows);
 
         $profileIds = collect($rows)->pluck('provider_profile_id')->filter()->unique()->values();
         $proUserIds = collect();
@@ -104,10 +107,11 @@ final class ServiceSearchController extends Controller
         }
         $rows = $this->sortListings($rows, $sort, $hasGps);
 
-        [$hoursByProfile, $hoursByLocation, $primaryLocByProfile] = $this->loadHoursContext($profileIds);
-        $rows = $this->listFormatter->mapList($rows, $hoursByProfile, $hoursByLocation, $primaryLocByProfile);
-
         $serviceIds = collect($rows)->pluck('service_id')->filter()->unique()->values();
+        [$hoursByProfile, $hoursByLocation, $primaryLocByProfile] = $this->loadHoursContext($profileIds);
+        $hoursByService = $this->loadListingHours($serviceIds);
+        $rows = $this->listFormatter->mapList($rows, $hoursByProfile, $hoursByLocation, $primaryLocByProfile, $hoursByService);
+
         if ($serviceIds->isNotEmpty()) {
             $imagesByService = ServiceImage::query()
                 ->whereIn('provider_service_id', $serviceIds)
@@ -206,15 +210,19 @@ final class ServiceSearchController extends Controller
             ->pluck('provider_profile_id')
             ->unique();
 
-        if ($providerIdsWithBranch->isEmpty()) {
-            return $rows;
-        }
-
         $query = ProviderService::query()
             ->visible()
-            ->whereIn('provider_profile_id', $providerIdsWithBranch)
+            ->where(function ($q) use ($districtId, $providerIdsWithBranch) {
+                $q->where('district_id', $districtId);
+                if ($providerIdsWithBranch->isNotEmpty()) {
+                    $q->orWhereIn('provider_profile_id', $providerIdsWithBranch);
+                }
+            })
             ->with([
                 'category:id,name',
+                'district:id,name,province_id,latitude,longitude',
+                'district.province:id,name,department_id',
+                'district.province.department:id,name',
                 'providerProfile:id,user_id,business_name,district_id,address_text,avg_rating,total_reviews,is_verified',
                 'providerProfile.user:id,full_name',
                 'providerProfile.district:id,name,province_id',
@@ -243,8 +251,11 @@ final class ServiceSearchController extends Controller
                 ->where('district_id', $districtId)
                 ->where('is_active', 1)
                 ->first();
+            $lat = $svc->latitude ?? $branch?->latitude;
+            $lng = $svc->longitude ?? $branch?->longitude;
             $rows[] = [
                 'service_id' => $svc->id,
+                'listing_type' => $svc->listing_type ?? 'presencia',
                 'title' => $svc->title,
                 'provider_profile_id' => $prof?->id,
                 'provider_user_id' => $prof?->user_id,
@@ -262,12 +273,14 @@ final class ServiceSearchController extends Controller
                 'avg_rating' => $prof?->avg_rating,
                 'total_reviews' => $prof?->total_reviews,
                 'is_verified' => $prof?->is_verified,
-                'district_id' => $branch?->district_id ?? $prof?->district_id,
-                'district_name' => $branch?->district?->name ?? $prof?->district?->name,
-                'province_name' => $prof?->district?->province?->name,
-                'department_name' => $prof?->district?->province?->department?->name,
-                'provider_latitude' => $branch?->latitude,
-                'provider_longitude' => $branch?->longitude,
+                'district_id' => $svc->district_id ?? $branch?->district_id ?? $prof?->district_id,
+                'district_name' => $svc->district?->name ?? $branch?->district?->name ?? $prof?->district?->name,
+                'province_name' => $svc->district?->province?->name ?? $prof?->district?->province?->name,
+                'department_name' => $svc->district?->province?->department?->name ?? $prof?->district?->province?->department?->name,
+                'address_text' => $svc->address_text ?: $prof?->address_text,
+                'location_label' => $svc->location_label,
+                'provider_latitude' => $lat,
+                'provider_longitude' => $lng,
                 'distance_km' => null,
                 'matched_by_location' => true,
             ];
@@ -324,6 +337,11 @@ final class ServiceSearchController extends Controller
                 return $pro;
             }
 
+            $boost = (int) (($b['listing_type'] ?? '') === 'promocion') <=> (int) (($a['listing_type'] ?? '') === 'promocion');
+            if ($boost !== 0) {
+                return $boost;
+            }
+
             $ta = strtotime((string) ($a['published_at'] ?? $a['created_at'] ?? '')) ?: 0;
             $tb = strtotime((string) ($b['published_at'] ?? $b['created_at'] ?? '')) ?: 0;
             if ($tb !== $ta) {
@@ -370,6 +388,24 @@ final class ServiceSearchController extends Controller
         }
 
         return [$hoursByProfile, $hoursByLocation, $primaryLocByProfile];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, int>|array<int, int>  $serviceIds
+     * @return array<int, array|null>
+     */
+    private function loadListingHours($serviceIds): array
+    {
+        $ids = collect($serviceIds)->filter()->unique()->values();
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        return ProviderService::query()
+            ->whereIn('id', $ids)
+            ->get(['id', 'business_hours'])
+            ->mapWithKeys(fn (ProviderService $s) => [(int) $s->id => $s->business_hours])
+            ->all();
     }
 
     private function distanceSortKey(array $row): float

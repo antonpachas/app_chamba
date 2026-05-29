@@ -8,11 +8,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProviderService extends Model
 {
+    public const TYPE_PRESENCIA = 'presencia';
+
+    public const TYPE_PROMOCION = 'promocion';
+
     protected $fillable = [
         'provider_profile_id',
         'category_id',
         'title',
         'description',
+        'listing_type',
+        'location_label',
+        'address_text',
+        'department_id',
+        'province_id',
+        'district_id',
+        'ubigeo',
+        'latitude',
+        'longitude',
+        'business_hours',
         'base_price',
         'price_type',
         'is_active',
@@ -36,7 +50,25 @@ class ProviderService extends Model
             'expires_at' => 'datetime',
             'deactivated_at' => 'datetime',
             'duration_days' => 'integer',
+            'business_hours' => 'array',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
+    }
+
+    public function district(): BelongsTo
+    {
+        return $this->belongsTo(District::class);
+    }
+
+    public function isPresencia(): bool
+    {
+        return ($this->listing_type ?? self::TYPE_PRESENCIA) === self::TYPE_PRESENCIA;
+    }
+
+    public function isPromocion(): bool
+    {
+        return $this->listing_type === self::TYPE_PROMOCION;
     }
 
     public function scopeVisible($query)

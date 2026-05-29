@@ -26,8 +26,21 @@ class ProviderServiceResource extends JsonResource
 
         return [
             'id' => $this->id,
+            'listing_type' => $this->listing_type ?? 'presencia',
             'title' => $this->title,
             'description' => $this->description,
+            'location_label' => $this->location_label,
+            'address_text' => $this->address_text,
+            'department_id' => $this->department_id,
+            'province_id' => $this->province_id,
+            'district_id' => $this->district_id,
+            'ubigeo' => $this->ubigeo,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
+            'district' => $this->whenLoaded('district', fn () => [
+                'id' => $this->district?->id,
+                'name' => $this->district?->name,
+            ]),
             'base_price' => $this->base_price,
             'price_type' => $this->price_type,
             'is_active' => (bool) $this->is_active,
@@ -49,10 +62,7 @@ class ProviderServiceResource extends JsonResource
                 'sort_order' => $i->sort_order,
             ])->values(),
             'cover_image_url' => $images->isNotEmpty() ? $media->publicUrl($images->first()->path) : null,
-            'location_ids' => $this->when(
-                $this->relationLoaded('locations'),
-                fn () => $this->locations->pluck('id')->values(),
-            ),
+            'business_hours' => $this->business_hours,
         ];
     }
 }

@@ -45,7 +45,6 @@ const navLinks = computed(() => {
             { name: 'provider-dashboard', label: 'Panel' },
             { name: 'provider-listings', label: 'Anuncios' },
             { name: 'provider-requests', label: 'Solicitudes' },
-            { name: 'provider-locations', label: 'Sedes' },
             { name: 'provider-subscription', label: 'Mi plan' },
         ];
     }

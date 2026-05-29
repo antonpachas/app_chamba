@@ -72,7 +72,13 @@ const priceFooter = computed(() => {
                 loading="lazy"
             />
             <div
-                v-if="service.is_pro"
+                v-if="service.listing_type === 'promocion'"
+                class="absolute top-3 left-3 bg-amber-500 text-white px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow"
+            >
+                Destacado
+            </div>
+            <div
+                v-else-if="service.is_pro"
                 class="absolute top-3 left-3 bg-grad-warm text-white px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-orange-500/30"
             >
                 <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1">verified</span>

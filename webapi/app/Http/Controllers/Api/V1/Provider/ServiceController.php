@@ -8,7 +8,9 @@ use App\Http\Requests\Api\V1\Provider\UpdateProviderServiceRequest;
 use App\Http\Requests\Api\V1\Provider\UpdateServiceStatusRequest;
 use App\Http\Resources\Api\V1\ProviderServiceResource;
 use App\Models\ProviderService;
+use App\Services\BusinessHoursService;
 use App\Services\ListingLifecycleService;
+use App\Services\ListingLocationFieldsService;
 use App\Services\ListingLocationService;
 use App\Services\StoredProcedureService;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +23,8 @@ final class ServiceController extends Controller
         private readonly StoredProcedureService $storedProcedures,
         private readonly ListingLifecycleService $listings,
         private readonly ListingLocationService $listingLocations,
+        private readonly ListingLocationFieldsService $listingLocation,
+        private readonly BusinessHoursService $businessHours,
     ) {}
 
     public function index(Request $request)
@@ -35,21 +39,15 @@ final class ServiceController extends Controller
         $profileId = (int) $profile->id;
 
         $services = ProviderService::query()
-            ->with(['category', 'images', 'locations'])
+            ->with(['category', 'images', 'district'])
             ->where('provider_profile_id', $profileId)
             ->orderByDesc('id')
             ->paginate(20);
 
         $user = $request->user();
-        $active = $this->listings->activeListingsCount($profile);
-        $max = $this->listings->maxActiveListings($user);
 
         return ProviderServiceResource::collection($services)->additional([
-            'quota' => [
-                'active' => $active,
-                'max' => $max,
-                'available' => max(0, $max - $active),
-            ],
+            'quota' => $this->listings->quotaPayload($profile, $user),
             'default_duration_days' => $this->listings->effectiveDurationDays($profile),
         ])->response();
     }
@@ -63,14 +61,22 @@ final class ServiceController extends Controller
             ], 422);
         }
 
-        if (! $this->listings->hasQuota($profile, $request->user())) {
+        $data = $request->validated();
+        $type = $data['listing_type'] ?? ProviderService::TYPE_PRESENCIA;
+        $user = $request->user();
+
+        try {
+            $this->listings->assertCanCreateType($user, $type);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        if (! $this->listings->hasQuotaForType($profile, $user, $type)) {
             return response()->json([
-                'message' => 'Alcanzaste el cupo de anuncios activos de tu plan. Pausa uno o mejora tu plan.',
+                'message' => 'Alcanzaste el cupo de fichas activas para tu plan. Pausa una o mejora a Pro.',
                 'code' => 'listing_quota_reached',
             ], 422);
         }
-
-        $data = $request->validated();
 
         try {
             $serviceId = $this->storedProcedures->createProviderService(
@@ -83,9 +89,15 @@ final class ServiceController extends Controller
             );
 
             $service = ProviderService::query()->with('category')->findOrFail($serviceId);
+            $service->listing_type = $type;
+            $service->save();
+            $this->listingLocation->applyToListing($service, $data);
+            if (array_key_exists('business_hours', $data)) {
+                $service->business_hours = $this->businessHours->normalizeInput($data['business_hours']);
+                $service->save();
+            }
             $this->listings->publish($service, $profile);
-            $this->listingLocations->sync($service, $profile, $data['location_ids'] ?? null);
-            $service->refresh()->load(['category', 'locations']);
+            $service->refresh()->load(['category', 'district']);
         } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -122,11 +134,29 @@ final class ServiceController extends Controller
             $data['price_type'],
         );
 
-        if (array_key_exists('location_ids', $data)) {
-            $this->listingLocations->sync($model, $profile, $data['location_ids']);
+        if (array_key_exists('listing_type', $data) && $data['listing_type'] !== $model->listing_type) {
+            try {
+                $this->listings->assertCanCreateType($request->user(), $data['listing_type']);
+            } catch (Throwable $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            $model->listing_type = $data['listing_type'];
+            $model->save();
+            if ($model->isPresencia()) {
+                $model->expires_at = null;
+                $model->duration_days = null;
+                $model->save();
+            }
         }
 
-        $model->refresh()->load(['category', 'locations']);
+        $this->listingLocation->applyToListing($model, $data);
+
+        if (array_key_exists('business_hours', $data)) {
+            $model->business_hours = $this->businessHours->normalizeInput($data['business_hours']);
+            $model->save();
+        }
+
+        $model->refresh()->load(['category', 'district']);
 
         return response()->json([
             'data' => ProviderServiceResource::make($model),

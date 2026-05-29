@@ -161,8 +161,15 @@ final class BusinessHoursService
      * @param  array<string, mixed>|null  $locationHours
      * @return array<string, mixed>|null
      */
-    public function resolveForListing(?array $profileHours, ?array $locationHours): ?array
+    /**
+     * Prioridad: horario del anuncio → sede (legacy) → perfil del negocio.
+     */
+    public function resolveForListing(?array $profileHours, ?array $locationHours = null, ?array $listingHours = null): ?array
     {
+        if (is_array($listingHours) && $listingHours !== []) {
+            return $listingHours;
+        }
+
         if (is_array($locationHours) && $locationHours !== []) {
             return $locationHours;
         }

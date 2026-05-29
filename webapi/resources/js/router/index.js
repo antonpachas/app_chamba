@@ -122,7 +122,7 @@ const routes = [
         path: '/proveedor/anuncios',
         name: 'provider-listings',
         component: () => import('@/views/provider/ServicesView.vue'),
-        meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Mis anuncios' },
+        meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Mis fichas' },
     },
     {
         path: '/proveedor/servicios',
@@ -130,9 +130,7 @@ const routes = [
     },
     {
         path: '/proveedor/sedes',
-        name: 'provider-locations',
-        component: () => import('@/views/provider/LocationsView.vue'),
-        meta: { layout: 'default', requiresAuth: true, role: 'proveedor', title: 'Mis sedes' },
+        redirect: { name: 'provider-listings' },
     },
     {
         path: '/proveedor/solicitudes',

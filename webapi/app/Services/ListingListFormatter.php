@@ -40,21 +40,26 @@ final class ListingListFormatter
      * @param  array<int, array<string, mixed>|null>  $hoursByProfileId
      * @param  array<int, array<string, mixed>|null>  $hoursByLocationId
      * @param  array<int, int>  $primaryLocationIdByProfile
+     * @param  array<int, array|null>  $hoursByServiceId
      */
     public function mapList(
         array $rows,
         array $hoursByProfileId = [],
         array $hoursByLocationId = [],
         array $primaryLocationIdByProfile = [],
+        array $hoursByServiceId = [],
     ): array {
-        return array_map(function (array $row) use ($hoursByProfileId, $hoursByLocationId, $primaryLocationIdByProfile): array {
+        return array_map(function (array $row) use ($hoursByProfileId, $hoursByLocationId, $primaryLocationIdByProfile, $hoursByServiceId): array {
             $pid = (int) ($row['provider_profile_id'] ?? 0);
+            $sid = (int) ($row['service_id'] ?? 0);
             $profHours = $hoursByProfileId[$pid] ?? null;
             $locId = $primaryLocationIdByProfile[$pid] ?? 0;
             $locHours = $locId > 0 ? ($hoursByLocationId[$locId] ?? null) : null;
+            $listingHours = $sid > 0 ? ($hoursByServiceId[$sid] ?? null) : null;
             $resolved = $this->businessHours->resolveForListing(
                 is_array($profHours) ? $profHours : null,
                 is_array($locHours) ? $locHours : null,
+                is_array($listingHours) ? $listingHours : null,
             );
 
             return $this->forList($row, $resolved);

@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useProviderProfileStore } from '@/stores/providerProfile';
-import { useProviderLocationsStore } from '@/stores/providerLocations';
 import { useCatalogStore } from '@/stores/catalog';
 import { useAuthStore } from '@/stores/auth';
 import AppButton from '@/components/ui/AppButton.vue';
@@ -9,24 +8,40 @@ import AppInput from '@/components/ui/AppInput.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import Money from '@/components/common/Money.vue';
 import ListingCardPreview from '@/components/listing/ListingCardPreview.vue';
+import BusinessHoursEditor from '@/components/provider/BusinessHoursEditor.vue';
+import ListingLocationFields from '@/components/provider/ListingLocationFields.vue';
 
 const MAX_PHOTOS = 8;
 
 const store = useProviderProfileStore();
-const locStore = useProviderLocationsStore();
 const catalog = useCatalogStore();
 const auth = useAuthStore();
 
 const editing = ref(null);
 const showForm = ref(false);
-const form = ref({
-    category_id: null,
-    title: '',
-    description: '',
-    base_price: '',
-    price_type: 'cotizar',
-    location_ids: [],
-});
+function buildEmptyForm() {
+    const p = store.profile;
+    return {
+        listing_type: 'presencia',
+        category_id: catalog.categories[0]?.id || null,
+        title: '',
+        description: '',
+        base_price: '',
+        price_type: 'cotizar',
+        location_label: '',
+        address_text: p?.address_text || '',
+        department_id: null,
+        province_id: null,
+        district_id: p?.district_id || null,
+        ubigeo: '',
+        latitude: '',
+        longitude: '',
+        business_hours: null,
+        use_profile_hours: true,
+    };
+}
+
+const form = ref(buildEmptyForm());
 /** @type {import('vue').Ref<Array<{ key: string, file?: File, url: string, id?: number, isExisting?: boolean }>>} */
 const formPhotos = ref([]);
 const photosToDelete = ref([]);
@@ -43,6 +58,10 @@ const categoryName = computed(() => {
 
 const previewImages = computed(() => formPhotos.value.map((p) => p.url));
 
+const quota = computed(() => store.servicesQuota || {});
+
+const canCreatePromocion = computed(() => (quota.value.promocion?.max ?? 0) > 0);
+
 const previewService = computed(() => ({
     service_id: editing.value?.id || 0,
     title: form.value.title.trim() || 'Título del anuncio',
@@ -53,11 +72,16 @@ const previewService = computed(() => ({
     provider_name: store.profile?.business_name || auth.user?.full_name || 'Tu negocio',
     district_name: null,
     province_name: null,
-    address_text: store.profile?.address_text || null,
+    address_text: form.value.address_text || store.profile?.address_text || null,
     avg_rating: store.profile?.avg_rating,
     total_reviews: store.profile?.total_reviews,
     is_pro: auth.isPro,
+    listing_type: form.value.listing_type,
 }));
+
+function listingTypeLabel(type) {
+    return type === 'promocion' ? 'Destacado' : 'Presencia';
+}
 
 function revokePhotoUrls() {
     for (const p of formPhotos.value) {
@@ -75,14 +99,7 @@ function resetPhotos() {
 
 function startCreate() {
     editing.value = null;
-    form.value = {
-        category_id: catalog.categories[0]?.id || null,
-        title: '',
-        description: '',
-        base_price: '',
-        price_type: 'cotizar',
-        location_ids: [],
-    };
+    form.value = buildEmptyForm();
     resetPhotos();
     showForm.value = true;
     errMsg.value = '';
@@ -92,12 +109,22 @@ function startCreate() {
 function startEdit(s) {
     editing.value = s;
     form.value = {
+        listing_type: s.listing_type || 'presencia',
         category_id: s.category?.id || null,
         title: s.title,
         description: s.description,
         base_price: s.base_price ?? '',
         price_type: s.price_type,
-        location_ids: [...(s.location_ids || [])],
+        location_label: s.location_label || '',
+        address_text: s.address_text || '',
+        department_id: s.department_id || null,
+        province_id: s.province_id || null,
+        district_id: s.district_id || null,
+        ubigeo: s.ubigeo || '',
+        latitude: s.latitude ?? '',
+        longitude: s.longitude ?? '',
+        business_hours: s.business_hours || null,
+        use_profile_hours: !s.business_hours,
     };
     resetPhotos();
     formPhotos.value = (s.images || []).map((img) => ({
@@ -182,15 +209,28 @@ async function submit() {
         errMsg.value = 'Agrega al menos una foto para tu anuncio.';
         return;
     }
+    if (!form.value.district_id) {
+        errMsg.value = 'Selecciona el distrito donde está este local.';
+        return;
+    }
     saving.value = true;
     try {
         const payload = {
+            listing_type: form.value.listing_type,
             category_id: form.value.category_id,
             title: form.value.title,
             description: form.value.description,
             base_price: form.value.base_price === '' ? null : Number(form.value.base_price),
             price_type: form.value.price_type,
-            location_ids: form.value.location_ids,
+            location_label: form.value.location_label || null,
+            address_text: form.value.address_text || null,
+            department_id: form.value.department_id,
+            province_id: form.value.province_id,
+            district_id: form.value.district_id,
+            ubigeo: form.value.ubigeo || null,
+            latitude: form.value.latitude === '' ? null : Number(form.value.latitude),
+            longitude: form.value.longitude === '' ? null : Number(form.value.longitude),
+            business_hours: form.value.use_profile_hours ? null : form.value.business_hours,
         };
         let serviceId;
         if (editing.value) {
@@ -283,12 +323,7 @@ async function deleteImage(s, img) {
 onMounted(async () => {
     loadError.value = '';
     try {
-        await Promise.all([
-            store.loadProfile(),
-            store.loadServices(),
-            catalog.ensureCategories(),
-            locStore.load(),
-        ]);
+        await Promise.all([store.loadProfile(), store.loadServices(), catalog.ensureCategories()]);
     } catch (e) {
         loadError.value = e?.message || 'No se pudo cargar la página de anuncios.';
     }
@@ -307,13 +342,19 @@ watch(showForm, (open) => {
     <div class="max-w-6xl mx-auto px-4 md:px-8 py-8">
         <header class="mb-8 flex justify-between items-end gap-3 flex-wrap">
             <div>
-                <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mis anuncios</h1>
+                <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mis fichas</h1>
                 <p class="text-slate-600 mt-1">
-                    Publica tus anuncios. Duración por defecto: {{ store.defaultDurationDays }} días.
-                    Cupo activo: {{ store.servicesQuota.active }}/{{ store.servicesQuota.max }}.
+                    Cada ficha es tu negocio en el mapa (presencia permanente) o un anuncio destacado (vence en
+                    {{ store.defaultDurationDays }} días y sale primero en búsquedas).
+                </p>
+                <p class="text-sm text-slate-500 mt-1">
+                    Presencia: {{ quota.presencia?.active ?? 0 }}/{{ quota.presencia?.max ?? '—' }}
+                    <span v-if="canCreatePromocion">
+                        · Destacados: {{ quota.promocion?.active ?? 0 }}/{{ quota.promocion?.max ?? '—' }}
+                    </span>
                 </p>
             </div>
-            <AppButton variant="primary" @click="startCreate">+ Nuevo anuncio</AppButton>
+            <AppButton variant="primary" @click="startCreate">+ Nueva ficha</AppButton>
         </header>
 
         <AppAlert v-if="loadError" type="error" class="mb-4">{{ loadError }}</AppAlert>
@@ -331,7 +372,9 @@ watch(showForm, (open) => {
             <table class="w-full min-w-[980px] text-sm">
                 <thead class="bg-slate-50 text-xs font-bold uppercase text-slate-600">
                     <tr>
-                        <th class="text-left px-4 py-3">Anuncio</th>
+                        <th class="text-left px-4 py-3">Ficha</th>
+                        <th class="text-left px-4 py-3">Tipo</th>
+                        <th class="text-left px-4 py-3">Ubicación</th>
                         <th class="text-left px-4 py-3">Estado</th>
                         <th class="text-left px-4 py-3">Vigencia</th>
                         <th class="text-left px-4 py-3">Precio</th>
@@ -348,6 +391,16 @@ watch(showForm, (open) => {
                         </td>
                         <td class="px-4 py-3">
                             <span
+                                class="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded-full"
+                                :class="s.listing_type === 'promocion' ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-sky-800'"
+                            >{{ listingTypeLabel(s.listing_type) }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-slate-600 max-w-[160px]">
+                            <span class="line-clamp-2">{{ s.district?.name || '—' }}</span>
+                            <span v-if="s.location_label" class="block text-slate-400">{{ s.location_label }}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span
                                 v-if="s.admin_hidden"
                                 class="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full bg-rose-100 text-rose-800"
                             >Oculto por admin</span>
@@ -361,7 +414,10 @@ watch(showForm, (open) => {
                             </p>
                         </td>
                         <td class="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                            <template v-if="s.expires_at">{{ new Date(s.expires_at).toLocaleDateString() }}</template>
+                            <template v-if="s.listing_type === 'promocion' && s.expires_at">
+                                {{ new Date(s.expires_at).toLocaleDateString() }}
+                            </template>
+                            <template v-else-if="s.listing_type === 'presencia'">Permanente</template>
                             <template v-else>—</template>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap">
@@ -372,7 +428,13 @@ watch(showForm, (open) => {
                         <td class="px-4 py-3 text-right">
                             <div class="inline-flex gap-2">
                                 <AppButton variant="ghost" size="sm" @click="startEdit(s)">Editar</AppButton>
-                                <AppButton v-if="s.is_expired && !s.admin_hidden" variant="primary" size="sm" :loading="rowActionBusyId === s.id" @click="renew(s)">Renovar</AppButton>
+                                <AppButton
+                                    v-if="s.listing_type === 'promocion' && s.is_expired && !s.admin_hidden"
+                                    variant="primary"
+                                    size="sm"
+                                    :loading="rowActionBusyId === s.id"
+                                    @click="renew(s)"
+                                >Renovar</AppButton>
                                 <AppButton v-else-if="!s.admin_hidden" variant="outline" size="sm" :loading="rowActionBusyId === s.id" @click="toggle(s)">
                                     {{ s.is_active ? 'Pausar' : 'Activar' }}
                                 </AppButton>
@@ -391,8 +453,8 @@ watch(showForm, (open) => {
             <div class="w-full max-w-6xl max-h-[90vh] rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col overflow-hidden">
                 <div class="sticky top-0 px-6 py-4 border-b border-slate-100 bg-white z-10 flex items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-lg font-bold text-slate-900">{{ editing ? 'Editar anuncio' : 'Nuevo anuncio' }}</h2>
-                        <p class="text-sm text-slate-600 mt-0.5">Completa los datos y revisa la vista previa antes de publicar.</p>
+                        <h2 class="text-lg font-bold text-slate-900">{{ editing ? 'Editar ficha' : 'Nueva ficha' }}</h2>
+                        <p class="text-sm text-slate-600 mt-0.5">Ubicación, horario y fotos de esta aparición en Busca PE.</p>
                     </div>
                     <button type="button" class="text-slate-500 hover:text-slate-800 text-xl leading-none" @click="closeForm">×</button>
                 </div>
@@ -400,8 +462,19 @@ watch(showForm, (open) => {
                 <div class="flex-1 overflow-y-auto">
                     <div class="grid lg:grid-cols-2 gap-0 lg:gap-8 p-6">
                     <form id="service-modal-form" class="space-y-4 order-2 lg:order-1" @submit.prevent="submit">
+                        <label v-if="canCreatePromocion" class="block">
+                            <span class="mb-2 block text-sm font-bold text-slate-700">Tipo de ficha</span>
+                            <select v-model="form.listing_type" class="w-full rounded-lg border border-slate-200 px-3 py-2.5">
+                                <option value="presencia">Presencia en el mapa (sin vencimiento)</option>
+                                <option value="promocion">Anuncio destacado (prioridad + vence)</option>
+                            </select>
+                        </label>
+                        <p v-else class="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                            Plan Free: solo fichas de presencia. Mejora a Pro para anuncios destacados.
+                        </p>
+                        <ListingLocationFields v-model="form" />
                         <label class="block">
-                            <span class="mb-2 block text-sm font-bold text-slate-700">Categoría</span>
+                            <span class="mb-2 block text-sm font-bold text-slate-700">Categoría / rubro</span>
                             <select v-model="form.category_id" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#003874]">
                                 <option v-for="c in catalog.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
                             </select>
@@ -480,18 +553,16 @@ watch(showForm, (open) => {
                             </div>
                         </div>
 
-                        <div v-if="locStore.items.length" class="block">
-                            <span class="mb-2 block text-sm font-bold text-slate-700">Sedes donde aparece (vacío = todas)</span>
-                            <div class="flex flex-wrap gap-2">
-                                <label
-                                    v-for="loc in locStore.items"
-                                    :key="loc.id"
-                                    class="inline-flex items-center gap-2 text-sm border border-slate-200 rounded-lg px-3 py-1.5"
-                                >
-                                    <input v-model="form.location_ids" type="checkbox" :value="loc.id" />
-                                    {{ loc.label }}
-                                </label>
-                            </div>
+                        <div class="block rounded-xl border border-slate-100 bg-slate-50/80 p-4 space-y-3">
+                            <span class="block text-sm font-bold text-slate-700">Horario de atención de este anuncio</span>
+                            <label class="flex items-center gap-2 text-sm text-slate-700">
+                                <input v-model="form.use_profile_hours" type="checkbox" class="rounded" />
+                                Usar el horario del perfil del negocio
+                            </label>
+                            <BusinessHoursEditor v-if="!form.use_profile_hours" v-model="form.business_hours" />
+                            <p v-else class="text-xs text-slate-500">
+                                Si el perfil no tiene horario, en búsqueda no se mostrará «abierto ahora».
+                            </p>
                         </div>
 
                     </form>
