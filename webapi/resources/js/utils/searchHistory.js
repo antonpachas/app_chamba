@@ -1,5 +1,5 @@
 const KEY = 'buscape_recent_searches';
-const MAX = 8;
+const MAX = 5;
 
 export function loadRecentSearches() {
     try {

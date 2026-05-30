@@ -6,7 +6,7 @@ import { useRoute, useRouter } from 'vue-router';
 
 import { scrollToHash } from '@/utils/scroll';
 
-import { loadRecentSearches, pushRecentSearch } from '@/utils/searchHistory';
+import { pushRecentSearch } from '@/utils/searchHistory';
 
 import { useCatalogStore } from '@/stores/catalog';
 
@@ -66,7 +66,7 @@ const showSuggestCategory = ref(false);
 
 const showGeoFilters = ref(false);
 
-const recentSearches = ref(loadRecentSearches());
+const searchBarRef = ref(null);
 
 
 
@@ -205,18 +205,13 @@ function recordSearch() {
 
     if (!label) return;
 
-    recentSearches.value = pushRecentSearch({
-
+    pushRecentSearch({
         label,
-
         keyword: kw,
-
         category_id: search.selectedCategoryId,
-
         district_id: geo.selectedDistrictId,
-
     });
-
+    searchBarRef.value?.refreshRecents?.();
 }
 
 
@@ -260,13 +255,9 @@ function clearCategory() {
 
 
 function applyRecent(item) {
-
-    search.setKeyword(item.keyword || '');
-
+    search.setKeyword(item.keyword || item.label || '');
     if (item.category_id) search.setCategory(item.category_id);
-
     void submitSearch();
-
 }
 
 </script>
@@ -282,39 +273,19 @@ function applyRecent(item) {
             <div class="home-hero-band__inner chamba-container max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-5">
                 <div id="buscar" class="scroll-mt-24">
                     <ListingSearchBar
+                        ref="searchBarRef"
                         variant="home"
                         auto-run-on-geo
                         :compact-geo="showSearchLayout || !showGeoFilters"
+                        :show-filter-link="!showSearchLayout"
+                        :filter-expanded="showGeoFilters"
                         @search="submitSearch"
+                        @apply-recent="applyRecent"
+                        @toggle-geo-filters="showGeoFilters = !showGeoFilters"
                     />
-                    <button
-                        v-if="!showSearchLayout"
-                        type="button"
-                        class="home-hero-band__link mt-2"
-                        @click="showGeoFilters = !showGeoFilters"
-                    >
-                        {{ showGeoFilters ? 'Ocultar filtros de zona' : 'Filtrar por departamento, provincia o distrito' }}
-                    </button>
                 </div>
 
-                <GuestBrowseBanner :meta="search.guestMeta" compact class="mt-3" />
-
-                <div
-                    v-if="recentSearches.length"
-                    class="mt-3 flex flex-wrap items-center gap-2"
-                    aria-label="Búsquedas recientes"
-                >
-                    <span class="text-xs text-white/70">Recientes:</span>
-                    <button
-                        v-for="item in recentSearches.slice(0, 5)"
-                        :key="item.ts"
-                        type="button"
-                        class="home-hero-band__chip"
-                        @click="applyRecent(item)"
-                    >
-                        {{ item.label }}
-                    </button>
-                </div>
+                <GuestBrowseBanner :meta="search.guestMeta" compact class="mt-2" />
             </div>
         </section>
 

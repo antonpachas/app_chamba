@@ -48,10 +48,14 @@ $staging = "_full_staging"
 if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
 New-Item -ItemType Directory -Path $staging | Out-Null
 
+function SPath([string]$Relative) {
+    Join-Path $staging $Relative
+}
+
 # Carpetas con todo el código + vendor
 $dirs = @('app','bootstrap','config','database','public','resources','routes','vendor')
 foreach ($d in $dirs) {
-    Copy-Item -Path $d -Destination "$staging\$d" -Recurse -Force
+    Copy-Item -Path $d -Destination (SPath $d) -Recurse -Force
 }
 
 # Archivos sueltos
@@ -63,7 +67,7 @@ if (-not (Test-Path '.env.production')) {
 }
 $envContent = Get-Content '.env.production' -Raw
 $envContent = $envContent -replace 'CHAMBA_FEATURE_ESCROW=false', 'CHAMBA_FEATURE_ESCROW=true'
-Set-Content -Path "$staging\.env" -Value $envContent -NoNewline -Encoding UTF8
+Set-Content -Path (SPath '.env') -Value $envContent -NoNewline -Encoding UTF8
 
 # Esqueleto storage/ (la app no arranca sin estas carpetas)
 $storageStructure = @(
@@ -86,28 +90,28 @@ foreach ($s in $storageStructure) {
 # CSV UBIGEO para import en producción sin descargar desde GitHub
 $ubigeoCsv = 'storage\app\ubigeo_distrito.csv'
 if (Test-Path $ubigeoCsv) {
-    Copy-Item $ubigeoCsv "$staging\storage\app\ubigeo_distrito.csv" -Force
+    Copy-Item $ubigeoCsv (SPath 'storage/app/ubigeo_distrito.csv') -Force
     Write-Host "  Incluido storage/app/ubigeo_distrito.csv en el ZIP"
 } else {
-    Write-Host "  [aviso] Sin storage/app/ubigeo_distrito.csv — _import_geo.php intentará descargarlo en el servidor" -ForegroundColor Yellow
+    Write-Host '  [aviso] Sin storage/app/ubigeo_distrito.csv - _import_geo.php intentara descargarlo en el servidor' -ForegroundColor Yellow
 }
 
 # Limpiar scripts de diagnóstico viejos de public/
-Get-ChildItem "$staging\public" -File | Where-Object { $_.Name -like '_*.php' } | Remove-Item -Force
+Get-ChildItem (SPath 'public') -File | Where-Object { $_.Name -like '_*.php' } | Remove-Item -Force
 
 # Limpiar bootstrap/cache (excepto .gitignore)
-if (Test-Path "$staging\bootstrap\cache") {
-    Get-ChildItem "$staging\bootstrap\cache" -File | Where-Object { $_.Name -ne '.gitignore' } | Remove-Item -Force
+if (Test-Path (SPath 'bootstrap/cache')) {
+    Get-ChildItem (SPath 'bootstrap/cache') -File | Where-Object { $_.Name -ne '.gitignore' } | Remove-Item -Force
 }
 
 # Copiar scripts utilitarios de servidor
 foreach ($script in @('_reset.php','_migrate.php','_import_geo.php','_cron.php','_fix_htaccess.php','_fix_media_404.php','_fix_service_403.php','_diag.php','_diag_service.php')) {
-    $src = "public\$script"
-    if (Test-Path $src) { Copy-Item $src "$staging\public\$script" -Force }
+    $src = Join-Path 'public' $script
+    if (Test-Path $src) { Copy-Item $src (Join-Path (SPath 'public') $script) -Force }
 }
 
 # Validar que public/index.php tiene el patch de baseUrl (crítico para subdir)
-$indexContent = Get-Content "$staging\public\index.php" -Raw
+$indexContent = Get-Content (SPath 'public/index.php') -Raw
 $patchMarker  = 'Fix de baseUrl para deploys en subdirectorio'
 if ($indexContent -notmatch [regex]::Escape($patchMarker)) {
     throw @"
@@ -119,97 +123,60 @@ Detalles en .cursor/rules/deploy-jaapsystem.mdc
 }
 
 # Validar que .htaccess raíz NO use PATH_INFO (LiteSpeed lo rompe)
-$htContent = Get-Content "$staging\.htaccess" -Raw
+$htContent = Get-Content (SPath '.htaccess') -Raw
 if ($htContent -match 'public/index\.php/\$1') {
-    throw @"
-.htaccess raíz usa rewrite con PATH_INFO (public/index.php/`$1).
-LiteSpeed NO respeta AcceptPathInfo desde .htaccess y rompe el routing.
-Usa el rewrite simple: RewriteRule ^(.*)$ public/index.php [L]
-Detalles en .cursor/rules/deploy-jaapsystem.mdc
-"@
+    throw 'htaccess usa PATH_INFO (public/index.php/$1). LiteSpeed lo rompe; usa rewrite a public/index.php sin PATH_INFO'
 }
 
 # Validar que MediaController lee el folder del Request (gotcha defaults() en Laravel 11)
-$mediaCtrl = Get-Content "$staging\app\Http\Controllers\Api\V1\MediaController.php" -Raw
-if ($mediaCtrl -notmatch "route\(\)\?->defaults\['folder'\]") {
-    throw @"
-MediaController::show() depende del argumento `$folder` inyectado por defaults() de la ruta.
-En Laravel 11 + LiteSpeed esa inyección NO ocurre y todas las imágenes dan 404.
-Aplica el patch que lee `$folder` desde `$request->route()->defaults['folder']`.
-Detalles en .cursor/rules/deploy-jaapsystem.mdc
-"@
+$mediaCtrl = Get-Content (SPath 'app/Http/Controllers/Api/V1/MediaController.php') -Raw
+if ($mediaCtrl -notmatch 'route\(\)\?->defaults') {
+    throw 'MediaController debe leer folder desde route defaults (ver deploy-jaapsystem.mdc)'
 }
 
 # Validar que ServiceImageController usa cast a int (gotcha MariaDB string FK)
-$svcImgCtrl = Get-Content "$staging\app\Http\Controllers\Api\V1\Provider\ServiceImageController.php" -Raw
-if ($svcImgCtrl -notmatch "\(int\)\s*\`$request->user\(\)->id") {
-    throw @"
-ServiceImageController::authorize() compara IDs sin cast a int.
-En MariaDB las FK pueden volver como string ('7' !== 7 → 403 al dueño legítimo).
-Aplica el patch que castea ambos IDs a (int) antes de comparar.
-Detalles en .cursor/rules/deploy-jaapsystem.mdc (Gotcha: comparación estricta de IDs).
-"@
+$svcImgCtrl = Get-Content (SPath 'app/Http/Controllers/Api/V1/Provider/ServiceImageController.php') -Raw
+if ($svcImgCtrl -notmatch '\(int\)\s*\$request->user') {
+    throw 'ServiceImageController debe castear user_id a int antes de comparar (MariaDB devuelve strings)'
 }
 
 # Validar que NO queden rutas absolutas /img/, /build/, /assets/, /storage/ en componentes Vue
-$srcVueFiles = Get-ChildItem -Path "$staging\resources\js" -Recurse -File -Include *.vue,*.js -ErrorAction SilentlyContinue
+$srcVueFiles = Get-ChildItem -Path (SPath 'resources/js') -Recurse -File -Include *.vue,*.js -ErrorAction SilentlyContinue
 $badAbsoluteRefs = @()
+$absAssetUrlPattern = '(?:src|href)=' + [char]34 + '(?:img|build|assets|storage)/'
 foreach ($f in $srcVueFiles) {
     $content = Get-Content $f.FullName -Raw -ErrorAction SilentlyContinue
-    if ($content -and $content -match '(?:src|href)="/(?:img|build|assets|storage)/') {
+    if ($content -and $content -match $absAssetUrlPattern) {
         $badAbsoluteRefs += $f.FullName.Substring($staging.Length + 1)
     }
 }
 if ($badAbsoluteRefs.Count -gt 0) {
-    $list = ($badAbsoluteRefs -join "`n  - ")
-    throw @"
-Encontradas referencias absolutas a /img/, /build/, /assets/ o /storage/ en el SPA.
-En subdirectorio (/v1/chamba/) apuntan al dominio raíz y dan 404.
-Usa el helper @/utils/asset y :src="asset('img/foo.png')".
-Archivos:
-  - $list
-Detalles en .cursor/rules/deploy-jaapsystem.mdc (Gotcha: rutas absolutas en SPA).
-"@
+    $nl = [Environment]::NewLine
+    $list = ($badAbsoluteRefs -join ($nl + '  - '))
+    throw ('Rutas absolutas /img /build /assets /storage en el SPA. Usa utils/asset.js. Archivos:' + $nl + '  - ' + $list)
 }
 
 # Validar que el manifest dinámico está registrado y el estático fue eliminado
-if (Test-Path "$staging\public\site.webmanifest") {
-    throw @"
-public/site.webmanifest existe como archivo estático. Apache lo servirá antes que la ruta
-dinámica de Laravel y sus icons/start_url darán 404 en subdirectorio.
-Bórralo y deja solo Route::get('/site.webmanifest', ...) en routes/web.php.
-"@
+if (Test-Path (SPath 'public/site.webmanifest')) {
+    throw 'Elimina public/site.webmanifest estatico; debe servirse solo via routes/web.php'
 }
-$webRoutes = Get-Content "$staging\routes\web.php" -Raw
-if ($webRoutes -notmatch "site\.webmanifest") {
-    throw @"
-routes/web.php no registra la ruta dinámica /site.webmanifest.
-Sin ella, el manifest devuelve 404 y los icons del PWA no se cargan correctamente.
-Detalles en .cursor/rules/deploy-jaapsystem.mdc (Gotcha: rutas absolutas en SPA).
-"@
+$webRoutes = Get-Content (SPath 'routes/web.php') -Raw
+if ($webRoutes -notmatch 'site\.webmanifest') {
+    throw 'routes/web.php debe registrar la ruta dinamica site.webmanifest'
 }
 
 # Validar que vite.config.js deriva el base de APP_URL (chunks lazy-loaded)
-$viteConfig = Get-Content "vite.config.js" -Raw
-if ($viteConfig -notmatch "loadEnv|deriveBase") {
-    throw @"
-vite.config.js no tiene `base` configurado dinámicamente desde APP_URL.
-Sin esto, los chunks lazy-loaded del SPA piden /build/assets/... sin el prefijo
-/v1/chamba/ y dan 404 en producción.
-Detalles en .cursor/rules/deploy-jaapsystem.mdc (Gotcha: Vite base en subdirectorio).
-"@
+$viteConfig = Get-Content 'vite.config.js' -Raw
+if ($viteConfig -notmatch 'loadEnv|deriveBase') {
+    throw 'vite.config.js debe definir base desde APP_URL (loadEnv + deriveBase)'
 }
 
 # Validar que los assets compilados usan el prefijo correcto
-$mainEntryFile = Get-ChildItem "$staging\public\build\assets" -Filter "main-*.js" -ErrorAction SilentlyContinue | Select-Object -First 1
+$mainEntryFile = Get-ChildItem (SPath 'public/build/assets') -Filter 'main-*.js' -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($mainEntryFile) {
     $mainContent = Get-Content $mainEntryFile.FullName -Raw -ErrorAction SilentlyContinue
-    if ($mainContent -and $mainContent -match '"/build/assets/' -and $mainContent -notmatch '"/v1/chamba/build/assets/') {
-        throw @"
-El bundle de Vite NO usa el prefijo /v1/chamba/. Los chunks lazy-loaded darán 404.
-Asegúrate que .env.production tenga APP_URL=https://jaapsystem.com/v1/chamba y
-re-ejecuta `npm run build` para regenerar public/build/.
-"@
+    if ($mainContent -and $mainContent -match '/build/assets/' -and $mainContent -notmatch '/v1/chamba/build/assets/') {
+        throw 'El bundle de Vite no usa prefijo /v1/chamba/. Revisa APP_URL en .env.production y npm run build'
     }
 }
 

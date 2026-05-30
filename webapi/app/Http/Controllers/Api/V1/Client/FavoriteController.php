@@ -8,6 +8,7 @@ use App\Models\Favorite;
 use App\Models\ProviderService;
 use App\Services\ListingPublicIdService;
 use App\Services\MediaStorageService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -106,13 +107,16 @@ final class FavoriteController extends Controller
 
         return response()->json([
             'data' => $rows->map(function ($row) use ($coversByService): array {
-                $item = (array) $row;
+                $item = $row instanceof Model
+                    ? $row->getAttributes()
+                    : (array) $row;
                 $sid = (int) ($item['provider_service_id'] ?? 0);
                 $coverPath = $coversByService->get($sid);
                 $item['cover_image_url'] = $coverPath ? $this->media->publicUrl((string) $coverPath) : null;
                 if ($sid > 0) {
                     $item['listing_ref'] = $this->publicIds->encode($sid);
                 }
+
                 return $item;
             })->values()->all(),
         ]);
@@ -159,20 +163,28 @@ final class FavoriteController extends Controller
                 $fav->delete();
                 $action = 'removed';
             } else {
-                Favorite::query()
-                    ->where('user_id', $userId)
-                    ->where('provider_profile_id', $profileId)
-                    ->where(function ($q) use ($serviceId): void {
-                        $q->whereNull('provider_service_id')
-                            ->orWhere('provider_service_id', '!=', $serviceId);
-                    })
-                    ->delete();
-
-                Favorite::query()->create([
-                    'user_id' => $userId,
-                    'provider_profile_id' => $profileId,
-                    'provider_service_id' => $serviceId,
-                ]);
+                try {
+                    Favorite::query()->create([
+                        'user_id' => $userId,
+                        'provider_profile_id' => $profileId,
+                        'provider_service_id' => $serviceId,
+                    ]);
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // Migración pendiente: UNIQUE (user_id, provider_profile_id) del MVP.
+                    if ((int) $e->getCode() === 23000) {
+                        Favorite::query()
+                            ->where('user_id', $userId)
+                            ->where('provider_profile_id', $profileId)
+                            ->delete();
+                        Favorite::query()->create([
+                            'user_id' => $userId,
+                            'provider_profile_id' => $profileId,
+                            'provider_service_id' => $serviceId,
+                        ]);
+                    } else {
+                        throw $e;
+                    }
+                }
             }
         } else {
             $fav = Favorite::query()

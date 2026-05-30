@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { api, getStoredToken, setStoredToken } from '@/services/api';
 import { resizeImageFile } from '@/services/imageResize';
 import { useSearchStore } from '@/stores/search';
+import { useFavoritesStore } from '@/stores/favorites';
 
 const USER_KEY = 'chamba_web_user';
 
@@ -92,6 +93,7 @@ export const useAuthStore = defineStore('auth', {
                 setStoredToken(this.token);
                 persistUser(this.user);
                 this.refreshGuestBrowseAfterAuth();
+                useFavoritesStore().reset();
                 return data.user;
             } finally {
                 this.loading = false;
@@ -106,6 +108,7 @@ export const useAuthStore = defineStore('auth', {
                 setStoredToken(this.token);
                 persistUser(this.user);
                 this.refreshGuestBrowseAfterAuth();
+                useFavoritesStore().reset();
                 return data.user;
             } finally {
                 this.loading = false;
@@ -124,6 +127,7 @@ export const useAuthStore = defineStore('auth', {
             setStoredToken(null);
             persistUser(null);
             useSearchStore().clearGuestState();
+            useFavoritesStore().reset();
         },
         async forgotPassword(email) {
             return api.post('/auth/forgot-password', { email });

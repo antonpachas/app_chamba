@@ -14,7 +14,11 @@ const props = defineProps({
     showProviderLink: { type: Boolean, default: true },
 });
 
-const id = computed(() => Number(props.service.service_id));
+const id = computed(() => {
+    const raw = props.service?.service_id ?? props.service?.id;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+});
 const providerProfileId = computed(() => {
     const pid = props.service.provider_profile_id;
     return pid != null && pid !== '' ? Number(pid) : null;
