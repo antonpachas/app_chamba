@@ -201,6 +201,7 @@ Route::prefix('v1')->group(function (): void {
                 Route::get('history', [ClientHistoryController::class, 'index']);
             });
 
+            Route::get('reviews/status', [ReviewController::class, 'status']);
             Route::post('reviews', [ReviewController::class, 'store']);
 
             Route::get('favorites', [FavoriteController::class, 'index']);

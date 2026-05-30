@@ -12,11 +12,10 @@ import AppAlert from '@/components/ui/AppAlert.vue';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
 import RequestReviewForm from '@/components/requests/RequestReviewForm.vue';
 import { providerPublicProfileEnabled } from '@/services/features';
-import { useClientRequestsStore } from '@/stores/clientRequests';
 import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
 import ListingContactActions from '@/components/listing/ListingContactActions.vue';
 import { hasListingContact } from '@/utils/whatsapp';
-import BusinessHoursDisplay from '@/components/common/BusinessHoursDisplay.vue';
+import BusinessHoursModal from '@/components/common/BusinessHoursModal.vue';
 import ListingImageCarousel from '@/components/listing/ListingImageCarousel.vue';
 import AdSlot from '@/components/ads/AdSlot.vue';
 
@@ -26,10 +25,11 @@ const search = useSearchStore();
 const geo = useGeoStore();
 const auth = useAuthStore();
 const shareOk = ref('');
-const clientRequests = useClientRequestsStore();
+const showHoursModal = ref(false);
+const showRequestPanel = ref(false);
 
 const service = ref(null);
-const reviewableRequest = ref(null);
+const reviewStatus = ref({ can_review: false, already_reviewed: false });
 const loading = ref(true);
 const error = ref('');
 
@@ -68,15 +68,10 @@ const ratingValue = computed(() => {
 
 const distanceLabel = computed(() => formatDistanceKm(service.value?.distance_km));
 
-const locationLine = computed(() => {
-    const s = service.value;
-    if (!s) return '';
-    const parts = [s.district_name, s.province_name, s.department_name].filter(Boolean);
-    if (distanceLabel.value) {
-        parts.unshift(distanceLabel.value);
-    }
-    return parts.join(' · ');
-});
+function openGoogleMaps() {
+    if (!googleMapsUrl.value) return;
+    window.open(googleMapsUrl.value, '_blank', 'noopener,noreferrer');
+}
 
 const lat = computed(() => parseFloat(String(service.value?.provider_latitude || '').replace(',', '.')));
 const lng = computed(() => parseFloat(String(service.value?.provider_longitude || '').replace(',', '.')));
@@ -107,6 +102,70 @@ const showProviderProfileLink = computed(
 );
 
 const isGuestPreview = computed(() => !auth.isAuthenticated);
+
+const formattedDescription = computed(() => {
+    const raw = String(service.value?.description || '').trim();
+    if (!raw) return '';
+    return raw
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n[ \t]+/g, '\n');
+});
+
+const hasDescription = computed(() => formattedDescription.value.length > 0);
+
+const priceDisplay = computed(() => {
+    const s = service.value;
+    if (!s) return null;
+    if (s.base_price != null && String(s.base_price).trim() !== '') {
+        const type = s.price_type ? ` (${s.price_type})` : '';
+        return `S/ ${String(s.base_price).trim()}${type}`;
+    }
+    return null;
+});
+
+const priceLabel = computed(() => priceDisplay.value || 'Consultar precio');
+
+const geoLabel = computed(() => {
+    const s = service.value;
+    if (!s) return '';
+    const parts = [s.district_name, s.province_name, s.department_name].filter(Boolean);
+    if (distanceLabel.value) {
+        parts.unshift(distanceLabel.value);
+    }
+    return parts.join(' · ');
+});
+
+const googleMapsUrl = computed(() => {
+    if (hasMap.value) {
+        return `https://www.google.com/maps?q=${lat.value},${lng.value}`;
+    }
+    const s = service.value;
+    if (!s) return '';
+    const q = [s.address_text, geoLabel.value].filter((x) => String(x || '').trim()).join(', ');
+    if (!q.trim()) return '';
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+});
+
+const canOpenMaps = computed(() => !!googleMapsUrl.value);
+
+const hasBusinessHours = computed(() => {
+    const h = service.value?.business_hours;
+    return !!h && typeof h === 'object' && Object.keys(h).length > 0;
+});
+
+const showOpenBadge = computed(() => {
+    const s = service.value;
+    return s && s.is_open_now !== null && s.is_open_now !== undefined;
+});
+
+const showAddressLine = computed(() => {
+    const addr = String(service.value?.address_text || '').trim();
+    if (!addr) return false;
+    const geo = geoLabel.value.trim().toLowerCase();
+    return !geo || !addr.toLowerCase().includes(geo.split(' · ')[0] || '___');
+});
 
 function listingQueryParams() {
     const params = {};
@@ -166,28 +225,36 @@ watch(
     },
 );
 
-async function loadReviewable() {
-    reviewableRequest.value = null;
-    if (!auth.isAuthenticated || !auth.isCliente) return;
+async function loadReviewStatus() {
+    reviewStatus.value = { can_review: false, already_reviewed: false };
+    if (!auth.isAuthenticated || !auth.isCliente || numericServiceId.value <= 0) return;
     try {
-        await clientRequests.load();
-        reviewableRequest.value =
-            clientRequests.items.find(
-                (r) => Number(r.service?.id) === numericServiceId.value && r.can_review,
-            ) || null;
+        const r = await api.get('/client/reviews/status', {
+            auth: true,
+            params: { provider_service_id: numericServiceId.value },
+        });
+        reviewStatus.value = {
+            can_review: !!r.can_review,
+            already_reviewed: !!r.already_reviewed,
+        };
     } catch {
-        reviewableRequest.value = null;
+        reviewStatus.value = { can_review: false, already_reviewed: false };
     }
+}
+
+async function onReviewSubmitted() {
+    await loadReviewStatus();
+    await loadListing();
 }
 
 onMounted(async () => {
     await loadListing();
-    await loadReviewable();
+    await loadReviewStatus();
 });
 
 watch(listingParam, async () => {
     await loadListing();
-    await loadReviewable();
+    await loadReviewStatus();
 });
 
 async function submitRequest() {
@@ -237,8 +304,8 @@ async function shareListing() {
 </script>
 
 <template>
-    <div class="max-w-5xl mx-auto px-4 md:px-8 py-8">
-        <div class="mb-6 flex items-center gap-3 text-sm">
+    <div class="listing-detail-page max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-5">
+        <div class="listing-detail__toolbar mb-3 flex items-center gap-2 text-sm">
             <button
                 type="button"
                 class="text-[#003874] font-semibold hover:underline bg-transparent border-0 p-0 cursor-pointer"
@@ -261,217 +328,358 @@ async function shareListing() {
 
         <div v-if="loading" class="py-20 text-center text-slate-500 font-medium">Cargando…</div>
         <AppAlert v-else-if="error" type="error">{{ error }}</AppAlert>
-        <article v-else-if="service">
-            <GuestBrowseBanner v-if="isGuestPreview" compact class="mb-6" />
-            <div class="rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm mb-8">
-                <div class="relative h-64 md:h-96 bg-slate-200">
-                    <ListingImageCarousel :images="galleryImages" :alt="service.title || 'Anuncio'" />
+        <article v-else-if="service" class="listing-detail">
+            <GuestBrowseBanner v-if="isGuestPreview" compact class="mb-4" />
+
+            <!-- Galería a ancho completo del contenedor -->
+            <div class="listing-detail__gallery -mx-4 md:-mx-6 overflow-hidden border-y md:border border-slate-200 bg-slate-900 md:rounded-xl">
+                <div class="listing-detail__gallery-frame relative w-full aspect-[5/3] max-h-[min(52vw,15.5rem)] md:max-h-[17.5rem]">
+                    <ListingImageCarousel
+                        :images="galleryImages"
+                        :alt="service.title || 'Anuncio'"
+                        edge-to-edge
+                    />
                     <div
                         v-if="service?.service_id && (auth.isCliente || !auth.isAuthenticated)"
-                        class="absolute top-4 left-4 z-10 flex items-center gap-2"
+                        class="absolute top-3 right-3 z-10"
                     >
                         <FavoriteButton
                             :provider-service-id="service.service_id"
                             size="lg"
-                            :show-label="auth.isCliente || !auth.isAuthenticated"
                         />
                     </div>
                     <div
                         v-if="ratingValue"
-                        class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md z-10"
+                        class="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm"
                     >
-                        <span class="material-symbols-outlined text-amber-500" style="font-variation-settings: 'FILL' 1">star</span>
+                        <span class="material-symbols-outlined text-amber-500 text-[18px]" style="font-variation-settings: 'FILL' 1">star</span>
                         <span class="text-sm font-bold text-slate-900">{{ ratingValue.v }}</span>
-                        <span class="text-xs text-slate-500 font-medium">({{ ratingValue.n }})</span>
+                        <span class="text-xs text-slate-500">({{ ratingValue.n }})</span>
                     </div>
-                </div>
-                <div class="p-6 md:p-8">
-                    <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">{{ service.category_name }}</p>
-                    <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight mt-1">{{ service.title }}</h1>
-                    <p class="text-base font-semibold text-slate-700 mt-2">{{ service.provider_name }}</p>
-                    <RouterLink
-                        v-if="showProviderProfileLink"
-                        :to="{ name: 'provider-public', params: { id: providerProfileId } }"
-                        class="inline-flex items-center gap-2 mt-2 text-sm font-bold text-[#003874] hover:underline no-underline"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">storefront</span>
-                        Ver todos los anuncios de este negocio
-                    </RouterLink>
-                    <p v-if="service.location_label" class="text-sm text-[#003874] font-semibold mt-2 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-base">store</span>
-                        Sede: {{ service.location_label }}
-                    </p>
-                    <p class="text-sm text-slate-500 mt-1 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-base">location_on</span>
-                        {{ locationLine || '—' }}
-                    </p>
-                    <OpenHoursBadge
-                        v-if="service.is_open_now !== null && service.is_open_now !== undefined"
-                        :is-open="service.is_open_now"
-                        class="mt-4"
-                    />
-                    <BusinessHoursDisplay
-                        v-if="service.business_hours"
-                        :schedule="service.business_hours"
-                        class="mt-4"
-                    />
-                    <p
-                        v-if="service.description"
-                        class="mt-6 text-slate-800 leading-relaxed whitespace-pre-wrap"
-                    >
-                        {{ service.description }}
-                    </p>
-                    <p
-                        v-if="isGuestPreview && service.description_truncated"
-                        class="mt-2 text-sm text-slate-500"
-                    >
-                        Descripción abreviada para visitantes.
-                        <button type="button" class="text-[#003874] font-bold hover:underline bg-transparent border-0 p-0 cursor-pointer" @click="goLogin">
-                            Inicia sesión
-                        </button>
-                        para leer el texto completo y contactar.
-                    </p>
                 </div>
             </div>
 
-            <div class="grid lg:grid-cols-12 gap-8 items-start">
-                <div class="lg:col-span-7 space-y-6">
-                    <section class="rounded-2xl border border-slate-100 bg-white p-6 md:p-8">
-                        <h2 class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Precio</h2>
-                        <p class="text-2xl font-black text-[#003874]">
-                            <template v-if="service.base_price != null && service.base_price !== ''">
-                                S/ {{ service.base_price }}
-                            </template>
-                            <template v-else>Consultar</template>
-                            <span v-if="service.price_type" class="text-sm text-slate-500 font-medium ml-2">
-                                ({{ service.price_type }})
-                            </span>
-                        </p>
-                        <p v-if="service.address_text" class="text-sm text-slate-600 mt-4">
-                            <strong>Zona:</strong> {{ service.address_text }}
-                        </p>
-                    </section>
+            <BusinessHoursModal
+                :open="showHoursModal"
+                :schedule="service.business_hours"
+                :provider-name="service.provider_name"
+                @close="showHoursModal = false"
+            />
 
-                    <section
-                        v-if="hasContact"
-                        class="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-6 md:p-8"
-                    >
-                        <h2 class="text-xs font-bold uppercase tracking-wide text-emerald-800 mb-3">Contactar al negocio</h2>
-                        <ListingContactActions :service="service" />
-                    </section>
+            <!-- Grid principal: izquierda (info) + derecha (acción sticky) -->
+            <div class="ld-grid mt-4">
 
-                    <section v-if="hasMap" class="rounded-2xl border border-slate-100 bg-white p-6 md:p-8">
-                        <h2 class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">
-                            Ubicación referencial
-                        </h2>
-                        <iframe
-                            class="w-full h-64 md:h-80 rounded-xl border border-slate-200 bg-slate-100"
-                            :src="mapSrc"
-                            loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"
-                            title="Mapa del servicio"
-                        ></iframe>
-                        <p class="text-xs text-slate-500 mt-2">Aprox. según el distrito registrado.</p>
-                        <a
-                            :href="`https://www.google.com/maps?q=${lat},${lng}`"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex mt-2 text-sm font-bold text-[#003874] hover:underline"
-                        >
-                            Abrir en Google Maps →
-                        </a>
-                    </section>
-                </div>
+                <!-- ── COLUMNA IZQUIERDA ───────────────────────────── -->
+                <div class="ld-main">
 
-                <aside class="lg:col-span-5 lg:sticky lg:top-24 space-y-6">
-                    <div v-if="!auth.isAuthenticated" class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 space-y-4">
-                        <p class="text-sm text-slate-600 pb-4 border-b border-slate-100">
-                            <span class="material-symbols-outlined text-base align-middle text-rose-400 mr-1">favorite</span>
-                            Inicia sesión como <strong>cliente</strong> para guardar este anuncio en favoritos.
-                        </p>
-                        <h2 class="text-base font-bold text-[#0b1c30] mb-2">Solicitud en la plataforma</h2>
-                        <p class="text-sm text-slate-600 mb-4">
-                            Inicia sesión como <strong>cliente</strong> para ver teléfono/WhatsApp, enviar solicitudes y valorar.
-                        </p>
-                        <AppButton variant="primary" block @click="goLogin">Iniciar sesión</AppButton>
+                    <!-- Cabecera: categoría, título, empresa, meta -->
+                    <div class="ld-head">
+                        <span
+                            v-if="service.category_name"
+                            class="ld-category-badge"
+                        >{{ service.category_name }}</span>
+
+                        <h1 class="ld-title">{{ service.title }}</h1>
+
                         <RouterLink
-                            :to="{ name: 'register', query: { next: route.fullPath } }"
-                            class="inline-flex w-full justify-center rounded-lg border-2 border-[#003874]/30 bg-white px-6 py-2.5 text-sm font-bold text-[#003874] hover:bg-slate-50 no-underline"
+                            v-if="showProviderProfileLink"
+                            :to="{ name: 'provider-public', params: { id: providerProfileId } }"
+                            class="ld-business-link"
                         >
-                            Crear cuenta
+                            <span class="material-symbols-outlined text-[18px]">storefront</span>
+                            {{ service.provider_name }}
                         </RouterLink>
+                        <p v-else class="ld-business-name">
+                            <span class="material-symbols-outlined text-[17px] text-slate-400">storefront</span>
+                            {{ service.provider_name }}
+                        </p>
+
+                        <!-- Chips: ubicación y sede -->
+                        <div class="mt-3 flex flex-wrap gap-1.5">
+                            <button
+                                v-if="geoLabel && canOpenMaps"
+                                type="button"
+                                class="ld-chip ld-chip--link"
+                                @click="openGoogleMaps"
+                            >
+                                <span class="material-symbols-outlined text-[15px]">location_on</span>
+                                {{ geoLabel }}
+                                <span class="material-symbols-outlined text-[13px]">open_in_new</span>
+                            </button>
+                            <span v-else-if="geoLabel" class="ld-chip">
+                                <span class="material-symbols-outlined text-[15px]">location_on</span>
+                                {{ geoLabel }}
+                            </span>
+                            <span v-if="service.location_label" class="ld-chip">
+                                <span class="material-symbols-outlined text-[15px]">store</span>
+                                {{ service.location_label }}
+                            </span>
+                        </div>
+
+                        <!-- Horario (antes de dirección) -->
+                        <div v-if="showOpenBadge || hasBusinessHours" class="mt-2">
+                            <OpenHoursBadge
+                                v-if="showOpenBadge"
+                                :is-open="service.is_open_now"
+                                :interactive="hasBusinessHours"
+                                @click="showHoursModal = true"
+                            />
+                            <button
+                                v-else
+                                type="button"
+                                class="ld-chip ld-chip--link"
+                                @click="showHoursModal = true"
+                            >
+                                <span class="material-symbols-outlined text-[15px]">schedule</span>
+                                Ver horario
+                                <span class="material-symbols-outlined text-[13px]">chevron_right</span>
+                            </button>
+                        </div>
+
+                        <!-- Dirección -->
+                        <p v-if="showAddressLine" class="ld-address">
+                            <span class="material-symbols-outlined text-[15px] text-slate-400 shrink-0">near_me</span>
+                            <button
+                                v-if="canOpenMaps"
+                                type="button"
+                                class="text-[#003874] hover:underline bg-transparent border-0 p-0 cursor-pointer text-left text-sm"
+                                @click="openGoogleMaps"
+                            >{{ service.address_text }}</button>
+                            <span v-else class="text-sm text-slate-600">{{ service.address_text }}</span>
+                        </p>
                     </div>
 
-                    <div
-                        v-else-if="auth.isProveedor"
-                        class="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600"
-                    >
-                        <p class="font-bold text-[#0b1c30] mb-1">Cuenta de negocio</p>
-                        <p>Usa WhatsApp o teléfono en la sección de contacto. No puedes registrar solicitudes como cliente.</p>
+                    <!-- Tarjeta de acción (solo en móvil, debajo del header) -->
+                    <div class="lg:hidden">
+                        <div class="ld-card">
+                            <div class="ld-card__section ld-card__section--price">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="ld-label">Precio</p>
+                                        <p class="ld-price">{{ priceLabel }}</p>
+                                        <p v-if="!priceDisplay" class="ld-hint mt-1">El negocio no publicó un monto fijo.</p>
+                                    </div>
+                                    <div v-if="ratingValue" class="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 shrink-0">
+                                        <span class="material-symbols-outlined text-amber-400 text-[16px]" style="font-variation-settings:'FILL' 1">star</span>
+                                        <span class="text-sm font-bold text-slate-800">{{ ratingValue.v }}</span>
+                                        <span class="text-xs text-slate-500">({{ ratingValue.n }})</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ld-card__section">
+                                <ListingContactActions v-if="hasContact" :service="service" />
+                                <template v-else-if="!auth.isAuthenticated">
+                                    <p class="text-sm text-slate-600 leading-relaxed mb-3">
+                                        Inicia sesión como <strong>cliente</strong> para ver el teléfono y escribir por WhatsApp.
+                                    </p>
+                                    <AppButton variant="primary" block @click="goLogin" class="mb-2">Iniciar sesión</AppButton>
+                                    <RouterLink :to="{ name: 'register', query: { next: route.fullPath } }" class="ld-outline-btn">Crear cuenta gratis</RouterLink>
+                                </template>
+                                <p v-else-if="auth.isProveedor" class="text-sm text-slate-500 m-0">Contacta directamente por WhatsApp o teléfono.</p>
+                            </div>
+                            <div v-if="auth.isCliente" class="ld-card__section ld-card__section--accordion">
+                                <button type="button" class="ld-accordion-toggle" @click="showRequestPanel = !showRequestPanel">
+                                    <span class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[17px] text-slate-400">send</span>
+                                        <span>
+                                            <span class="block text-sm font-semibold text-slate-700 leading-tight">Solicitar vía plataforma</span>
+                                            <span class="block text-xs text-slate-400 mt-0.5 font-normal">Opcional, además de WhatsApp</span>
+                                        </span>
+                                    </span>
+                                    <span class="material-symbols-outlined text-[20px] text-slate-300 transition-transform duration-200" :class="showRequestPanel ? 'rotate-180' : ''">keyboard_arrow_down</span>
+                                </button>
+                                <div v-show="showRequestPanel" class="pt-3 mt-3 border-t border-slate-100 space-y-3 px-5 pb-4">
+                                    <div>
+                                        <label class="ld-field-label">Canal preferido</label>
+                                        <select v-model="sendChannel" class="ld-input">
+                                            <option value="whatsapp">WhatsApp</option>
+                                            <option value="telefono">Teléfono</option>
+                                            <option value="app">Por la aplicación</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="ld-field-label">Mensaje <span class="font-normal normal-case text-slate-400">(opcional)</span></label>
+                                        <textarea v-model="sendMessage" rows="2" maxlength="800" placeholder="Describe lo que necesitas…" class="ld-input ld-textarea"></textarea>
+                                    </div>
+                                    <AppAlert v-if="sendErr" type="error">{{ sendErr }}</AppAlert>
+                                    <AppAlert v-if="sendOk" type="success">{{ sendOk }}</AppAlert>
+                                    <AppButton variant="primary" :loading="sending" block size="sm" @click="submitRequest">{{ sending ? 'Enviando…' : 'Enviar solicitud' }}</AppButton>
+                                </div>
+                            </div>
+                        </div>
+
+                        <template v-if="auth.isCliente">
+                            <RequestReviewForm
+                                v-if="reviewStatus.can_review && service.service_id"
+                                :provider-service-id="service.service_id"
+                                :provider-name="service.provider_name"
+                                embedded
+                                @submitted="onReviewSubmitted"
+                                class="mt-3"
+                            />
+                            <div v-else-if="reviewStatus.already_reviewed" class="ld-reviewed mt-3">
+                                <span class="material-symbols-outlined text-emerald-500 text-[22px]" style="font-variation-settings:'FILL' 1">verified</span>
+                                <div>
+                                    <p class="text-sm font-bold text-emerald-900 m-0">Ya valoraste este negocio</p>
+                                    <p class="text-xs text-emerald-700 mt-0.5 m-0">Gracias por compartir tu experiencia.</p>
+                                </div>
+                            </div>
+                        </template>
                     </div>
 
-                    <template v-else-if="auth.isCliente">
-                        <RequestReviewForm
-                            v-if="reviewableRequest"
-                            :service-request-id="reviewableRequest.id"
-                            :provider-name="service.provider_name"
-                            @submitted="loadReviewable"
-                        />
+                    <!-- Descripción -->
+                    <section v-if="hasDescription" class="ld-section">
+                        <h2 class="ld-section-title">Descripción</h2>
+                        <div class="ld-description">{{ formattedDescription }}</div>
+                        <p v-if="isGuestPreview && service.description_truncated" class="mt-3 pt-3 border-t border-slate-100 text-sm text-slate-500 m-0">
+                            Texto abreviado.
+                            <button type="button" class="text-[#003874] font-semibold hover:underline bg-transparent border-0 p-0 cursor-pointer" @click="goLogin">Inicia sesión</button>
+                            para ver la descripción completa.
+                        </p>
+                    </section>
 
-                        <div
-                            v-else
-                            class="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600"
+                    <!-- Mapa -->
+                    <section v-if="hasMap || canOpenMaps" class="ld-section">
+                        <h2 class="ld-section-title">Ubicación</h2>
+                        <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+                            <iframe
+                                v-if="hasMap"
+                                class="w-full h-48 md:h-56 block"
+                                :src="mapSrc"
+                                loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade"
+                                title="Mapa del servicio"
+                            ></iframe>
+                        </div>
+                        <button
+                            v-if="canOpenMaps"
+                            type="button"
+                            class="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-[#003874] hover:underline bg-transparent border-0 p-0 cursor-pointer"
+                            @click="openGoogleMaps"
                         >
-                            <p class="font-bold text-[#0b1c30] mb-1">Valorar este negocio</p>
-                            <p>
-                                Después de enviar una solicitud, podrás calificar en
-                                <RouterLink :to="{ name: 'client-requests' }" class="text-[#003874] font-bold hover:underline">Mis solicitudes</RouterLink>.
+                            <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                            Abrir en Google Maps
+                        </button>
+                    </section>
+
+                </div><!-- /ld-main -->
+
+                <!-- ── COLUMNA DERECHA (sticky en desktop) ────────── -->
+                <aside class="ld-sidebar hidden lg:block">
+
+                    <!-- Tarjeta principal de acción -->
+                    <div class="ld-card">
+                        <!-- Precio -->
+                        <div class="ld-card__section ld-card__section--price">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="ld-label">Precio</p>
+                                    <p class="ld-price">{{ priceLabel }}</p>
+                                    <p v-if="!priceDisplay" class="ld-hint mt-1">El negocio no publicó un monto fijo.</p>
+                                </div>
+                                <div v-if="ratingValue" class="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 shrink-0">
+                                    <span class="material-symbols-outlined text-amber-400 text-[16px]" style="font-variation-settings:'FILL' 1">star</span>
+                                    <span class="text-sm font-bold text-slate-800">{{ ratingValue.v }}</span>
+                                    <span class="text-xs text-slate-500">({{ ratingValue.n }})</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contacto -->
+                        <div class="ld-card__section">
+                            <ListingContactActions v-if="hasContact" :service="service" />
+
+                            <template v-else-if="!auth.isAuthenticated">
+                                <p class="text-sm text-slate-600 leading-relaxed mb-3">
+                                    Inicia sesión como <strong>cliente</strong> para ver el teléfono y escribir por WhatsApp.
+                                </p>
+                                <AppButton variant="primary" block @click="goLogin" class="mb-2">
+                                    Iniciar sesión
+                                </AppButton>
+                                <RouterLink
+                                    :to="{ name: 'register', query: { next: route.fullPath } }"
+                                    class="ld-outline-btn"
+                                >
+                                    Crear cuenta gratis
+                                </RouterLink>
+                            </template>
+
+                            <p v-else-if="auth.isProveedor" class="text-sm text-slate-500 m-0">
+                                Contacta directamente por WhatsApp o teléfono si el negocio lo publica.
                             </p>
                         </div>
 
-                        <div class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8">
-                        <h2 class="text-base font-bold text-[#0b1c30] mb-4">Solicitar contacto</h2>
-                        <form @submit.prevent="submitRequest" class="space-y-4">
-                            <label class="block">
-                                <span class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
-                                    Canal preferido
+                        <!-- Solicitar por la plataforma (solo clientes) -->
+                        <div v-if="auth.isCliente" class="ld-card__section ld-card__section--accordion">
+                            <button
+                                type="button"
+                                class="ld-accordion-toggle"
+                                :aria-expanded="showRequestPanel"
+                                @click="showRequestPanel = !showRequestPanel"
+                            >
+                                <span class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[17px] text-slate-400">send</span>
+                                    <span>
+                                        <span class="block text-sm font-semibold text-slate-700 leading-tight">Solicitar vía plataforma</span>
+                                        <span class="block text-xs text-slate-400 mt-0.5 font-normal">Deja constancia además de WhatsApp</span>
+                                    </span>
                                 </span>
-                                <select
-                                    v-model="sendChannel"
-                                    class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#003874] focus:ring-2 focus:ring-[#003874]/15"
-                                >
-                                    <option value="whatsapp">WhatsApp</option>
-                                    <option value="telefono">Teléfono</option>
-                                    <option value="app">Por la aplicación</option>
-                                </select>
-                            </label>
-                            <label class="block">
-                                <span class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
-                                    Mensaje (opcional)
-                                </span>
-                                <textarea
-                                    v-model="sendMessage"
-                                    rows="3"
-                                    maxlength="800"
-                                    placeholder="Describe lo que necesitas…"
-                                    class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#003874] focus:ring-2 focus:ring-[#003874]/15 resize-y min-h-[5rem]"
-                                ></textarea>
-                            </label>
-                            <AppAlert v-if="sendErr" type="error">{{ sendErr }}</AppAlert>
-                            <AppAlert v-if="sendOk" type="success">{{ sendOk }}</AppAlert>
-                            <AppButton variant="primary" type="submit" :loading="sending" block>
-                                {{ sending ? 'Enviando…' : 'Enviar solicitud' }}
-                            </AppButton>
-                        </form>
-                        <p class="text-xs text-slate-500 mt-4 pt-4 border-t border-slate-100">
-                            También puedes usar WhatsApp o llamar en la sección «Contactar al negocio».
-                        </p>
+                                <span
+                                    class="material-symbols-outlined text-[20px] text-slate-300 transition-transform duration-200"
+                                    :class="showRequestPanel ? 'rotate-180' : ''"
+                                >keyboard_arrow_down</span>
+                            </button>
+                            <div v-show="showRequestPanel" class="pt-3 mt-3 border-t border-slate-100 space-y-3">
+                                <div>
+                                    <label class="ld-field-label">Canal preferido</label>
+                                    <select v-model="sendChannel" class="ld-input">
+                                        <option value="whatsapp">WhatsApp</option>
+                                        <option value="telefono">Teléfono</option>
+                                        <option value="app">Por la aplicación</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="ld-field-label">Mensaje <span class="font-normal normal-case text-slate-400">(opcional)</span></label>
+                                    <textarea
+                                        v-model="sendMessage"
+                                        rows="2"
+                                        maxlength="800"
+                                        placeholder="Describe lo que necesitas…"
+                                        class="ld-input ld-textarea"
+                                    ></textarea>
+                                </div>
+                                <AppAlert v-if="sendErr" type="error">{{ sendErr }}</AppAlert>
+                                <AppAlert v-if="sendOk" type="success">{{ sendOk }}</AppAlert>
+                                <AppButton variant="primary" type="submit" :loading="sending" block size="sm" @click="submitRequest">
+                                    {{ sending ? 'Enviando…' : 'Enviar solicitud' }}
+                                </AppButton>
+                            </div>
+                        </div>
+                    </div><!-- /ld-card -->
+
+                    <!-- Valoración -->
+                    <template v-if="auth.isCliente">
+                        <RequestReviewForm
+                            v-if="reviewStatus.can_review && service.service_id"
+                            :provider-service-id="service.service_id"
+                            :provider-name="service.provider_name"
+                            embedded
+                            @submitted="onReviewSubmitted"
+                        />
+                        <div v-else-if="reviewStatus.already_reviewed" class="ld-reviewed">
+                            <span class="material-symbols-outlined text-emerald-500 text-[22px]" style="font-variation-settings:'FILL' 1">verified</span>
+                            <div>
+                                <p class="text-sm font-bold text-emerald-900 m-0">Ya valoraste este negocio</p>
+                                <p class="text-xs text-emerald-700 mt-0.5 m-0">Gracias por compartir tu experiencia.</p>
+                            </div>
                         </div>
                     </template>
 
                     <AdSlot placement="detail" />
-                </aside>
-            </div>
+
+                </aside><!-- /ld-sidebar -->
+
+            </div><!-- /ld-grid -->
         </article>
     </div>
 </template>

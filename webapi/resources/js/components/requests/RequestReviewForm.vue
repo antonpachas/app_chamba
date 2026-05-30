@@ -5,8 +5,10 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 
 const props = defineProps({
-    serviceRequestId: { type: Number, required: true },
+    serviceRequestId: { type: Number, default: null },
+    providerServiceId: { type: Number, default: null },
     providerName: { type: String, default: '' },
+    embedded: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['submitted']);
@@ -26,11 +28,19 @@ async function submit() {
     err.value = '';
     ok.value = '';
     try {
-        const { useClientRequestsStore } = await import('@/stores/clientRequests');
-        await useClientRequestsStore().submitReview(props.serviceRequestId, {
+        const { api } = await import('@/services/api');
+        const body = {
             rating: rating.value,
             comment: comment.value.trim() || null,
-        });
+        };
+        if (props.serviceRequestId) {
+            body.service_request_id = props.serviceRequestId;
+        } else if (props.providerServiceId) {
+            body.provider_service_id = props.providerServiceId;
+        } else {
+            throw new Error('Falta el anuncio o la solicitud para valorar.');
+        }
+        await api.post('/client/reviews', body, { auth: true });
         ok.value = '¡Gracias! Tu valoración fue registrada.';
         emit('submitted');
     } catch (e) {
@@ -42,7 +52,13 @@ async function submit() {
 </script>
 
 <template>
-    <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-3">
+    <div
+        :class="
+            embedded
+                ? 'listing-detail__review-form'
+                : 'rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-3'
+        "
+    >
         <p class="text-sm font-bold text-[#0b1c30]">
             Valorar{{ providerName ? ` a ${providerName}` : ' este negocio' }}
         </p>

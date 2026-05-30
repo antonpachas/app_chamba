@@ -6,6 +6,8 @@ const props = defineProps({
     alt: { type: String, default: '' },
     /** Flechas prev/next al pasar el cursor (varias fotos). */
     showArrows: { type: Boolean, default: true },
+    /** Imagen a ancho completo del contenedor (detalle de anuncio). */
+    edgeToEdge: { type: Boolean, default: false },
 });
 
 const scrollEl = ref(null);
@@ -48,7 +50,10 @@ function next() {
 </script>
 
 <template>
-    <div class="listing-carousel group/carousel relative w-full h-full">
+    <div
+        class="listing-carousel group/carousel relative w-full h-full"
+        :class="{ 'listing-carousel--edge': edgeToEdge }"
+    >
         <div
             ref="scrollEl"
             class="flex h-full w-full overflow-x-auto snap-x snap-mandatory scroll-smooth touch-pan-x"
@@ -61,7 +66,8 @@ function next() {
                 :key="`${src}-${i}`"
                 :src="src"
                 :alt="alt"
-                class="w-full h-full shrink-0 snap-center object-cover"
+                class="w-full min-w-full h-full shrink-0 snap-center object-cover"
+                :class="edgeToEdge ? 'listing-carousel__img--edge' : ''"
                 loading="lazy"
             />
         </div>

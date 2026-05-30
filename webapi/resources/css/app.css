@@ -949,3 +949,294 @@ html { scroll-behavior: smooth; }
         transform: none;
     }
 }
+
+/* ─── Detalle de anuncio ───────────────────────────────────── */
+
+/* Galería */
+.listing-detail__gallery-frame { width: 100%; }
+
+.listing-carousel--edge .listing-carousel__img--edge {
+    width: 100%;
+    min-width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+/* Layout de 2 columnas */
+.ld-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (min-width: 1024px) {
+    .ld-grid {
+        grid-template-columns: minmax(0, 1fr) 308px;
+    }
+    .ld-sidebar {
+        position: sticky;
+        top: 4.5rem;
+        align-self: start;
+    }
+}
+
+.ld-main { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+.ld-sidebar { display: flex; flex-direction: column; gap: 0.75rem; }
+
+/* Cabecera */
+.ld-head { display: flex; flex-direction: column; }
+
+.ld-category-badge {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #003874;
+    background: rgb(0 56 116 / 0.07);
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    align-self: flex-start;
+}
+
+.ld-title {
+    margin: 0.5rem 0 0;
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    font-weight: 800;
+    color: #0b1c30;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+}
+
+.ld-business-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #003874;
+    text-decoration: none;
+    transition: opacity 0.15s;
+}
+.ld-business-link:hover { opacity: 0.75; text-decoration: underline; }
+
+.ld-business-name {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+/* Chips de meta info */
+.ld-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.625rem;
+    border-radius: 9999px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: 0.8125rem;
+    color: #475569;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.ld-chip--link {
+    cursor: pointer;
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #003874;
+    transition: background 0.15s, border-color 0.15s;
+}
+.ld-chip--link:hover { background: #dbeafe; border-color: #93c5fd; }
+
+/* Dirección */
+.ld-address {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.375rem;
+    margin: 0.5rem 0 0;
+}
+
+/* Secciones de contenido */
+.ld-section {
+    background: #fff;
+    border: 1px solid #e8edf3;
+    border-radius: 1rem;
+    padding: 1.25rem;
+}
+
+.ld-section-title {
+    margin: 0 0 0.75rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.ld-description {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: #334155;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.ld-description:empty { display: none; }
+
+/* Tarjeta de acción (columna derecha) */
+.ld-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 1.125rem;
+    box-shadow: 0 2px 4px rgb(15 23 42 / 0.04), 0 8px 32px rgb(15 23 42 / 0.07);
+    overflow: hidden;
+}
+
+.ld-card__section {
+    padding: 1.125rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+.ld-card__section:last-child { border-bottom: none; }
+
+.ld-card__section--price { background: linear-gradient(135deg, #f0f7ff 0%, #fff 60%); }
+
+.ld-card__section--accordion { padding: 0; }
+
+.ld-label {
+    margin: 0 0 0.2rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.ld-price {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #003874;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+}
+
+.ld-hint {
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+/* Botón outline */
+.ld-outline-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-radius: 0.75rem;
+    border: 1.5px solid rgb(0 56 116 / 0.25);
+    background: transparent;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #003874;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+}
+.ld-outline-btn:hover { background: #f0f7ff; border-color: rgb(0 56 116 / 0.4); }
+
+/* Acordeón de solicitud */
+.ld-accordion-toggle {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+.ld-accordion-toggle:hover { background: #f8fafc; }
+
+/* Campos del formulario */
+.ld-field-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.ld-input {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.625rem;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    font-size: 0.875rem;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ld-input:focus { border-color: #003874; box-shadow: 0 0 0 3px rgb(0 56 116 / 0.1); }
+
+.ld-textarea { resize: vertical; min-height: 4.5rem; }
+
+/* Badge de valoración completada */
+.ld-reviewed {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.875rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid #a7f3d0;
+    background: #ecfdf5;
+}
+
+/* Formulario de valoración embebido */
+.listing-detail__review-form {
+    border-radius: 1.125rem;
+    border: 1px solid #fde68a;
+    background: linear-gradient(180deg, #fffbeb 0%, #fff 100%);
+    padding: 1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Chips usados por OpenHoursBadge (mantener compatibilidad) */
+.listing-detail__meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.625rem;
+    border-radius: 9999px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: 0.8125rem;
+    color: #475569;
+    line-height: 1.3;
+}
+
+.listing-detail__meta-chip--link {
+    cursor: pointer;
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #003874;
+    transition: background 0.15s, border-color 0.15s;
+}
+.listing-detail__meta-chip--link:hover { background: #dbeafe; border-color: #93c5fd; }
