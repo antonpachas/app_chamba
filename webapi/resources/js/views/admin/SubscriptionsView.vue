@@ -105,5 +105,22 @@ async function reject(id) {
                 </tbody>
             </table>
         </div>
+
+        <!-- Paginación -->
+        <div v-if="store.meta.last_page > 1" class="flex items-center justify-between gap-2 mt-4">
+            <p class="text-xs text-slate-500">
+                Página {{ store.meta.current_page }} de {{ store.meta.last_page }} · {{ store.meta.total }} registros
+            </p>
+            <div class="flex gap-1 flex-wrap">
+                <button
+                    v-for="p in store.meta.last_page"
+                    :key="p"
+                    type="button"
+                    class="h-8 min-w-[32px] px-2 rounded-lg border text-sm transition-colors"
+                    :class="p === store.meta.current_page ? 'bg-[#003874] text-white border-[#003874]' : 'border-slate-200 hover:bg-slate-50'"
+                    @click="store.loadPayments(filter, p)"
+                >{{ p }}</button>
+            </div>
+        </div>
     </div>
 </template>

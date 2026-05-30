@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\LedgerAdminController;
 use App\Http\Controllers\Api\V1\Admin\PaymentAdminController;
 use App\Http\Controllers\Api\V1\Admin\PlatformAdAdminController;
 use App\Http\Controllers\Api\V1\Admin\ReportsAdminController;
+use App\Http\Controllers\Api\V1\Admin\EmailTemplatesAdminController;
 use App\Http\Controllers\Api\V1\Admin\SubscriptionAdminController;
 use App\Http\Controllers\Api\V1\Admin\SubscriptionPlanAdminController;
 use App\Http\Controllers\Api\V1\Admin\SupportTicketAdminController;
@@ -259,6 +260,11 @@ Route::prefix('v1')->group(function (): void {
 
             Route::get('reports/top-categories', [ReportsAdminController::class, 'topCategories']);
             Route::get('reports/top-queries', [ReportsAdminController::class, 'topQueries']);
+            Route::get('reports/users', [ReportsAdminController::class, 'users']);
+            Route::get('reports/listings', [ReportsAdminController::class, 'listings']);
+
+            Route::get('email-templates', [EmailTemplatesAdminController::class, 'index']);
+            Route::post('email-templates/test', [EmailTemplatesAdminController::class, 'sendTest']);
 
             Route::get('listings', [ListingAdminController::class, 'index']);
             Route::post('listings/home-featured/reorder', [ListingAdminController::class, 'reorderHomeFeatured']);

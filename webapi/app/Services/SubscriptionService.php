@@ -42,6 +42,11 @@ class SubscriptionService
 
     public function clientCanCreateRequest(User $client): bool
     {
+        // Si los clientes free son ilimitados (configuración por defecto), siempre permitir.
+        if ((bool) chamba_setting('limits.client_free_unlimited', true)) {
+            return true;
+        }
+
         $sub = $client->activeSubscription();
         $plan = $sub?->plan;
         $features = $plan?->features ?? [];

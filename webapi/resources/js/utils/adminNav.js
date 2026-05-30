@@ -15,14 +15,21 @@ export function buildAdminNav() {
             links: [{ name: 'admin-dashboard', label: 'Panel' }],
         },
         {
-            id: 'directory',
-            label: 'Directorio',
+            id: 'catalog',
+            label: 'Catálogo',
             icon: 'storefront',
             links: [
                 { name: 'admin-moderation', label: 'Moderación' },
-                { name: 'admin-featured-listings', label: 'Banner inicio' },
+                { name: 'admin-featured-listings', label: 'Destacados' },
                 { name: 'admin-category-suggestions', label: 'Categorías' },
-                { name: 'admin-geo', label: 'Ubicación' },
+                { name: 'admin-geo', label: 'Ubicación Perú' },
+            ],
+        },
+        {
+            id: 'marketing',
+            label: 'Marketing',
+            icon: 'campaign',
+            links: [
                 { name: 'admin-platform-ads', label: 'Publicidad' },
             ],
         },
@@ -48,14 +55,24 @@ export function buildAdminNav() {
             ],
         },
         {
+            id: 'reports',
+            label: 'Reportes',
+            icon: 'bar_chart',
+            links: [
+                { name: 'admin-reports', label: 'Búsquedas' },
+                { name: 'admin-reports-users', label: 'Usuarios' },
+                { name: 'admin-reports-listings', label: 'Anuncios' },
+            ],
+        },
+        {
             id: 'system',
             label: 'Sistema',
             icon: 'settings',
             links: [
                 { name: 'admin-support', label: 'Soporte' },
+                { name: 'admin-email-templates', label: 'Correos' },
                 { name: 'admin-system', label: 'Logs' },
                 { name: 'admin-settings', label: 'Configuración' },
-                { name: 'admin-reports', label: 'Reportes' },
             ],
         },
     ];

@@ -36,65 +36,101 @@ async function removeFavorite(serviceId) {
 
 <template>
     <div class="max-w-5xl mx-auto px-4 md:px-8 py-8">
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mis favoritos</h1>
-            <p class="text-slate-600 mt-1">Anuncios que guardaste para encontrarlos rápido.</p>
+        <header class="mb-6 flex items-end justify-between gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-[#0b1c30] tracking-tight">Mis favoritos</h1>
+                <p class="text-slate-500 mt-0.5 text-sm">Anuncios que guardaste para encontrarlos rápido.</p>
+            </div>
+            <RouterLink
+                :to="{ name: 'home' }"
+                class="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-[#003874] hover:underline no-underline"
+            >
+                <span class="material-symbols-outlined text-[16px]">search</span>
+                Explorar más
+            </RouterLink>
         </header>
 
-        <AppAlert v-if="favs.error" type="error" class="mb-6">{{ favs.error }}</AppAlert>
-        <AppAlert v-else-if="removeErr" type="error" class="mb-6">{{ removeErr }}</AppAlert>
+        <AppAlert v-if="favs.error" type="error" class="mb-5">{{ favs.error }}</AppAlert>
+        <AppAlert v-else-if="removeErr" type="error" class="mb-5">{{ removeErr }}</AppAlert>
 
-        <p v-if="favs.loading" class="text-slate-500">Cargando…</p>
-        <div v-else-if="!favs.items.length" class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-            Aún no guardaste favoritos.
-            <RouterLink :to="{ name: 'home' }" class="text-[#003874] font-bold hover:underline ml-1">Explorar anuncios</RouterLink>
+        <div v-if="favs.loading" class="flex items-center justify-center py-20">
+            <span class="material-symbols-outlined text-[2rem] text-slate-300 animate-spin">progress_activity</span>
         </div>
+
+        <div v-else-if="!favs.items.length" class="flex flex-col items-center justify-center py-20 text-center">
+            <span class="material-symbols-outlined text-[3.5rem] text-slate-200 mb-3">favorite</span>
+            <p class="text-base font-semibold text-slate-600 mb-1">Aún no guardaste favoritos</p>
+            <p class="text-sm text-slate-400 mb-5">Cuando encuentres un anuncio que te interese, toca el corazón para guardarlo.</p>
+            <RouterLink
+                :to="{ name: 'home' }"
+                class="inline-flex items-center gap-2 rounded-xl bg-[#003874] text-white font-bold px-5 py-2.5 text-sm no-underline hover:bg-[#08458b] transition-colors"
+            >
+                <span class="material-symbols-outlined text-[18px]">search</span>
+                Explorar anuncios
+            </RouterLink>
+        </div>
+
         <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <article
                 v-for="f in favs.items"
                 :key="f.favorite_id || f.provider_service_id"
-                class="rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col"
+                class="group rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow duration-200"
             >
-                <div
-                    v-if="f.cover_image_url"
-                    class="aspect-[16/10] bg-slate-100 bg-cover bg-center"
-                    :style="{ backgroundImage: `url(${f.cover_image_url})` }"
-                />
-                <div class="p-5 flex flex-col flex-1">
-                    <p class="text-xs font-bold uppercase tracking-wide text-[#003874]">{{ f.provider_name || '—' }}</p>
-                    <h3 class="text-lg font-bold text-slate-900 mt-1">{{ f.title || 'Anuncio' }}</h3>
-                    <p class="text-sm text-slate-600 mt-1">
-                        {{ [f.district_name, f.province_name].filter(Boolean).join(', ') || '—' }}
-                    </p>
-                    <div class="mt-4 flex justify-between items-center gap-2">
-                        <span class="text-sm text-slate-700">
-                            ★ {{ f.avg_rating ?? '—' }}
-                            <span class="text-slate-500 text-xs">({{ f.total_reviews ?? 0 }})</span>
-                        </span>
+                <!-- Imagen de portada -->
+                <div class="relative aspect-[4/3] bg-slate-100 overflow-hidden">
+                    <img
+                        v-if="f.cover_image_url"
+                        :src="f.cover_image_url"
+                        :alt="f.title || 'Anuncio'"
+                        class="w-full h-full object-cover object-center group-hover:scale-[1.03] transition-transform duration-300"
+                    />
+                    <div v-else class="w-full h-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[3rem] text-slate-300">storefront</span>
+                    </div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
+
+                    <!-- Rating -->
+                    <div
+                        v-if="f.avg_rating && Number(f.total_reviews) > 0"
+                        class="absolute bottom-2.5 left-2.5 flex items-center gap-1 text-white text-xs font-semibold drop-shadow pointer-events-none"
+                    >
+                        <span class="material-symbols-outlined text-[14px] text-amber-300" style="font-variation-settings:'FILL' 1">star</span>
+                        {{ parseFloat(f.avg_rating).toFixed(1) }}
+                        <span class="opacity-75">({{ f.total_reviews }})</span>
+                    </div>
+
+                    <!-- Botón favorito -->
+                    <div class="absolute top-2.5 right-2.5 z-10">
                         <FavoriteButton
                             v-if="f.provider_service_id"
                             :provider-service-id="f.provider_service_id"
                             size="sm"
                         />
                     </div>
-                    <div class="mt-4 flex flex-col gap-2">
-                        <RouterLink
-                            v-if="f.provider_service_id"
-                            :to="listingDetailTo({ service_id: f.provider_service_id, listing_ref: f.listing_ref })"
-                            class="text-center rounded-full border-2 border-[#003874]/30 text-[#003874] font-bold text-sm py-2 no-underline hover:bg-[#003874]/5"
-                        >
-                            Ver anuncio
-                        </RouterLink>
-                        <AppButton
-                            variant="ghost"
-                            size="sm"
-                            :disabled="removingId === f.provider_service_id"
-                            @click="removeFavorite(f.provider_service_id)"
-                        >
-                            {{ removingId === f.provider_service_id ? 'Quitando…' : 'Quitar de favoritos' }}
-                        </AppButton>
-                    </div>
                 </div>
+
+                <!-- Contenido -->
+                <RouterLink
+                    v-if="f.provider_service_id"
+                    :to="listingDetailTo({ service_id: f.provider_service_id, listing_ref: f.listing_ref })"
+                    class="p-4 flex flex-col flex-1 no-underline text-inherit focus-visible:outline-none"
+                >
+                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1 truncate">
+                        <span class="material-symbols-outlined text-[13px]">storefront</span>
+                        {{ f.provider_name || '—' }}
+                    </p>
+                    <h3 class="font-semibold text-[0.95rem] leading-snug line-clamp-2 text-slate-900 group-hover:text-[#003874] transition-colors">
+                        {{ f.title || 'Anuncio' }}
+                    </h3>
+                    <p class="mt-1.5 text-xs text-slate-500 flex items-center gap-1 truncate">
+                        <span class="material-symbols-outlined text-[13px] shrink-0">location_on</span>
+                        {{ [f.district_name, f.province_name].filter(Boolean).join(', ') || '—' }}
+                    </p>
+                    <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <span class="text-xs font-medium text-slate-400">Ver detalle</span>
+                        <span class="material-symbols-outlined text-[16px] text-[#003874] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+                    </div>
+                </RouterLink>
             </article>
         </div>
     </div>

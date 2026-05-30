@@ -56,6 +56,7 @@ async function onBannerClick(id, url) {
 
 onMounted(load);
 watch(() => props.placement, load);
+watch(() => auth.isAuthenticated, load);
 </script>
 
 <template>

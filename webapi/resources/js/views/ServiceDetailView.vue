@@ -338,6 +338,7 @@ async function shareListing() {
                         :images="galleryImages"
                         :alt="service.title || 'Anuncio'"
                         edge-to-edge
+                        lightbox
                     />
                     <div
                         v-if="service?.service_id && (auth.isCliente || !auth.isAuthenticated)"
@@ -372,84 +373,98 @@ async function shareListing() {
                 <!-- ── COLUMNA IZQUIERDA ───────────────────────────── -->
                 <div class="ld-main">
 
-                    <!-- Cabecera: categoría, título, empresa, meta -->
-                    <div class="ld-head">
-                        <span
-                            v-if="service.category_name"
-                            class="ld-category-badge"
-                        >{{ service.category_name }}</span>
+                    <!-- Tarjeta unificada: cabecera + descripción -->
+                    <div class="ld-section">
+                        <!-- Cabecera: categoría, título, empresa, meta -->
+                        <div class="ld-head">
+                            <span
+                                v-if="service.category_name"
+                                class="ld-category-badge"
+                            >{{ service.category_name }}</span>
 
-                        <h1 class="ld-title">{{ service.title }}</h1>
+                            <h1 class="ld-title">{{ service.title }}</h1>
 
-                        <RouterLink
-                            v-if="showProviderProfileLink"
-                            :to="{ name: 'provider-public', params: { id: providerProfileId } }"
-                            class="ld-business-link"
-                        >
-                            <span class="material-symbols-outlined text-[18px]">storefront</span>
-                            {{ service.provider_name }}
-                        </RouterLink>
-                        <p v-else class="ld-business-name">
-                            <span class="material-symbols-outlined text-[17px] text-slate-400">storefront</span>
-                            {{ service.provider_name }}
-                        </p>
-
-                        <!-- Chips: ubicación y sede -->
-                        <div class="mt-3 flex flex-wrap gap-1.5">
-                            <button
-                                v-if="geoLabel && canOpenMaps"
-                                type="button"
-                                class="ld-chip ld-chip--link"
-                                @click="openGoogleMaps"
+                            <RouterLink
+                                v-if="showProviderProfileLink"
+                                :to="{ name: 'provider-public', params: { id: providerProfileId } }"
+                                class="ld-business-link"
                             >
-                                <span class="material-symbols-outlined text-[15px]">location_on</span>
-                                {{ geoLabel }}
-                                <span class="material-symbols-outlined text-[13px]">open_in_new</span>
-                            </button>
-                            <span v-else-if="geoLabel" class="ld-chip">
-                                <span class="material-symbols-outlined text-[15px]">location_on</span>
-                                {{ geoLabel }}
-                            </span>
-                            <span v-if="service.location_label" class="ld-chip">
-                                <span class="material-symbols-outlined text-[15px]">store</span>
-                                {{ service.location_label }}
-                            </span>
+                                <span class="material-symbols-outlined text-[18px]">storefront</span>
+                                {{ service.provider_name }}
+                            </RouterLink>
+                            <p v-else class="ld-business-name">
+                                <span class="material-symbols-outlined text-[17px] text-slate-400">storefront</span>
+                                {{ service.provider_name }}
+                            </p>
+
+                            <!-- Chips: ubicación y sede -->
+                            <div class="mt-3 flex flex-wrap gap-1.5">
+                                <button
+                                    v-if="geoLabel && canOpenMaps"
+                                    type="button"
+                                    class="ld-chip ld-chip--link"
+                                    @click="openGoogleMaps"
+                                >
+                                    <span class="material-symbols-outlined text-[15px]">location_on</span>
+                                    {{ geoLabel }}
+                                    <span class="material-symbols-outlined text-[13px]">open_in_new</span>
+                                </button>
+                                <span v-else-if="geoLabel" class="ld-chip">
+                                    <span class="material-symbols-outlined text-[15px]">location_on</span>
+                                    {{ geoLabel }}
+                                </span>
+                                <span v-if="service.location_label" class="ld-chip">
+                                    <span class="material-symbols-outlined text-[15px]">store</span>
+                                    {{ service.location_label }}
+                                </span>
+                            </div>
+
+                            <!-- Horario (antes de dirección) -->
+                            <div v-if="showOpenBadge || hasBusinessHours" class="mt-2">
+                                <OpenHoursBadge
+                                    v-if="showOpenBadge"
+                                    :is-open="service.is_open_now"
+                                    :interactive="hasBusinessHours"
+                                    @click="showHoursModal = true"
+                                />
+                                <button
+                                    v-else
+                                    type="button"
+                                    class="ld-chip ld-chip--link"
+                                    @click="showHoursModal = true"
+                                >
+                                    <span class="material-symbols-outlined text-[15px]">schedule</span>
+                                    Ver horario
+                                    <span class="material-symbols-outlined text-[13px]">chevron_right</span>
+                                </button>
+                            </div>
+
+                            <!-- Dirección -->
+                            <p v-if="showAddressLine" class="ld-address">
+                                <span class="material-symbols-outlined text-[15px] text-slate-400 shrink-0">near_me</span>
+                                <button
+                                    v-if="canOpenMaps"
+                                    type="button"
+                                    class="text-[#003874] hover:underline bg-transparent border-0 p-0 cursor-pointer text-left text-sm"
+                                    @click="openGoogleMaps"
+                                >{{ service.address_text }}</button>
+                                <span v-else class="text-sm text-slate-600">{{ service.address_text }}</span>
+                            </p>
                         </div>
 
-                        <!-- Horario (antes de dirección) -->
-                        <div v-if="showOpenBadge || hasBusinessHours" class="mt-2">
-                            <OpenHoursBadge
-                                v-if="showOpenBadge"
-                                :is-open="service.is_open_now"
-                                :interactive="hasBusinessHours"
-                                @click="showHoursModal = true"
-                            />
-                            <button
-                                v-else
-                                type="button"
-                                class="ld-chip ld-chip--link"
-                                @click="showHoursModal = true"
-                            >
-                                <span class="material-symbols-outlined text-[15px]">schedule</span>
-                                Ver horario
-                                <span class="material-symbols-outlined text-[13px]">chevron_right</span>
-                            </button>
+                        <!-- Descripción (dentro de la misma tarjeta) -->
+                        <div v-if="hasDescription" class="border-t border-slate-100 pt-4 mt-4">
+                            <h2 class="ld-section-title">Descripción</h2>
+                            <div class="ld-description">{{ formattedDescription }}</div>
+                            <p v-if="isGuestPreview && service.description_truncated" class="mt-3 pt-3 border-t border-slate-100 text-sm text-slate-500 m-0">
+                                Texto abreviado.
+                                <button type="button" class="text-[#003874] font-semibold hover:underline bg-transparent border-0 p-0 cursor-pointer" @click="goLogin">Inicia sesión</button>
+                                para ver la descripción completa.
+                            </p>
                         </div>
-
-                        <!-- Dirección -->
-                        <p v-if="showAddressLine" class="ld-address">
-                            <span class="material-symbols-outlined text-[15px] text-slate-400 shrink-0">near_me</span>
-                            <button
-                                v-if="canOpenMaps"
-                                type="button"
-                                class="text-[#003874] hover:underline bg-transparent border-0 p-0 cursor-pointer text-left text-sm"
-                                @click="openGoogleMaps"
-                            >{{ service.address_text }}</button>
-                            <span v-else class="text-sm text-slate-600">{{ service.address_text }}</span>
-                        </p>
                     </div>
 
-                    <!-- Tarjeta de acción (solo en móvil, debajo del header) -->
+                    <!-- Tarjeta de acción (solo en móvil, debajo del bloque info) -->
                     <div class="lg:hidden">
                         <div class="ld-card">
                             <div class="ld-card__section ld-card__section--price">
@@ -476,6 +491,10 @@ async function shareListing() {
                                     <RouterLink :to="{ name: 'register', query: { next: route.fullPath } }" class="ld-outline-btn">Crear cuenta gratis</RouterLink>
                                 </template>
                                 <p v-else-if="auth.isProveedor" class="text-sm text-slate-500 m-0">Contacta directamente por WhatsApp o teléfono.</p>
+                                <div v-else-if="auth.isCliente" class="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-100 px-3 py-3">
+                                    <span class="material-symbols-outlined text-[17px] text-amber-500 shrink-0 mt-0.5">info</span>
+                                    <p class="text-sm text-amber-800 leading-relaxed m-0">Este negocio aún no ha publicado datos de contacto. Puedes dejar una solicitud usando la opción de abajo.</p>
+                                </div>
                             </div>
                             <div v-if="auth.isCliente" class="ld-card__section ld-card__section--accordion">
                                 <button type="button" class="ld-accordion-toggle" @click="showRequestPanel = !showRequestPanel">
@@ -526,17 +545,6 @@ async function shareListing() {
                             </div>
                         </template>
                     </div>
-
-                    <!-- Descripción -->
-                    <section v-if="hasDescription" class="ld-section">
-                        <h2 class="ld-section-title">Descripción</h2>
-                        <div class="ld-description">{{ formattedDescription }}</div>
-                        <p v-if="isGuestPreview && service.description_truncated" class="mt-3 pt-3 border-t border-slate-100 text-sm text-slate-500 m-0">
-                            Texto abreviado.
-                            <button type="button" class="text-[#003874] font-semibold hover:underline bg-transparent border-0 p-0 cursor-pointer" @click="goLogin">Inicia sesión</button>
-                            para ver la descripción completa.
-                        </p>
-                    </section>
 
                     <!-- Mapa -->
                     <section v-if="hasMap || canOpenMaps" class="ld-section">
@@ -607,6 +615,11 @@ async function shareListing() {
                             <p v-else-if="auth.isProveedor" class="text-sm text-slate-500 m-0">
                                 Contacta directamente por WhatsApp o teléfono si el negocio lo publica.
                             </p>
+
+                            <div v-else-if="auth.isCliente" class="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-100 px-3 py-3">
+                                <span class="material-symbols-outlined text-[17px] text-amber-500 shrink-0 mt-0.5">info</span>
+                                <p class="text-sm text-amber-800 leading-relaxed m-0">Este negocio aún no ha publicado datos de contacto. Puedes enviar una solicitud desde la sección de abajo.</p>
+                            </div>
                         </div>
 
                         <!-- Solicitar por la plataforma (solo clientes) -->
@@ -629,7 +642,7 @@ async function shareListing() {
                                     :class="showRequestPanel ? 'rotate-180' : ''"
                                 >keyboard_arrow_down</span>
                             </button>
-                            <div v-show="showRequestPanel" class="pt-3 mt-3 border-t border-slate-100 space-y-3">
+                            <div v-show="showRequestPanel" class="px-5 pb-5 space-y-3">
                                 <div>
                                     <label class="ld-field-label">Canal preferido</label>
                                     <select v-model="sendChannel" class="ld-input">
@@ -650,7 +663,7 @@ async function shareListing() {
                                 </div>
                                 <AppAlert v-if="sendErr" type="error">{{ sendErr }}</AppAlert>
                                 <AppAlert v-if="sendOk" type="success">{{ sendOk }}</AppAlert>
-                                <AppButton variant="primary" type="submit" :loading="sending" block size="sm" @click="submitRequest">
+                                <AppButton variant="primary" :loading="sending" block size="sm" @click="submitRequest">
                                     {{ sending ? 'Enviando…' : 'Enviar solicitud' }}
                                 </AppButton>
                             </div>

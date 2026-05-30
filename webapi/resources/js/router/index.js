@@ -226,7 +226,25 @@ const routes = [
         path: '/admin/reportes',
         name: 'admin-reports',
         component: () => import('@/views/admin/ReportsView.vue'),
-        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Reportes' },
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Reportes de búsqueda' },
+    },
+    {
+        path: '/admin/reportes/usuarios',
+        name: 'admin-reports-users',
+        component: () => import('@/views/admin/ReportsUsersView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Reporte de usuarios' },
+    },
+    {
+        path: '/admin/reportes/anuncios',
+        name: 'admin-reports-listings',
+        component: () => import('@/views/admin/ReportsListingsView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Reporte de anuncios' },
+    },
+    {
+        path: '/admin/correos',
+        name: 'admin-email-templates',
+        component: () => import('@/views/admin/EmailTemplatesView.vue'),
+        meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Correos y plantillas' },
     },
     {
         path: '/admin/kardex',

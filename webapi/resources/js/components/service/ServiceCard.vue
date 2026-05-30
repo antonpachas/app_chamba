@@ -78,7 +78,7 @@ const priceDisplay = computed(() => {
 
 <template>
     <article
-        class="group block rounded-xl border border-slate-200 bg-white overflow-hidden text-inherit transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-[#003874]/30 focus-within:ring-offset-2"
+        class="group block rounded-xl border border-slate-200 bg-white overflow-hidden text-inherit transition-all duration-200 hover:shadow-[0_4px_20px_-4px_rgba(0,56,116,0.18)] hover:-translate-y-0.5 hover:border-slate-300 focus-within:ring-2 focus-within:ring-[#003874]/30 focus-within:ring-offset-2"
     >
         <div
             class="relative aspect-[4/3] bg-slate-100 overflow-hidden"
@@ -92,13 +92,14 @@ const priceDisplay = computed(() => {
 
             <span
                 v-if="service.listing_type === 'promocion' || featured"
-                class="absolute top-2.5 left-2.5 z-10 text-[10px] font-medium uppercase tracking-wide bg-white/95 text-slate-800 px-2 py-0.5 rounded pointer-events-none"
+                class="absolute top-2.5 left-2.5 z-10 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-amber-400 to-amber-500 text-white px-2 py-0.5 rounded-full pointer-events-none shadow-sm"
             >
+                <span class="material-symbols-outlined text-[10px] leading-none" style="font-variation-settings:'FILL' 1">star</span>
                 Destacado
             </span>
             <span
                 v-else-if="service.is_pro"
-                class="absolute top-2.5 left-2.5 z-10 text-[10px] font-medium uppercase tracking-wide bg-[#003874] text-white px-2 py-0.5 rounded pointer-events-none"
+                class="absolute top-2.5 left-2.5 z-10 text-[10px] font-bold uppercase tracking-wider bg-[#003874] text-white px-2 py-0.5 rounded-full pointer-events-none shadow-sm"
             >
                 Pro
             </span>
@@ -149,9 +150,10 @@ const priceDisplay = computed(() => {
             </div>
 
             <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <span class="text-base font-semibold text-slate-900">{{ priceDisplay }}</span>
-                <span class="text-xs font-medium text-slate-400 group-hover:text-[#003874] transition-colors">
-                    Ver detalle →
+                <span class="text-[0.9375rem] font-bold text-slate-900">{{ priceDisplay }}</span>
+                <span class="inline-flex items-center gap-0.5 text-xs font-semibold text-slate-400 group-hover:text-[#003874] transition-colors">
+                    Ver detalle
+                    <span class="material-symbols-outlined text-[14px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
                 </span>
             </div>
 

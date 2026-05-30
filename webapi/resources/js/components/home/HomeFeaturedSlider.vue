@@ -68,9 +68,20 @@ onUnmounted(stopAutoplay);
 </script>
 
 <template>
-    <section v-if="loading || hasItems" class="home-banner" aria-label="Anuncios destacados">
+    <section v-if="loading || hasItems" class="home-banner-section" aria-label="Anuncios destacados">
+        <!-- Cabecera de sección -->
+        <div v-if="!loading && hasItems" class="home-banner-section__header">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined home-banner-section__header-icon" style="font-variation-settings:'FILL' 1">workspace_premium</span>
+                <h2 class="home-banner-section__header-title">Destacados</h2>
+            </div>
+            <span class="home-banner-section__header-badge">Patrocinado</span>
+        </div>
+
+        <!-- Skeleton -->
         <div v-if="loading" class="home-banner__skeleton" />
 
+        <!-- Slider -->
         <div
             v-else
             class="home-banner__frame"
@@ -88,6 +99,7 @@ onUnmounted(stopAutoplay);
                     :to="listingDetailTo(item)"
                     class="home-banner__slide snap-center shrink-0 group no-underline text-inherit"
                 >
+                    <!-- Fondo con imagen -->
                     <div class="home-banner__slide-bg">
                         <img
                             v-if="item.cover_image_url || item.images?.[0]"
@@ -101,17 +113,50 @@ onUnmounted(stopAutoplay);
                         </div>
                         <div class="home-banner__slide-overlay" />
                     </div>
-                    <div class="home-banner__slide-content chamba-container max-w-6xl mx-auto px-4 md:px-6">
+
+                    <!-- Contenido -->
+                    <div class="home-banner__slide-content chamba-container max-w-6xl mx-auto px-5 md:px-8">
                         <p v-if="item.category_name" class="home-banner__eyebrow">{{ item.category_name }}</p>
                         <h2 class="home-banner__title">{{ item.title }}</h2>
-                        <p class="home-banner__provider">{{ item.provider_name }}</p>
-                        <p v-if="item.base_price != null" class="home-banner__price">
-                            <Money :amount="item.base_price" />
-                        </p>
+
+                        <div class="home-banner__meta">
+                            <span class="home-banner__provider">
+                                <span class="material-symbols-outlined home-banner__meta-icon">storefront</span>
+                                {{ item.provider_name }}
+                            </span>
+                            <span
+                                v-if="item.district_name || item.province_name"
+                                class="home-banner__location"
+                            >
+                                <span class="material-symbols-outlined home-banner__meta-icon">location_on</span>
+                                {{ [item.district_name, item.province_name].filter(Boolean).join(', ') }}
+                            </span>
+                        </div>
+
+                        <div class="home-banner__bottom">
+                            <div class="home-banner__price-rating">
+                                <p v-if="item.base_price != null" class="home-banner__price">
+                                    <Money :amount="item.base_price" />
+                                </p>
+                                <span
+                                    v-if="item.avg_rating && Number(item.total_reviews) > 0"
+                                    class="home-banner__rating"
+                                >
+                                    <span class="material-symbols-outlined home-banner__star" style="font-variation-settings:'FILL' 1">star</span>
+                                    {{ parseFloat(item.avg_rating).toFixed(1) }}
+                                    <span class="home-banner__rating-count">({{ item.total_reviews }})</span>
+                                </span>
+                            </div>
+                            <span class="home-banner__cta">
+                                Ver anuncio
+                                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                            </span>
+                        </div>
                     </div>
                 </RouterLink>
             </div>
 
+            <!-- Controles de navegación -->
             <template v-if="hasMultiple">
                 <button
                     type="button"

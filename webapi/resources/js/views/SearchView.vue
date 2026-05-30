@@ -268,9 +268,21 @@ function applyRecent(item) {
 
     <div class="home-page home-page--market">
 
-        <!-- 1. Banda superior: búsqueda prominente (como header marketplace) -->
+        <!-- 1. Banda superior: búsqueda prominente -->
         <section class="home-hero-band" aria-label="Buscar negocios">
-            <div class="home-hero-band__inner chamba-container max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-5">
+            <div class="home-hero-band__inner chamba-container max-w-5xl mx-auto px-4 md:px-6">
+
+                <!-- Tagline (solo modo exploración) -->
+                <div v-if="!showSearchLayout" class="home-hero-band__headline text-center mb-5 md:mb-6">
+                    <h1 class="text-[1.75rem] md:text-[2.25rem] font-extrabold text-white tracking-tight leading-tight">
+                        Encuentra el negocio ideal
+                        <span class="block text-[#93c5fd]">en tu zona</span>
+                    </h1>
+                    <p class="text-white/65 text-sm md:text-base mt-2.5 max-w-md mx-auto leading-relaxed">
+                        Servicios, tiendas y negocios locales verificados en todo el Perú
+                    </p>
+                </div>
+
                 <div id="buscar" class="scroll-mt-24">
                     <ListingSearchBar
                         ref="searchBarRef"

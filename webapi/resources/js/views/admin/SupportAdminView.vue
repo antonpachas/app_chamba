@@ -8,7 +8,7 @@ import SupportStatusPill from '@/components/support/SupportStatusPill.vue';
 import SupportTicketModal from '@/components/support/SupportTicketModal.vue';
 
 const tickets = ref([]);
-const meta = ref({ open_count: 0 });
+const meta = ref({ open_count: 0, current_page: 1, last_page: 1, per_page: 25, total: 0 });
 const loading = ref(false);
 const err = ref('');
 const ok = ref('');
@@ -56,7 +56,7 @@ function categoryLabel(value) {
     return categoryLabels[value] || value || '—';
 }
 
-async function loadTickets() {
+async function loadTickets(page = 1) {
     loading.value = true;
     err.value = '';
     try {
@@ -67,11 +67,12 @@ async function loadTickets() {
                 role: roleFilter.value,
                 q: q.value || undefined,
                 only_unread: onlyUnread.value ? 1 : undefined,
-                per_page: 50,
+                per_page: 25,
+                page,
             },
         });
         tickets.value = r.data || [];
-        meta.value = r.meta || {};
+        meta.value = r.meta || meta.value;
     } catch (e) {
         err.value = e.message;
         tickets.value = [];
@@ -89,7 +90,7 @@ async function openTicket(id) {
     try {
         const r = await api.get(`/admin/support-tickets/${id}`, { auth: true });
         activeTicket.value = r.data || null;
-        await loadTickets();
+        await loadTickets(meta.value.current_page);
     } catch (e) {
         err.value = e.message;
         activeTicket.value = null;
@@ -121,7 +122,7 @@ async function changeStatus(status) {
         );
         activeTicket.value = r.data || activeTicket.value;
         ok.value = 'Estado actualizado.';
-        await loadTickets();
+        await loadTickets(meta.value.current_page);
     } catch (e) {
         err.value = e.message;
     } finally {
@@ -220,6 +221,23 @@ onMounted(loadTickets);
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Paginación -->
+        <div v-if="meta.last_page > 1" class="flex items-center justify-between gap-2 mt-4">
+            <p class="text-xs text-slate-500">
+                Página {{ meta.current_page }} de {{ meta.last_page }} · {{ meta.total }} tickets
+            </p>
+            <div class="flex gap-1">
+                <button
+                    v-for="p in meta.last_page"
+                    :key="p"
+                    type="button"
+                    class="h-8 min-w-[32px] px-2 rounded-lg border text-sm transition-colors"
+                    :class="p === meta.current_page ? 'bg-[#003874] text-white border-[#003874]' : 'border-slate-200 hover:bg-slate-50'"
+                    @click="loadTickets(p)"
+                >{{ p }}</button>
+            </div>
         </div>
 
         <p class="text-xs text-slate-500 mt-3 text-center">

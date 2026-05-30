@@ -24,21 +24,23 @@ function openLogin() {
     <template v-if="visible">
         <div
             v-if="compact"
-            class="rounded-lg border border-slate-200/80 bg-white/80 backdrop-blur-sm px-4 py-3 text-sm text-slate-600 leading-relaxed"
+            class="rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-2.5 text-[0.8125rem] text-white/85 leading-relaxed flex flex-wrap items-center gap-x-1 gap-y-0.5"
         >
-            Estás explorando sin cuenta. Puedes ver anuncios; para contacto y favoritos,
+            <span class="material-symbols-outlined text-[15px] text-white/60 shrink-0">info</span>
+            <span>Explorando sin cuenta.</span>
             <button
                 type="button"
-                class="text-[#003874] font-medium hover:underline bg-transparent border-0 p-0 cursor-pointer"
+                class="text-white font-semibold hover:underline bg-transparent border-0 p-0 cursor-pointer"
                 @click="openLogin"
-            >inicia sesión</button>
-            o
+            >Inicia sesión</button>
+            <span>o</span>
             <RouterLink
                 :to="{ name: 'register', query: { next: route.fullPath } }"
-                class="text-[#003874] font-medium hover:underline no-underline"
-            >crea una cuenta</RouterLink>.
-            <span v-if="meta?.guest_limited" class="block mt-1 text-xs text-slate-500">
-                Vista previa: {{ meta.guest_limit }} de {{ meta.guest_total }} resultados.
+                class="text-white font-semibold hover:underline no-underline"
+            >crea una cuenta</RouterLink>
+            <span>para contacto y favoritos.</span>
+            <span v-if="meta?.guest_limited" class="w-full text-xs text-white/55 mt-0.5 pl-5">
+                Mostrando {{ meta.guest_limit }} de {{ meta.guest_total }} resultados.
             </span>
         </div>
 

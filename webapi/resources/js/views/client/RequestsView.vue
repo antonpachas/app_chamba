@@ -143,9 +143,9 @@ async function submitDispute(paymentId) {
 
 <template>
     <div class="max-w-5xl mx-auto px-4 md:px-8 py-8">
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-[#0b1c30] tracking-tight">Mis solicitudes</h1>
-            <p class="text-slate-600 mt-1">Vista compacta tipo inbox. Abre cada solicitud para ver chat y acciones.</p>
+        <header class="mb-6">
+            <h1 class="text-2xl md:text-3xl font-extrabold text-[#0b1c30] tracking-tight">Mis solicitudes</h1>
+            <p class="text-slate-500 mt-0.5 text-sm">Toca una solicitud para ver el chat y todas las acciones disponibles.</p>
         </header>
 
         <NotificationsBanner />
@@ -153,66 +153,97 @@ async function submitDispute(paymentId) {
         <AppAlert v-if="localError" type="error" class="mb-4">{{ localError }}</AppAlert>
         <AppAlert v-if="localOk" type="success" class="mb-4">{{ localOk }}</AppAlert>
 
-        <p v-if="store.loading" class="text-slate-500">Cargando…</p>
-        <div v-else-if="!store.items.length" class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-            Aún no tienes solicitudes. Cuando contactes a un negocio desde un anuncio, aparecerá aquí.
+        <div v-if="store.loading" class="flex items-center justify-center py-20">
+            <span class="material-symbols-outlined text-[2rem] text-slate-300 animate-spin">progress_activity</span>
         </div>
-        <div v-else class="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-            <table class="w-full min-w-[860px] text-sm">
-                <thead class="bg-slate-50 text-xs font-bold uppercase text-slate-600">
-                    <tr>
-                        <th class="text-left px-4 py-3">Solicitud</th>
-                        <th class="text-left px-4 py-3">Negocio</th>
-                        <th class="text-left px-4 py-3">Estado</th>
-                        <th class="text-left px-4 py-3">Fecha</th>
-                        <th class="text-right px-4 py-3">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="r in store.items" :key="r.id" class="border-t border-slate-100 hover:bg-slate-50/50">
-                        <td class="px-4 py-3 min-w-0">
-                            <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">
-                                #{{ r.id }} · {{ r.service?.category?.name || '—' }}
-                            </p>
-                            <p class="font-semibold text-slate-900 truncate max-w-[280px]">{{ r.service?.title || '—' }}</p>
-                        </td>
-                        <td class="px-4 py-3">
-                            <p class="font-semibold text-slate-800">{{ r.provider?.name || '—' }}</p>
-                            <p class="text-xs text-slate-500">{{ r.messages_count || 0 }} mensaje(s)</p>
-                        </td>
-                        <td class="px-4 py-3"><StatusPill :status="r.status" /></td>
-                        <td class="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                            {{ new Date(r.created_at).toLocaleDateString() }}
-                        </td>
-                        <td class="px-4 py-3 text-right">
-                            <AppButton variant="primary" size="sm" @click="openDetail(r.id)">Ver detalle</AppButton>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+
+        <div v-else-if="!store.items.length" class="flex flex-col items-center justify-center py-20 text-center">
+            <span class="material-symbols-outlined text-[3.5rem] text-slate-200 mb-3">inbox</span>
+            <p class="text-base font-semibold text-slate-600 mb-1">Sin solicitudes aún</p>
+            <p class="text-sm text-slate-400">Cuando contactes a un negocio desde un anuncio, aparecerá aquí.</p>
+        </div>
+
+        <div v-else class="space-y-2">
+            <button
+                v-for="r in store.items"
+                :key="r.id"
+                type="button"
+                class="w-full text-left rounded-xl border border-slate-200 bg-white px-4 py-4 flex items-center gap-4 hover:border-[#003874]/30 hover:shadow-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#003874]/30"
+                @click="openDetail(r.id)"
+            >
+                <!-- Ícono de estado -->
+                <div
+                    class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white"
+                    :class="{
+                        'bg-emerald-500': r.status === 'cerrado',
+                        'bg-amber-400': r.status === 'cotizado',
+                        'bg-blue-500': r.status === 'en_proceso',
+                        'bg-slate-300': r.status === 'cancelado',
+                        'bg-[#003874]': !['cerrado','cotizado','en_proceso','cancelado'].includes(r.status),
+                    }"
+                >
+                    <span class="material-symbols-outlined text-[20px]">
+                        {{ r.status === 'cerrado' ? 'check_circle' : r.status === 'cancelado' ? 'cancel' : r.status === 'cotizado' ? 'request_quote' : 'send' }}
+                    </span>
+                </div>
+
+                <!-- Contenido -->
+                <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center gap-2 mb-0.5">
+                        <span class="text-[11px] font-bold uppercase tracking-widest text-[#003874]">#{{ r.id }}</span>
+                        <span v-if="r.service?.category?.name" class="text-[11px] text-slate-400">· {{ r.service.category.name }}</span>
+                        <StatusPill :status="r.status" class="ml-auto" />
+                    </div>
+                    <p class="font-semibold text-slate-900 truncate leading-snug">{{ r.service?.title || '—' }}</p>
+                    <div class="flex flex-wrap items-center gap-3 mt-1">
+                        <span class="flex items-center gap-1 text-xs text-slate-500">
+                            <span class="material-symbols-outlined text-[13px]">storefront</span>
+                            {{ r.provider?.name || '—' }}
+                        </span>
+                        <span v-if="r.messages_count" class="flex items-center gap-1 text-xs text-slate-400">
+                            <span class="material-symbols-outlined text-[13px]">chat_bubble</span>
+                            {{ r.messages_count }}
+                        </span>
+                        <span class="flex items-center gap-1 text-xs text-slate-400 ml-auto">
+                            <span class="material-symbols-outlined text-[13px]">schedule</span>
+                            {{ new Date(r.created_at).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }) }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Flecha -->
+                <span class="material-symbols-outlined text-[20px] text-slate-300 shrink-0">chevron_right</span>
+            </button>
         </div>
 
         <div
             v-if="detailOpen && activeRequest"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-sm"
             @click.self="closeDetail"
         >
-            <div class="w-full max-w-4xl max-h-[88vh] overflow-y-auto rounded-2xl bg-white border border-slate-200 shadow-2xl">
-                <div class="sticky top-0 bg-white border-b border-slate-100 px-5 py-4 flex items-start justify-between gap-3 z-10">
+            <div class="w-full sm:max-w-4xl max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl">
+                <!-- Modal header -->
+                <div class="sticky top-0 bg-white/95 backdrop-blur border-b border-slate-100 px-5 py-4 flex items-start justify-between gap-3 z-10">
                     <div class="min-w-0">
-                        <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-[#003874] mb-0.5">
                             Solicitud #{{ activeRequest.id }}
                         </p>
-                        <h3 class="text-lg font-bold text-[#0b1c30] truncate">
+                        <h3 class="text-base font-bold text-[#0b1c30] leading-snug truncate">
                             {{ activeRequest.service?.title || 'Detalle de solicitud' }}
                         </h3>
-                        <p class="text-sm text-slate-600">
+                        <p class="text-sm text-slate-500 mt-0.5">
                             {{ activeRequest.provider?.name || '—' }}
                         </p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 shrink-0 mt-0.5">
                         <StatusPill :status="activeRequest.status" />
-                        <button type="button" class="text-slate-500 hover:text-slate-800 text-xl leading-none" @click="closeDetail">×</button>
+                        <button
+                            type="button"
+                            class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors"
+                            @click="closeDetail"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">close</span>
+                        </button>
                     </div>
                 </div>
 

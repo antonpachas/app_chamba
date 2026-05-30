@@ -188,7 +188,12 @@ async function markDelivered(id) {
                         </td>
                         <td class="px-4 py-3">
                             <p class="font-semibold text-slate-800">{{ r.client?.name || '—' }}</p>
-                            <p class="text-xs text-slate-500">{{ r.messages_count || 0 }} mensaje(s)</p>
+                            <p v-if="r.client?.phone" class="text-xs text-[#003874] font-mono mt-0.5">
+                                <a :href="`tel:${String(r.client.phone).replace(/\D/g,'')}`" class="no-underline hover:underline">
+                                    {{ r.client.phone }}
+                                </a>
+                            </p>
+                            <p class="text-xs text-slate-400 mt-0.5">{{ r.messages_count || 0 }} msg</p>
                         </td>
                         <td class="px-4 py-3"><StatusPill :status="r.status" /></td>
                         <td class="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{{ new Date(r.created_at).toLocaleDateString() }}</td>
@@ -210,7 +215,20 @@ async function markDelivered(id) {
                     <div class="min-w-0">
                         <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">Solicitud #{{ activeRequest.id }}</p>
                         <h3 class="text-lg font-bold text-slate-900 truncate">{{ activeRequest.service?.title || 'Detalle de solicitud' }}</h3>
-                        <p class="text-sm text-slate-600">Cliente: <strong>{{ activeRequest.client?.name || '—' }}</strong></p>
+                        <div class="flex flex-wrap items-center gap-2 mt-1">
+                            <span class="text-sm text-slate-600">
+                                Cliente: <strong class="text-slate-900">{{ activeRequest.client?.name || '—' }}</strong>
+                            </span>
+                            <a
+                                v-if="activeRequest.client?.phone"
+                                :href="`tel:${String(activeRequest.client.phone).replace(/\D/g,'')}`"
+                                class="inline-flex items-center gap-1 rounded-full bg-[#003874]/8 text-[#003874] font-semibold text-xs px-3 py-1 no-underline hover:bg-[#003874]/15 transition-colors"
+                            >
+                                <span class="material-symbols-outlined text-[14px]">phone</span>
+                                {{ activeRequest.client.phone }}
+                            </a>
+                            <span v-else class="text-xs text-slate-400">Sin teléfono registrado</span>
+                        </div>
                     </div>
                     <div class="flex items-center gap-2">
                         <StatusPill :status="activeRequest.status" />
@@ -228,7 +246,14 @@ async function markDelivered(id) {
                         >
                             Ver anuncio
                         </AppButton>
-                        <a v-if="activeRequest.client?.phone" :href="`tel:${String(activeRequest.client.phone).replace(/\\D/g,'')}`" class="rounded-lg border border-slate-200 hover:border-[#003874]/40 font-bold px-4 py-2 text-sm text-slate-800 no-underline">Llamar cliente</a>
+                        <a
+                            v-if="activeRequest.client?.phone"
+                            :href="`tel:${String(activeRequest.client.phone).replace(/\D/g,'')}`"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 hover:border-[#003874]/40 hover:bg-[#003874]/5 font-semibold px-4 py-2 text-sm text-slate-800 no-underline transition-colors"
+                        >
+                            <span class="material-symbols-outlined text-[16px] text-[#003874]">call</span>
+                            Llamar: {{ activeRequest.client.phone }}
+                        </a>
                     </div>
 
                     <RequestConversation
@@ -316,7 +341,7 @@ async function markDelivered(id) {
                             <input v-model="evidenceCaption" maxlength="255" class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#003874]" />
                         </label>
                         <div class="flex justify-end gap-2">
-                            <AppButton variant="ghost" type="button" @click="evidenceOpenId = null">Cerrar</AppButton>
+                            <AppButton variant="ghost" type="button" @click="evidenceOpenId = null">Cancelar</AppButton>
                             <AppButton variant="primary" type="submit" :loading="busy === activeRequest.id">Subir fotos</AppButton>
                         </div>
                     </form>
@@ -324,7 +349,7 @@ async function markDelivered(id) {
                     <div class="flex flex-wrap gap-2">
                         <template v-if="!escrow">
                             <AppButton v-if="activeRequest.status === 'nuevo'" size="sm" variant="primary" :loading="busy === activeRequest.id" @click="setStatus(activeRequest.id, 'visto')">Marcar visto</AppButton>
-                            <AppButton v-if="['nuevo','visto'].includes(activeRequest.status)" size="sm" variant="ghost" :loading="busy === activeRequest.id" @click="setStatus(activeRequest.id, 'cerrado')">Cerrar</AppButton>
+                            <AppButton v-if="['nuevo','visto'].includes(activeRequest.status)" size="sm" variant="ghost" :loading="busy === activeRequest.id" @click="setStatus(activeRequest.id, 'cerrado')">Marcar como atendido</AppButton>
                         </template>
                         <template v-else>
                             <AppButton v-if="['nuevo','contactado','cotizado'].includes(activeRequest.status)" size="sm" variant="primary" @click="openQuote(activeRequest.id)">
