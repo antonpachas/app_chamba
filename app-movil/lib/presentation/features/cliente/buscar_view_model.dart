@@ -1,24 +1,31 @@
 import 'package:chamba_app/data/api/api_exception.dart';
 import 'package:chamba_app/data/api/catalog_api.dart';
+import 'package:chamba_app/data/api/listing_api.dart';
 import 'package:chamba_app/data/api/search_api.dart';
 import 'package:chamba_app/data/models/category_model.dart';
+import 'package:chamba_app/data/models/listing_model.dart';
 import 'package:flutter/foundation.dart';
 
 class BuscarViewModel extends ChangeNotifier {
   BuscarViewModel({
     required CatalogApi catalogApi,
     required SearchApi searchApi,
+    required ListingApi listingApi,
   })  : _catalogApi = catalogApi,
-        _searchApi = searchApi;
+        _searchApi = searchApi,
+        _listingApi = listingApi;
 
   final CatalogApi _catalogApi;
   final SearchApi _searchApi;
+  final ListingApi _listingApi;
 
   List<CategoryModel> _categories = [];
   List<Map<String, dynamic>> _results = [];
+  List<ListingCard> _featured = [];
 
   bool _loadingCats = false;
   bool _loadingSearch = false;
+  bool _loadingFeatured = false;
   bool _hasSearched = false;
   String? _error;
 
@@ -27,8 +34,10 @@ class BuscarViewModel extends ChangeNotifier {
 
   List<CategoryModel> get categories => _categories;
   List<Map<String, dynamic>> get results => _results;
+  List<ListingCard> get featured => _featured;
   bool get loadingCategories => _loadingCats;
   bool get loadingSearch => _loadingSearch;
+  bool get loadingFeatured => _loadingFeatured;
   bool get hasSearched => _hasSearched;
   String? get error => _error;
   int? get selectedCategoryId => _selectedCategoryId;
@@ -56,6 +65,19 @@ class BuscarViewModel extends ChangeNotifier {
       _error = e.toString();
     } finally {
       _loadingCats = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadFeatured() async {
+    _loadingFeatured = true;
+    notifyListeners();
+    try {
+      _featured = await _listingApi.homeFeatured();
+    } catch (_) {
+      _featured = [];
+    } finally {
+      _loadingFeatured = false;
       notifyListeners();
     }
   }

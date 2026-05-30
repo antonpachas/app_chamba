@@ -66,6 +66,7 @@ class UserModel {
 
   bool get isCliente => role == 'cliente';
   bool get isProveedor => role == 'proveedor';
+  bool get isAdmin => role == 'admin';
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     Map<String, dynamic>? profileMap;

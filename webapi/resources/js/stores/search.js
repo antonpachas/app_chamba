@@ -20,7 +20,7 @@ export const useSearchStore = defineStore('search', {
     }),
     actions: {
         setKeyword(v) {
-            this.keyword = String(v || '');
+            this.keyword = String(v ?? '');
         },
         setCategory(id) {
             this.selectedCategoryId = id ? Number(id) : null;

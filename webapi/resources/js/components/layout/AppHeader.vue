@@ -166,6 +166,15 @@ function navLinkClass(link) {
                     <span class="material-symbols-outlined text-[22px]">login</span>
                 </button>
                 <div v-else class="relative">
+                    <!-- Backdrop invisible para cerrar al hacer clic fuera -->
+                    <Teleport to="body">
+                        <div
+                            v-if="menuOpen"
+                            class="fixed inset-0 z-[49]"
+                            aria-hidden="true"
+                            @click="menuOpen = false"
+                        />
+                    </Teleport>
                     <button
                         type="button"
                         class="flex items-center gap-2 rounded-full pl-1 pr-2 py-1 hover:bg-slate-100/80 transition border border-transparent hover:border-slate-200"

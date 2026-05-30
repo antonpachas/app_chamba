@@ -50,17 +50,24 @@ class AuthHeroHeader extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(compact ? 10 : 12),
+                    width: compact ? 44 : 52,
+                    height: compact ? 44 : 52,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(compact ? 14 : 18),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                      borderRadius: BorderRadius.circular(compact ? 12 : 14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: Icon(Icons.handyman_rounded, color: scheme.onPrimary, size: compact ? 24 : 28),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.asset('assets/images/app_icon.png', fit: BoxFit.cover),
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Chamba',
+                    'Busca PE',
                     style: (compact ? textTheme.titleLarge : textTheme.headlineSmall)?.copyWith(
                       color: scheme.onPrimary,
                       fontWeight: FontWeight.w900,

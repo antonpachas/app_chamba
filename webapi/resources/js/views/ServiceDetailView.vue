@@ -466,6 +466,9 @@ async function shareListing() {
 
                     <!-- Tarjeta de acción (solo en móvil, debajo del bloque info) -->
                     <div class="lg:hidden">
+                        <!-- Anuncio patrocinado (encima del precio, móvil) -->
+                        <AdSlot placement="detail" class="px-0" />
+
                         <div class="ld-card">
                             <div class="ld-card__section ld-card__section--price">
                                 <div class="flex items-start justify-between gap-3">
@@ -574,6 +577,9 @@ async function shareListing() {
 
                 <!-- ── COLUMNA DERECHA (sticky en desktop) ────────── -->
                 <aside class="ld-sidebar hidden lg:block">
+
+                    <!-- Anuncio patrocinado (encima del precio) -->
+                    <AdSlot placement="detail" />
 
                     <!-- Tarjeta principal de acción -->
                     <div class="ld-card">
@@ -687,8 +693,6 @@ async function shareListing() {
                             </div>
                         </div>
                     </template>
-
-                    <AdSlot placement="detail" />
 
                 </aside><!-- /ld-sidebar -->
 

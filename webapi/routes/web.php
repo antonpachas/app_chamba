@@ -23,20 +23,20 @@ Route::redirect('/', '/app');
  */
 Route::get('/site.webmanifest', function () {
     return response()->json([
-        'name' => 'Chamba — Servicios locales',
-        'short_name' => 'Chamba',
-        'description' => 'Encuentra al experto ideal para tu hogar.',
+        'name' => 'Busca PE — Servicios locales',
+        'short_name' => 'Busca PE',
+        'description' => 'Encuentra negocios y profesionales cerca de ti.',
         'start_url' => url('/app'),
         'scope' => url('/app'),
         'display' => 'standalone',
         'orientation' => 'portrait',
-        'background_color' => '#f8f9ff',
+        'background_color' => '#003874',
         'theme_color' => '#003874',
         'lang' => 'es-PE',
         'icons' => [
-            ['src' => asset('img/chamba-icon.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
-            ['src' => asset('img/chamba-icon.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
-            ['src' => asset('img/chamba-icon.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+            ['src' => asset('img/icon-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => asset('img/icon-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => asset('img/icon-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
         ],
     ])->header('Content-Type', 'application/manifest+json');
 })->name('chamba.manifest');

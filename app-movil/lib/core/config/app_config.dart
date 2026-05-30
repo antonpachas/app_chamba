@@ -11,6 +11,6 @@ class AppConfig {
   /// Debe terminar en `/` para que rutas relativas (`auth/login`) resuelvan bien en Dio.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://jaapsystem.com/v1/app_chamba/public/api/v1/',
+    defaultValue: 'https://jaapsystem.com/v1/chamba/api/v1/',
   );
 }

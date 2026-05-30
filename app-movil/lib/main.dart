@@ -3,7 +3,9 @@ import 'package:chamba_app/core/router/app_router.dart';
 import 'package:chamba_app/data/api/api_client.dart';
 import 'package:chamba_app/data/api/auth_api.dart';
 import 'package:chamba_app/data/api/catalog_api.dart';
+import 'package:chamba_app/data/api/admin_api.dart';
 import 'package:chamba_app/data/api/client_api.dart';
+import 'package:chamba_app/data/api/listing_api.dart';
 import 'package:chamba_app/data/api/provider_api.dart';
 import 'package:chamba_app/data/api/search_api.dart';
 import 'package:chamba_app/data/local/token_storage.dart';
@@ -33,6 +35,8 @@ Future<void> main() async {
         Provider.value(value: SearchApi(dio)),
         Provider.value(value: ProviderApi(dio)),
         Provider.value(value: ClientApi(dio)),
+        Provider.value(value: ListingApi(dio)),
+        Provider.value(value: AdminApi(dio)),
       ],
       child: ChambaApp(router: router),
     ),

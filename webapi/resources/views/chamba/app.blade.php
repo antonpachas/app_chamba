@@ -9,19 +9,20 @@
 
     <title>Busca PE — Negocios cerca de ti</title>
 
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/chamba-icon.png') }}">
-    <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('img/chamba-icon.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/chamba-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('img/icon-16.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/icon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('img/icon-192.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/icon-180.png') }}">
     <link rel="manifest" href="{{ route('chamba.manifest') }}">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Busca PE">
     <meta property="og:title" content="Busca PE — Negocios cerca de ti">
     <meta property="og:description" content="Directorio de negocios y profesionales en Perú. Busca por ubicación y contacta directo.">
-    <meta property="og:image" content="{{ asset('img/chamba-icon.png') }}">
+    <meta property="og:image" content="{{ asset('img/icon-512.png') }}">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="Busca PE — Negocios cerca de ti">
-    <meta name="twitter:image" content="{{ asset('img/chamba-icon.png') }}">
+    <meta name="twitter:image" content="{{ asset('img/icon-512.png') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

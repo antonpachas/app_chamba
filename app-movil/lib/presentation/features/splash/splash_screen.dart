@@ -67,24 +67,28 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
                 ),
                 child: Container(
-                  padding: const EdgeInsets.all(22),
+                  width: 120,
+                  height: 120,
                   decoration: BoxDecoration(
-                    color: scheme.onPrimary.withValues(alpha: 0.14),
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 28,
-                        offset: const Offset(0, 14),
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 32,
+                        offset: const Offset(0, 16),
                       ),
                     ],
                   ),
-                  child: Icon(Icons.handyman_rounded, size: 56, color: scheme.onPrimary),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.asset(
+                    'assets/images/app_icon.png',
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(height: 28),
               Text(
-                'Chamba',
+                'Busca PE',
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       color: scheme.onPrimary,
                       fontWeight: FontWeight.w900,
@@ -95,7 +99,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Text(
-                  'Servicios locales al alcance de tu mano',
+                  'Encuentra negocios y profesionales\ncerca de ti',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: scheme.onPrimary.withValues(alpha: 0.9),

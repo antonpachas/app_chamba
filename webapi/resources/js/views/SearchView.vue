@@ -260,6 +260,17 @@ function applyRecent(item) {
     void submitSearch();
 }
 
+function resetSearch() {
+    search.$patch({
+        keyword: '',
+        selectedCategoryId: null,
+        searched: false,
+        results: [],
+        error: null,
+        loading: false,
+    });
+}
+
 </script>
 
 
@@ -306,6 +317,9 @@ function applyRecent(item) {
         <!-- 2. Banner hero (solo exploración inicial) -->
         <section v-if="!showSearchLayout" class="home-banner-zone" aria-label="Destacados">
             <HomeFeaturedSlider />
+            <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6">
+                <AdSlot placement="home" />
+            </div>
         </section>
 
 
@@ -351,6 +365,14 @@ function applyRecent(item) {
                                     {{ resultsCount }} {{ resultsCount === 1 ? 'resultado' : 'resultados' }}
                                 </p>
                             </div>
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#003874] hover:bg-blue-50 border border-[#003874]/20 rounded-lg px-3 py-1.5 transition shrink-0"
+                                @click="resetSearch"
+                            >
+                                <span class="material-symbols-outlined text-[16px]">home</span>
+                                Volver a explorar
+                            </button>
                         </div>
                     </div>
 

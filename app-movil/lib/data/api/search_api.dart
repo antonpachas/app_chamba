@@ -24,11 +24,20 @@ class SearchApi {
       if (userLng != null) q['user_lng'] = userLng;
       if (radiusKm != null) q['radius_km'] = radiusKm;
 
-      final r = await _dio.get<Map<String, dynamic>>(
-        'services/search',
+      final r = await _dio.get<dynamic>(
+        'listings/search',
         queryParameters: q,
       );
-      return (r.data!['data'] as List<dynamic>).cast<Map<String, dynamic>>();
+      final body = r.data;
+      List<dynamic> list;
+      if (body is Map && body['data'] is List) {
+        list = body['data'] as List<dynamic>;
+      } else if (body is List) {
+        list = body;
+      } else {
+        list = [];
+      }
+      return list.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
     } on DioException catch (e) {
       throw ApiClient.mapDioException(e);
     }
