@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { listingDetailTo } from '@/utils/listingRef';
+import { LISTING_PLACEHOLDER } from '@/utils/placeholderImage';
 import { providerPublicProfileEnabled } from '@/services/features';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
 import OpenHoursBadge from '@/components/common/OpenHoursBadge.vue';
@@ -39,7 +40,7 @@ const galleryImages = computed(() => {
         }
     }
     if (!urls.length) {
-        urls.push(`https://picsum.photos/seed/chamba_svc_${id.value}/800/480`);
+        urls.push(LISTING_PLACEHOLDER);
     }
     return urls;
 });

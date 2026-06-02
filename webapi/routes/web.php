@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\SetupController;
+use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -8,6 +9,21 @@ use Illuminate\Support\Facades\Route;
  * Protegido por token (CHAMBA_SETUP_TOKEN en .env). Inactivo si el token está vacío.
  */
 Route::get('/setup', SetupController::class);
+
+/** Mapa de sitio para motores de búsqueda. */
+Route::get('/sitemap.xml', SitemapController::class.'@index')->name('chamba.sitemap');
+
+/** robots.txt — permite indexar la SPA y apunta al sitemap. */
+Route::get('/robots.txt', function () {
+    $sitemap = url('/sitemap.xml');
+    $body    = implode("\n", [
+        'User-agent: *',
+        'Allow: /',
+        "Sitemap: {$sitemap}",
+        '',
+    ]);
+    return response($body, 200, ['Content-Type' => 'text/plain']);
+});
 
 /** Redirección desde la portada anterior. */
 Route::redirect('/portada', '/app', 302);

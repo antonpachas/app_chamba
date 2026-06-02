@@ -1,7 +1,8 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
 import { api } from '@/services/api';
+import { usePageMeta } from '@/utils/usePageMeta';
 import ServiceCard from '@/components/service/ServiceCard.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
@@ -10,6 +11,7 @@ import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
 const auth = useAuthStore();
+const { setMeta, resetMeta } = usePageMeta();
 const loading = ref(true);
 const error = ref('');
 const profile = ref(null);
@@ -51,6 +53,20 @@ const hasDescription = computed(() => !!String(profile.value?.description || '')
 function scrollToListings() {
     listingsRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+watch(profile, (p) => {
+    if (!p) return;
+    const desc = String(p.description || '').replace(/\s+/g, ' ').trim().slice(0, 155)
+        || `${p.name} en ${p.district_name || 'Perú'}. Contáctalo directo en Busca PE.`;
+    setMeta({
+        title: p.name,
+        description: desc,
+        image: p.cover_image_url || p.cover_url || null,
+        url: window.location.href,
+    });
+});
+
+onUnmounted(resetMeta);
 
 onMounted(async () => {
     loading.value = true;

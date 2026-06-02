@@ -1,6 +1,7 @@
 <script setup>
 
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { usePageMeta } from '@/utils/usePageMeta';
 
 import { useRoute, useRouter } from 'vue-router';
 
@@ -143,6 +144,29 @@ const resultsCount = computed(() => {
     if (!search.searched || search.loading || search.error) return null;
     return search.searchMeta?.pagination?.total ?? search.results.length;
 });
+
+const { setMeta, resetMeta } = usePageMeta();
+
+const searchPageTitle = computed(() => {
+    const kw = search.keyword.trim();
+    const cat = selectedCategoryName.value;
+    const district = geo.districts.find((d) => Number(d.id) === Number(geo.selectedDistrictId))?.name;
+    const province = geo.provinces.find((p) => Number(p.id) === Number(geo.selectedProvinceId))?.name;
+    const department = geo.departments.find((d) => Number(d.id) === Number(geo.selectedDepartmentId))?.name;
+    const place = district || province || department || (geo.useGps ? 'cerca de ti' : null);
+    const parts = [kw || cat, place].filter(Boolean);
+    return parts.length ? parts.join(' en ') : null;
+});
+
+watch(searchPageTitle, (title) => {
+    if (title) {
+        setMeta({ title, description: `Resultados de "${title}" en Busca PE. Encuentra negocios y contáctalos directo.` });
+    } else {
+        resetMeta();
+    }
+}, { immediate: true });
+
+onUnmounted(resetMeta);
 
 
 

@@ -33,6 +33,14 @@ final class ListingPublicIdService
             return $n > 0 ? $n : null;
         }
 
+        // Slug format: "titulo-del-anuncio-{id}" — extract trailing numeric ID.
+        if (preg_match('/^[a-z0-9][a-z0-9-]*-(\d+)$/i', $param, $m)) {
+            $n = (int) $m[1];
+            if ($n > 0) {
+                return $n;
+            }
+        }
+
         return $this->decode($param);
     }
 

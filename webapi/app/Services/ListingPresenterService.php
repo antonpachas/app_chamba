@@ -6,6 +6,7 @@ use App\Models\ProviderService;
 use App\Models\ServiceImage;
 use App\Models\UserSubscription;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 final class ListingPresenterService
 {
@@ -51,6 +52,7 @@ final class ListingPresenterService
         $row = array_merge([
             'service_id' => $service->id,
             'listing_ref' => $this->publicIds->encode((int) $service->id),
+            'slug' => Str::slug($service->title).'-'.$service->id,
             'title' => $service->title,
             'description' => $service->description,
             'base_price' => $service->base_price,

@@ -1,6 +1,8 @@
-/** ID de ruta para detalle de anuncio (ref opaca del API o número legacy). */
+/** ID de ruta para detalle de anuncio: slug SEO > ref opaca > número legacy. */
 export function listingRouteParam(service) {
     if (!service) return '';
+    const slug = service.slug;
+    if (slug && String(slug).trim()) return String(slug).trim();
     const ref = service.listing_ref;
     if (ref && String(ref).trim()) return String(ref).trim();
     const id = Number(service.service_id ?? service.id);

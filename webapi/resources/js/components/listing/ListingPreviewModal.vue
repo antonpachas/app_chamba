@@ -8,6 +8,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import { providerPublicProfileEnabled } from '@/services/features';
 import FavoriteButton from '@/components/common/FavoriteButton.vue';
 import ListingImageCarousel from '@/components/listing/ListingImageCarousel.vue';
+import { LISTING_PLACEHOLDER } from '@/utils/placeholderImage';
 import { listingDetailTo } from '@/utils/listingRef';
 
 const props = defineProps({
@@ -60,7 +61,7 @@ const galleryImages = computed(() => {
         }
     }
     if (!urls.length && l.service_id) {
-        urls.push(`https://picsum.photos/seed/listing_${l.service_id}/800/480`);
+        urls.push(LISTING_PLACEHOLDER);
     }
     return urls;
 });

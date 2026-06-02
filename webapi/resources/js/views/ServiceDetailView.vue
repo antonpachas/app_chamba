@@ -1,6 +1,8 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
+import { usePageMeta } from '@/utils/usePageMeta';
+import { LISTING_PLACEHOLDER } from '@/utils/placeholderImage';
 import { useSearchStore } from '@/stores/search';
 import { useGeoStore } from '@/stores/geo';
 import { useAuthStore } from '@/stores/auth';
@@ -25,6 +27,7 @@ const router = useRouter();
 const search = useSearchStore();
 const geo = useGeoStore();
 const auth = useAuthStore();
+const { setMeta, resetMeta } = usePageMeta();
 const shareOk = ref('');
 const showHoursModal = ref(false);
 const showRequestPanel = ref(false);
@@ -53,7 +56,7 @@ const galleryImages = computed(() => {
         }
     }
     if (!urls.length) {
-        urls.push(`https://picsum.photos/seed/chamba_svc_${listingParam.value}/1200/600`);
+        urls.push(LISTING_PLACEHOLDER);
     }
     return urls;
 });
@@ -177,6 +180,13 @@ function listingQueryParams() {
     return params;
 }
 
+function canonicalizeUrl(loaded) {
+    const slug = loaded?.slug;
+    if (slug && slug !== listingParam.value) {
+        router.replace({ name: 'listing-detail', params: { id: slug } });
+    }
+}
+
 async function loadListing() {
     loading.value = true;
     error.value = '';
@@ -189,6 +199,7 @@ async function loadListing() {
             });
             if (res.data) {
                 service.value = res.data;
+                canonicalizeUrl(res.data);
                 return;
             }
         } catch (e) {
@@ -200,11 +211,13 @@ async function loadListing() {
         if (!auth.isAuthenticated) {
             const cached = search.results.find(
                 (row) =>
-                    String(row.listing_ref || '') === listingParam.value
+                    String(row.slug || '') === listingParam.value
+                    || String(row.listing_ref || '') === listingParam.value
                     || String(row.service_id) === listingParam.value,
             );
             if (cached) {
                 service.value = cached;
+                canonicalizeUrl(cached);
                 error.value = '';
                 return;
             }
@@ -247,6 +260,19 @@ async function onReviewSubmitted() {
     await loadReviewStatus();
     await loadListing();
 }
+
+watch(service, (s) => {
+    if (!s) return;
+    const desc = String(s.description || '').replace(/\s+/g, ' ').trim().slice(0, 155);
+    setMeta({
+        title: `${s.title} | ${s.provider_name}`,
+        description: desc || `${s.provider_name} en ${s.district_name || 'Perú'}. Contáctalo directo en Busca PE.`,
+        image: s.cover_image_url || (Array.isArray(s.images) ? s.images[0] : null) || null,
+        url: window.location.href,
+    });
+});
+
+onUnmounted(resetMeta);
 
 onMounted(async () => {
     await loadListing();

@@ -9,6 +9,7 @@
 
     <title>Busca PE — Negocios cerca de ti</title>
 
+    <link rel="sitemap" type="application/xml" href="{{ url('/sitemap.xml') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('img/icon-16.png') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/icon-32.png') }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('img/icon-192.png') }}">
@@ -26,8 +27,9 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    {{-- Inter + Playfair en una sola solicitud HTTP --}}
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
 
     <script>

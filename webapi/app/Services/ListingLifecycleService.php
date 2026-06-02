@@ -33,7 +33,7 @@ final class ListingLifecycleService
 
         return (int) chamba_setting(
             $isPro ? 'listings.presencia.max_pro' : 'listings.presencia.max_free',
-            $isPro ? 10 : 2,
+            $isPro ? 20 : 10,
         );
     }
 
@@ -116,15 +116,8 @@ final class ListingLifecycleService
         $listing->published_at = $now;
         $listing->deactivated_at = null;
         $listing->is_active = true;
-
-        if ($listing->isPresencia()) {
-            $listing->expires_at = null;
-            $listing->duration_days = null;
-        } else {
-            $days = $this->effectiveDurationDays($profile);
-            $listing->expires_at = $now->copy()->addDays($days);
-            $listing->duration_days = $days;
-        }
+        $listing->expires_at = null;
+        $listing->duration_days = null;
 
         $listing->save();
 
@@ -133,16 +126,12 @@ final class ListingLifecycleService
 
     public function renew(ProviderService $listing, ProviderProfile $profile, User $user): ProviderService
     {
-        if ($listing->isPresencia()) {
-            throw new RuntimeException('Las fichas de presencia no vencen; no requieren renovación.');
-        }
-
         if (! (bool) chamba_setting('listings.allow_reactivate', true)) {
-            throw new RuntimeException('La renovación de anuncios no está habilitada.');
+            throw new RuntimeException('La reactivación de anuncios no está habilitada.');
         }
 
-        if (! $this->hasQuotaForType($profile, $user, ProviderService::TYPE_PROMOCION, (int) $listing->id)) {
-            throw new RuntimeException('Alcanzaste el cupo de anuncios destacados. Pausa otro o mejora tu plan.');
+        if (! $this->hasQuota($profile, $user, (int) $listing->id)) {
+            throw new RuntimeException('Alcanzaste el cupo de fichas activas para tu plan.');
         }
 
         return $this->publish($listing, $profile);
@@ -178,12 +167,11 @@ final class ListingLifecycleService
 
     public function deactivateExpired(): int
     {
-        if (! (bool) chamba_setting('listings.expire_cron_enabled', true)) {
+        if (! (bool) chamba_setting('listings.expire_cron_enabled', false)) {
             return 0;
         }
 
         return ProviderService::query()
-            ->where('listing_type', ProviderService::TYPE_PROMOCION)
             ->where('is_active', true)
             ->whereNotNull('expires_at')
             ->where('expires_at', '<', now())
@@ -199,43 +187,26 @@ final class ListingLifecycleService
             return false;
         }
 
-        if (! $listing->is_active) {
-            return false;
-        }
-
-        if ($listing->isPresencia()) {
-            return true;
-        }
-
-        if ($listing->expires_at === null) {
-            return true;
-        }
-
-        return Carbon::parse($listing->expires_at)->isFuture();
+        return (bool) $listing->is_active;
     }
 
     public function listingMeta(ProviderService $listing, ProviderProfile $profile, User $user): array
     {
-        $expiresAt = $listing->expires_at ? Carbon::parse($listing->expires_at) : null;
         $visible = $this->isVisible($listing);
-        $expired = $listing->isPromocion() && $expiresAt !== null && $expiresAt->isPast();
         $type = $listing->listing_type ?? ProviderService::TYPE_PRESENCIA;
-        $quotaOk = $this->hasQuotaForType($profile, $user, $type, $expired ? (int) $listing->id : null);
+        $quotaOk = $this->hasQuota($profile, $user, ! $visible ? (int) $listing->id : null);
 
         return [
             'listing_type' => $type,
             'published_at' => $listing->published_at,
-            'expires_at' => $listing->expires_at,
-            'duration_days' => $listing->duration_days,
+            'expires_at' => null,
+            'duration_days' => null,
             'deactivated_at' => $listing->deactivated_at,
-            'is_expired' => $expired,
+            'is_expired' => false,
             'is_visible' => $visible,
-            'days_remaining' => $expiresAt && $expiresAt->isFuture()
-                ? (int) now()->diffInDays($expiresAt, false)
-                : 0,
-            'can_renew' => $listing->isPromocion()
+            'days_remaining' => 0,
+            'can_renew' => ! $visible
                 && (bool) chamba_setting('listings.allow_reactivate', true)
-                && ($expired || ! $visible)
                 && $quotaOk,
             'quota' => $this->quotaPayload($profile, $user),
         ];
