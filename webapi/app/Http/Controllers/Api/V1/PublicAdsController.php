@@ -22,6 +22,10 @@ final class PublicAdsController extends Controller
                     'home' => (string) chamba_setting('ads.adsense_slot_home', ''),
                     'search' => (string) chamba_setting('ads.adsense_slot_search', ''),
                     'detail' => (string) chamba_setting('ads.adsense_slot_detail', ''),
+                    'detail_left' => (string) (chamba_setting('ads.adsense_slot_detail_left', '')
+                        ?: chamba_setting('ads.adsense_slot_detail', '')),
+                    'detail_right' => (string) (chamba_setting('ads.adsense_slot_detail_right', '')
+                        ?: chamba_setting('ads.adsense_slot_detail', '')),
                 ],
             ],
             'custom' => [

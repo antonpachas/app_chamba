@@ -310,13 +310,6 @@ router.beforeEach(async (to) => {
         return homeRouteForRole(auth.user?.role);
     }
     if (
-        to.name === 'home' &&
-        auth.isAuthenticated &&
-        (auth.user?.role === 'admin' || auth.user?.role === 'proveedor')
-    ) {
-        return homeRouteForRole(auth.user?.role);
-    }
-    if (
         to.meta.role &&
         auth.user?.role &&
         auth.user.role !== to.meta.role &&

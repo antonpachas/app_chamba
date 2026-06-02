@@ -6,6 +6,19 @@ import { buildAdminNav, isAdminGroupActive } from '@/utils/adminNav';
 const route = useRoute();
 const { groups, flatLinks } = buildAdminNav();
 const openGroupId = ref(null);
+const adminNavRef = ref(null);
+
+watch(openGroupId, (id, _, onCleanup) => {
+    if (!id) return;
+    const onPointerDown = (event) => {
+        const root = adminNavRef.value;
+        if (root && !root.contains(event.target)) {
+            openGroupId.value = null;
+        }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    onCleanup(() => document.removeEventListener('pointerdown', onPointerDown));
+});
 
 watch(
     () => route.name,
@@ -34,7 +47,7 @@ const mobileLinks = computed(() => flatLinks);
 
 <template>
     <!-- Desktop: grupos con dropdown -->
-    <div class="hidden md:flex items-center gap-1 lg:gap-1.5">
+    <div ref="adminNavRef" class="hidden md:flex items-center gap-1 lg:gap-1.5">
         <template v-for="group in groups" :key="group.id">
             <RouterLink
                 v-if="group.links.length === 1"

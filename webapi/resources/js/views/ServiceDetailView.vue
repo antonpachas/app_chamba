@@ -17,7 +17,8 @@ import ListingContactActions from '@/components/listing/ListingContactActions.vu
 import { hasListingContact } from '@/utils/whatsapp';
 import BusinessHoursModal from '@/components/common/BusinessHoursModal.vue';
 import ListingImageCarousel from '@/components/listing/ListingImageCarousel.vue';
-import AdSlot from '@/components/ads/AdSlot.vue';
+import AdminBannerSlot from '@/components/ads/AdminBannerSlot.vue';
+import AdSenseSlot from '@/components/ads/AdSenseSlot.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -304,7 +305,13 @@ async function shareListing() {
 </script>
 
 <template>
-    <div class="listing-detail-page max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-5">
+    <div class="listing-detail-shell">
+        <!-- Google AdSense — columna lateral izquierda (solo pantallas anchas) -->
+        <aside class="ad-rail ad-rail--left" aria-label="Publicidad Google">
+            <AdSenseSlot placement="detail" variant="rail" side="left" />
+        </aside>
+
+        <div class="listing-detail-page max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-5">
         <div class="listing-detail__toolbar mb-3 flex items-center gap-2 text-sm">
             <button
                 type="button"
@@ -467,7 +474,7 @@ async function shareListing() {
                     <!-- Tarjeta de acción (solo en móvil, debajo del bloque info) -->
                     <div class="lg:hidden">
                         <!-- Anuncio patrocinado (encima del precio, móvil) -->
-                        <AdSlot placement="detail" class="px-0" />
+                        <AdminBannerSlot placement="detail" class="px-0" />
 
                         <div class="ld-card">
                             <div class="ld-card__section ld-card__section--price">
@@ -579,7 +586,7 @@ async function shareListing() {
                 <aside class="ld-sidebar hidden lg:block">
 
                     <!-- Anuncio patrocinado (encima del precio) -->
-                    <AdSlot placement="detail" />
+                    <AdminBannerSlot placement="detail" />
 
                     <!-- Tarjeta principal de acción -->
                     <div class="ld-card">
@@ -698,5 +705,11 @@ async function shareListing() {
 
             </div><!-- /ld-grid -->
         </article>
-    </div>
+        </div><!-- /listing-detail-page -->
+
+        <!-- Google AdSense — columna lateral derecha (solo pantallas anchas) -->
+        <aside class="ad-rail ad-rail--right" aria-label="Publicidad Google">
+            <AdSenseSlot placement="detail" variant="rail" side="right" />
+        </aside>
+    </div><!-- /listing-detail-shell -->
 </template>

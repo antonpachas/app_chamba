@@ -1125,6 +1125,49 @@
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
+/* Logo de marca — contenedor cuadrado limpio sin artefactos del PNG */
+.brand-logo {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #fff;
+}
+.brand-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+.brand-logo--sm {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.75rem;
+}
+@media (min-width: 768px) {
+    .brand-logo--sm {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+}
+.brand-logo--md {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+}
+.brand-logo--lg {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
+}
+.brand-logo--footer {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
 /* Bottom nav activo */
 .nav-pill-active {
     @apply text-chamba-700;
@@ -1154,7 +1197,109 @@ html { scroll-behavior: smooth; }
 /* ─── Detalle de anuncio ───────────────────────────────────── */
 
 /* Galería */
+/* Detalle de anuncio — layout con rieles AdSense laterales */
+.listing-detail-shell {
+    width: 100%;
+}
+
+@media (min-width: 1280px) {
+    .listing-detail-shell {
+        display: grid;
+        grid-template-columns: minmax(120px, 160px) minmax(0, 64rem) minmax(120px, 160px);
+        gap: 1.25rem;
+        justify-content: center;
+        align-items: start;
+        padding: 0 1rem;
+        margin: 0 auto;
+    }
+
+    .listing-detail-shell .listing-detail-page {
+        max-width: none;
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .ad-rail {
+        position: sticky;
+        top: 5rem;
+        align-self: start;
+    }
+}
+
+.ad-rail {
+    display: none;
+}
+
+@media (min-width: 1280px) {
+    .ad-rail {
+        display: block;
+    }
+}
+
+/* Google AdSense — separado de banners del admin */
+.adsense-slot__frame {
+    border-radius: 0.75rem;
+    border: 2px dashed #86efac;
+    background: linear-gradient(180deg, #ecfdf5 0%, #f0fdf4 100%);
+    color: #14532d;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+}
+
+.adsense-slot__frame--inline {
+    min-height: 96px;
+}
+
+.adsense-slot__frame--rail {
+    min-height: 600px;
+    width: 100%;
+    max-width: 160px;
+    margin: 0 auto;
+}
+
+.adsense-slot__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.625rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(34, 197, 94, 0.2);
+    color: #166534;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+}
+
+.adsense-slot__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.adsense-slot__hint {
+    font-size: 0.6875rem;
+    opacity: 0.75;
+    margin: 0;
+    line-height: 1.4;
+    max-width: 140px;
+}
+
+.adsense-slot__unit {
+    width: 100%;
+    flex: 1;
+    min-height: 250px;
+}
+
 .listing-detail__gallery-frame { width: 100%; }
+
 
 .listing-carousel--edge .listing-carousel__img--edge {
     width: 100%;

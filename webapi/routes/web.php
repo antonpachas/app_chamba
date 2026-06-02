@@ -30,7 +30,7 @@ Route::get('/site.webmanifest', function () {
         'scope' => url('/app'),
         'display' => 'standalone',
         'orientation' => 'portrait',
-        'background_color' => '#003874',
+        'background_color' => '#FFFFFF',
         'theme_color' => '#003874',
         'lang' => 'es-PE',
         'icons' => [

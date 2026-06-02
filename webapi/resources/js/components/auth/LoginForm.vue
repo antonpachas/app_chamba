@@ -93,7 +93,9 @@ function onClose() {
     <div>
         <div v-if="modal" class="flex items-center justify-between gap-3 mb-6">
             <div class="flex items-center gap-2.5 min-w-0">
-                <img :src="asset('img/chamba-icon.png')" alt="" class="h-10 w-10 rounded-xl ring-1 ring-slate-200/80 shrink-0" />
+                <span class="brand-logo brand-logo--md ring-1 ring-slate-200/80 shrink-0">
+                    <img :src="asset('img/logo.png')" alt="Buscape" />
+                </span>
                 <div class="min-w-0">
                     <h2 id="login-modal-title" class="text-lg font-semibold text-slate-900 leading-tight">Iniciar sesión</h2>
                     <p class="text-xs text-slate-500 truncate">Accede a contacto, favoritos y más</p>
@@ -111,7 +113,9 @@ function onClose() {
 
         <template v-else>
             <div class="flex items-center justify-center gap-3 mb-8">
-                <img :src="asset('img/chamba-icon.png')" alt="" class="h-14 w-14 rounded-2xl shadow-lg ring-1 ring-slate-200/80" />
+                <span class="brand-logo brand-logo--lg shadow-lg ring-1 ring-slate-200/80">
+                    <img :src="asset('img/logo.png')" alt="Buscape" />
+                </span>
                 <span class="text-2xl font-black tracking-tight text-grad-brand">Busca PE</span>
             </div>
             <h1 class="text-center font-display text-3xl font-semibold text-chamba-ink leading-tight mb-2">

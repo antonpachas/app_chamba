@@ -18,7 +18,8 @@ import { platform } from '@/services/features';
 
 import ServiceCard from '@/components/service/ServiceCard.vue';
 
-import AdSlot from '@/components/ads/AdSlot.vue';
+import AdminBannerSlot from '@/components/ads/AdminBannerSlot.vue';
+import AdSenseSlot from '@/components/ads/AdSenseSlot.vue';
 
 import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
 
@@ -113,7 +114,7 @@ const adPlacement = computed(() => (search.searched ? 'search' : 'home'));
 
 /** Vista tipo marketplace (sidebar + grid) al buscar o filtrar. */
 const showSearchLayout = computed(() => {
-    if (!search.searched) return false;
+    if (search.browseMode || !search.searched) return false;
     return !!(
         search.keyword.trim()
         || search.selectedCategoryId != null
@@ -123,6 +124,8 @@ const showSearchLayout = computed(() => {
         || geo.useGps
     );
 });
+
+const browseResultsTitle = computed(() => 'Anuncios en Busca PE');
 
 const resultsTitle = computed(() => {
     const kw = search.keyword.trim();
@@ -167,7 +170,7 @@ onMounted(async () => {
 
     }
 
-    if (!search.searched) await search.run();
+    if (!search.searched) await search.runBrowse();
 
     applyHashScroll();
 
@@ -260,15 +263,12 @@ function applyRecent(item) {
     void submitSearch();
 }
 
-function resetSearch() {
-    search.$patch({
-        keyword: '',
-        selectedCategoryId: null,
-        searched: false,
-        results: [],
-        error: null,
-        loading: false,
-    });
+async function resetSearch() {
+    search.setKeyword('');
+    search.setCategory(null);
+    geo.clearGps();
+    geo.clearSelection();
+    await search.runBrowse();
 }
 
 </script>
@@ -317,8 +317,9 @@ function resetSearch() {
         <!-- 2. Banner hero (solo exploración inicial) -->
         <section v-if="!showSearchLayout" class="home-banner-zone" aria-label="Destacados">
             <HomeFeaturedSlider />
-            <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6">
-                <AdSlot placement="home" />
+            <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6 space-y-3">
+                <AdminBannerSlot placement="home" />
+                <AdSenseSlot placement="home" />
             </div>
         </section>
 
@@ -381,9 +382,9 @@ function resetSearch() {
                         class="flex flex-wrap items-end justify-between gap-3 mb-4 pb-4 border-b border-slate-100"
                     >
                         <div>
-                            <h2 class="text-lg md:text-xl font-bold text-slate-900">Anuncios cerca de ti</h2>
-                            <p v-if="selectedCategoryName" class="text-sm text-slate-500 mt-0.5">
-                                Categoría: {{ selectedCategoryName }}
+                            <h2 class="text-lg md:text-xl font-bold text-slate-900">{{ browseResultsTitle }}</h2>
+                            <p class="text-sm text-slate-500 mt-0.5">
+                                Negocios recientes en todo el Perú
                             </p>
                         </div>
                         <p v-if="resultsCount != null" class="text-sm text-slate-500 tabular-nums font-medium">
@@ -441,7 +442,8 @@ function resetSearch() {
 
                             <SearchResultsPagination v-if="search.viewMode === 'list' && search.results.length" />
 
-                            <AdSlot :placement="adPlacement" class="mt-8" />
+                            <AdminBannerSlot :placement="adPlacement" class="mt-8" />
+                            <AdSenseSlot :placement="adPlacement" class="mt-4" />
                         </div>
                     </div>
                 </section>

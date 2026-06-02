@@ -25,7 +25,7 @@ function goTo(page) {
     const last = pagination.value?.last_page || 1;
     const target = Math.max(1, Math.min(page, last));
     if (target === search.page) return;
-    void search.run(target).then(() => {
+    void search.runPage(target).then(() => {
         scrollToHash('#resultados');
     });
 }

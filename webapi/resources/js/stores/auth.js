@@ -63,7 +63,9 @@ export const useAuthStore = defineStore('auth', {
         refreshGuestBrowseAfterAuth() {
             const search = useSearchStore();
             search.clearGuestState();
-            if (search.searched) {
+            if (search.browseMode) {
+                search.runBrowse();
+            } else if (search.searched) {
                 search.run();
             }
         },
@@ -124,6 +126,7 @@ export const useAuthStore = defineStore('auth', {
             }
             this.token = null;
             this.user = null;
+            this.entitlements = {};
             setStoredToken(null);
             persistUser(null);
             useSearchStore().clearGuestState();

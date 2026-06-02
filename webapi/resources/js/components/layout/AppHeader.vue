@@ -8,6 +8,8 @@ import AdminNavMenu from '@/components/layout/AdminNavMenu.vue';
 import { buildAdminNav } from '@/utils/adminNav';
 import { useUserNotificationsStore } from '@/stores/userNotifications';
 import { useLoginModalStore } from '@/stores/loginModal';
+import { useSearchStore } from '@/stores/search';
+import { useGeoStore } from '@/stores/geo';
 
 const auth = useAuthStore();
 const notifications = useUserNotificationsStore();
@@ -16,6 +18,19 @@ const route = useRoute();
 const router = useRouter();
 const menuOpen = ref(false);
 const mobileNavOpen = ref(false);
+const userMenuRef = ref(null);
+
+watch(menuOpen, (open, _, onCleanup) => {
+    if (!open) return;
+    const onPointerDown = (event) => {
+        const root = userMenuRef.value;
+        if (root && !root.contains(event.target)) {
+            menuOpen.value = false;
+        }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    onCleanup(() => document.removeEventListener('pointerdown', onPointerDown));
+});
 const initials = computed(() => {
     const n = auth.user?.full_name?.trim();
     if (!n) return '?';
@@ -92,6 +107,35 @@ function navLinkClass(link) {
         ? 'text-slate-900 font-medium'
         : 'text-slate-600 hover:text-slate-900';
 }
+
+async function handleLogout() {
+    menuOpen.value = false;
+    await auth.logout();
+    await router.push({ name: 'home' });
+}
+
+/** Logo / marca → inicio (explorar), reseteando búsqueda activa. */
+async function goHome(event) {
+    event?.preventDefault();
+    mobileNavOpen.value = false;
+    menuOpen.value = false;
+
+    const search = useSearchStore();
+    const geo = useGeoStore();
+    search.setKeyword('');
+    search.setCategory(null);
+    geo.clearGps();
+    geo.clearSelection();
+
+    if (route.name === 'home' && !route.hash) {
+        await search.runBrowse();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+    }
+
+    await router.push({ name: 'home', hash: '' });
+    await search.runBrowse();
+}
 </script>
 
 <template>
@@ -106,14 +150,17 @@ function navLinkClass(link) {
                 >
                     <span class="material-symbols-outlined">{{ mobileNavOpen ? 'close' : 'menu' }}</span>
                 </button>
-                <RouterLink :to="{ name: 'home' }" class="flex items-center gap-2.5 shrink-0 no-underline">
-                    <img
-                        :src="asset('img/chamba-icon.png')"
-                        alt="Busca PE"
-                        class="w-9 h-9 md:w-10 md:h-10 rounded-xl ring-1 ring-slate-200/80"
-                    />
+                <a
+                    href="#"
+                    class="flex items-center gap-2.5 shrink-0 no-underline cursor-pointer"
+                    aria-label="Ir al inicio"
+                    @click="goHome"
+                >
+                    <span class="brand-logo brand-logo--sm ring-1 ring-slate-200/80">
+                        <img :src="asset('img/logo.png')" alt="Busca PE" />
+                    </span>
                     <span class="text-lg md:text-xl font-semibold tracking-tight text-slate-900">Busca PE</span>
-                </RouterLink>
+                </a>
             </div>
 
             <AdminNavMenu v-if="isAdmin" />
@@ -165,16 +212,7 @@ function navLinkClass(link) {
                 >
                     <span class="material-symbols-outlined text-[22px]">login</span>
                 </button>
-                <div v-else class="relative">
-                    <!-- Backdrop invisible para cerrar al hacer clic fuera -->
-                    <Teleport to="body">
-                        <div
-                            v-if="menuOpen"
-                            class="fixed inset-0 z-[49]"
-                            aria-hidden="true"
-                            @click="menuOpen = false"
-                        />
-                    </Teleport>
+                <div v-else ref="userMenuRef" class="relative">
                     <button
                         type="button"
                         class="flex items-center gap-2 rounded-full pl-1 pr-2 py-1 hover:bg-slate-100/80 transition border border-transparent hover:border-slate-200"
@@ -239,7 +277,7 @@ function navLinkClass(link) {
                         <button
                             type="button"
                             class="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm hover:bg-rose-50 text-rose-700 font-semibold border-t border-slate-100 mt-1"
-                            @click="async () => { menuOpen = false; await auth.logout(); $router.push({ name: 'home' }); }"
+                            @click="handleLogout"
                         >
                             <span class="material-symbols-outlined text-[18px]">logout</span>
                             Cerrar sesión

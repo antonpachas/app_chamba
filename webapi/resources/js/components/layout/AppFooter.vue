@@ -23,7 +23,9 @@ function goHowItWorks(event) {
         <div class="chamba-container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
             <div class="sm:col-span-2 lg:col-span-1">
                 <div class="flex items-center gap-2.5 mb-4">
-                    <img :src="asset('img/chamba-icon.png')" alt="" class="w-10 h-10 rounded-xl ring-2 ring-white/20 shadow-lg" />
+                    <span class="brand-logo brand-logo--footer ring-2 ring-white/20">
+                        <img :src="asset('img/logo.png')" alt="Buscape" />
+                    </span>
                     <span class="text-2xl font-black tracking-tight">Busca PE</span>
                 </div>
                 <p class="text-white/75 text-sm leading-relaxed max-w-xs">

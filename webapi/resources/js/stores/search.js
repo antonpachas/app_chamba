@@ -17,6 +17,8 @@ export const useSearchStore = defineStore('search', {
         viewMode: 'list',
         page: 1,
         perPage: 24,
+        /** true = inicio sin filtros (muestra anuncios de todo el país). */
+        browseMode: true,
     }),
     actions: {
         setKeyword(v) {
@@ -49,7 +51,46 @@ export const useSearchStore = defineStore('search', {
             }
             return this.sortBy === 'nearest' ? 'recent' : this.sortBy;
         },
+        /** Inicio / explorar: anuncios recientes sin filtrar por zona. */
+        async runBrowse(page = 1) {
+            this.browseMode = true;
+            this.page = Math.max(1, Number(page) || 1);
+            this.loading = true;
+            this.error = null;
+            this.searched = true;
+            try {
+                const params = {
+                    page: this.page,
+                    per_page: this.perPage,
+                    sort: 'recent',
+                };
+                const r = await api.get('/listings/search', { params, auth: true });
+                this.results = r.data || [];
+                this.searchMeta = r.meta || null;
+                if (r.meta?.pagination?.current_page) {
+                    this.page = r.meta.pagination.current_page;
+                }
+                this.guestMeta =
+                    !getStoredToken() && r.meta?.guest_preview ? r.meta : null;
+            } catch (e) {
+                this.results = [];
+                this.guestMeta = null;
+                this.searchMeta = null;
+                this.error = e.message || 'No se pudo cargar anuncios.';
+            } finally {
+                this.loading = false;
+            }
+        },
+        /** Paginación respetando modo explorar vs filtrar. */
+        async runPage(page = 1) {
+            if (this.browseMode) {
+                return this.runBrowse(page);
+            }
+            return this.run(page);
+        },
+        /** Búsqueda / filtros activos: respeta zona, categoría y palabra clave. */
         async run(page = 1) {
+            this.browseMode = false;
             const geo = useGeoStore();
             this.page = Math.max(1, Number(page) || 1);
             this.loading = true;

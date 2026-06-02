@@ -83,7 +83,9 @@ async function submit() {
             <div class="px-8 pt-10 pb-2">
                 <div class="flex items-center justify-center gap-3 mb-6">
                     <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl overflow-hidden shadow-lg shadow-[#003874]/25 ring-1 ring-slate-200">
-                        <img :src="asset('img/chamba-icon.png')" alt="" class="h-14 w-14" />
+                        <span class="brand-logo brand-logo--lg">
+                            <img :src="asset('img/logo.png')" alt="Buscape" />
+                        </span>
                     </div>
                     <span class="text-2xl font-black tracking-tight text-grad-brand">Busca PE</span>
                 </div>
