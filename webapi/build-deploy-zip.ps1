@@ -61,12 +61,21 @@ foreach ($d in $dirs) {
 # Archivos sueltos
 Copy-Item -Path '.htaccess','artisan','composer.json','composer.lock' -Destination $staging -Force
 
-# .env desde .env.production (con escrow=true, que es el estado correcto post-Fase 2)
+# .env desde .env.production
 if (-not (Test-Path '.env.production')) {
     throw "Falta .env.production en el repo. Es el template para producción."
 }
 $envContent = Get-Content '.env.production' -Raw
-$envContent = $envContent -replace 'CHAMBA_FEATURE_ESCROW=false', 'CHAMBA_FEATURE_ESCROW=true'
+
+# Validar que APP_DEBUG=false antes de empaquetar (nunca deployar con debug activo)
+if ($envContent -notmatch '(?m)^APP_DEBUG\s*=\s*false') {
+    throw ".env.production no tiene APP_DEBUG=false. Agrégalo antes de generar el ZIP."
+}
+# Validar que APP_ENV=production
+if ($envContent -notmatch '(?m)^APP_ENV\s*=\s*production') {
+    throw ".env.production no tiene APP_ENV=production. Agrégalo antes de generar el ZIP."
+}
+
 Set-Content -Path (SPath '.env') -Value $envContent -NoNewline -Encoding UTF8
 
 # Esqueleto storage/ (la app no arranca sin estas carpetas)

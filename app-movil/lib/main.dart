@@ -1,44 +1,69 @@
-import 'package:chamba_app/chamba_app.dart';
-import 'package:chamba_app/core/router/app_router.dart';
-import 'package:chamba_app/data/api/api_client.dart';
-import 'package:chamba_app/data/api/auth_api.dart';
-import 'package:chamba_app/data/api/catalog_api.dart';
-import 'package:chamba_app/data/api/admin_api.dart';
-import 'package:chamba_app/data/api/client_api.dart';
-import 'package:chamba_app/data/api/listing_api.dart';
-import 'package:chamba_app/data/api/provider_api.dart';
-import 'package:chamba_app/data/api/search_api.dart';
-import 'package:chamba_app/data/local/token_storage.dart';
-import 'package:chamba_app/presentation/view_models/session_view_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'chamba_app.dart';
+import 'core/config/app_env.dart';
+import 'core/network/api_client.dart';
+import 'core/router/app_router.dart';
+import 'core/storage/token_storage.dart';
+import 'data/repositories/auth_repository.dart';
+import 'data/repositories/client_repository.dart';
+import 'data/repositories/geo_repository.dart';
+import 'data/repositories/listing_repository.dart';
+import 'data/repositories/provider_repository.dart';
+import 'data/repositories/search_repository.dart';
+import 'providers/catalog_provider.dart';
+import 'providers/geo_provider.dart';
+import 'providers/search_provider.dart';
+import 'providers/session_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final prefs = await SharedPreferences.getInstance();
-  final tokenStorage = TokenStorage();
-  final apiClient = ApiClient(tokenStorage);
-  final dio = apiClient.dio;
+  // Bloquea orientación portrait
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
-  final authApi = AuthApi(dio);
-  final session = SessionViewModel(authApi: authApi, tokenStorage: tokenStorage, prefs: prefs);
-  final router = createAppRouter(session);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+  ));
+
+  // Dependencias
+  final tokenStorage = TokenStorage();
+  final apiClient    = ApiClient(tokenStorage);
+
+  final authRepo     = AuthRepository(apiClient, tokenStorage);
+  final searchRepo   = SearchRepository(apiClient);
+  final geoRepo      = GeoRepository(apiClient);
+  final listingRepo  = ListingRepository(apiClient);
+  final clientRepo   = ClientRepository(apiClient);
+  final providerRepo = ProviderRepository(apiClient);
+
+  final session      = SessionProvider(authRepo, tokenStorage);
+  final router       = createAppRouter(session);
+
+  // Muestra la URL en debug para verificar la configuración
+  assert(() {
+    debugPrint('[BuscaPE] API: ${AppEnv.apiBaseUrl}');
+    return true;
+  }());
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: session),
-        Provider.value(value: authApi),
-        Provider.value(value: CatalogApi(dio)),
-        Provider.value(value: SearchApi(dio)),
-        Provider.value(value: ProviderApi(dio)),
-        Provider.value(value: ClientApi(dio)),
-        Provider.value(value: ListingApi(dio)),
-        Provider.value(value: AdminApi(dio)),
+        Provider.value(value: authRepo),
+        Provider.value(value: listingRepo),
+        Provider.value(value: clientRepo),
+        Provider.value(value: providerRepo),
+        ChangeNotifierProvider(create: (_) => SearchProvider(searchRepo)),
+        ChangeNotifierProvider(create: (_) => GeoProvider(geoRepo)),
+        ChangeNotifierProvider(create: (_) => CatalogProvider(searchRepo)),
       ],
-      child: ChambaApp(router: router),
+      child: BuscaPeApp(router: router),
     ),
   );
 }

@@ -7,6 +7,7 @@ import AppInput from '@/components/ui/AppInput.vue';
 import AppPasswordInput from '@/components/ui/AppPasswordInput.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import { asset } from '@/utils/asset';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -31,6 +32,16 @@ onMounted(() => {
 function homeForRole(r) {
     if (r === 'proveedor') return { name: 'provider-dashboard' };
     return { name: 'home' };
+}
+
+function onGoogleSuccess(user) {
+    const next = typeof route.query.next === 'string' ? route.query.next : '';
+    if (next) router.replace(next);
+    else router.replace(homeForRole(user?.role));
+}
+
+function onGoogleError(msg) {
+    error.value = msg || 'Error al conectar con Google.';
 }
 
 async function submit() {
@@ -114,6 +125,15 @@ async function submit() {
                     </button>
                 </div>
                 <AppAlert v-if="error" type="error" class="mb-4">{{ error }}</AppAlert>
+
+                <GoogleSignInButton :role="role" class="mb-4" @success="onGoogleSuccess" @error="onGoogleError" />
+
+                <div class="relative flex items-center gap-3 mb-4">
+                    <div class="flex-1 h-px bg-slate-200" />
+                    <span class="text-xs text-slate-400 font-medium shrink-0">o con correo y contraseña</span>
+                    <div class="flex-1 h-px bg-slate-200" />
+                </div>
+
                 <form class="space-y-5" @submit.prevent="submit">
                     <AppInput v-model="fullName" label="Nombre completo" required autocomplete="name" />
                     <AppInput v-model="email" label="Correo electrónico" type="email" required autocomplete="email" />

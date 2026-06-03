@@ -116,6 +116,15 @@ export const useAuthStore = defineStore('auth', {
                 this.loading = false;
             }
         },
+        loginWithGoogle(token, user) {
+            this.token = token;
+            this.user = user;
+            this.booted = true;
+            setStoredToken(token);
+            persistUser(user);
+            this.refreshGuestBrowseAfterAuth();
+            useFavoritesStore().reset();
+        },
         async logout() {
             if (this.token) {
                 try {

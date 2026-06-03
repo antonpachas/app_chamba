@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\SocialAuthController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -12,6 +13,10 @@ Route::get('/setup', SetupController::class);
 
 /** Mapa de sitio para motores de búsqueda. */
 Route::get('/sitemap.xml', SitemapController::class.'@index')->name('chamba.sitemap');
+
+/** Google OAuth — popup abierto desde el SPA Vue. */
+Route::get('/auth/google/redirect', [SocialAuthController::class, 'redirectToGoogle'])->name('auth.google.redirect');
+Route::get('/auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 
 /** robots.txt — permite indexar la SPA y apunta al sitemap. */
 Route::get('/robots.txt', function () {

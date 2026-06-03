@@ -1,4 +1,4 @@
-name: chamba_app
+name: busca_pe
 description: "Busca PE — Encuentra negocios y profesionales cerca de ti."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -40,6 +40,8 @@ dependencies:
   cached_network_image: ^3.4.1
   url_launcher: ^6.3.1
   intl: ^0.20.2
+  geolocator: ^13.0.4
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

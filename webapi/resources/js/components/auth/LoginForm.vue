@@ -8,6 +8,7 @@ import AppInput from '@/components/ui/AppInput.vue';
 import AppPasswordInput from '@/components/ui/AppPasswordInput.vue';
 import AppAlert from '@/components/ui/AppAlert.vue';
 import { asset } from '@/utils/asset';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton.vue';
 
 const props = defineProps({
     /** Si true, cierra el modal al iniciar sesión con éxito */
@@ -87,6 +88,26 @@ function onClose() {
     }
     emit('close');
 }
+
+async function onGoogleSuccess(user) {
+    auth.refreshGuestBrowseAfterAuth();
+    emit('success', user);
+    const next = resolveNextPath();
+    if (props.modal) {
+        loginModal.hideLogin();
+        if (user?.role === 'admin' || user?.role === 'proveedor') {
+            await router.push(homeForRole(user?.role));
+        }
+    } else if (next && next !== router.currentRoute.value.fullPath) {
+        await router.push(next);
+    } else {
+        await router.replace(homeForRole(user?.role));
+    }
+}
+
+function onGoogleError(msg) {
+    error.value = msg || 'Error al conectar con Google.';
+}
 </script>
 
 <template>
@@ -127,6 +148,14 @@ function onClose() {
         </template>
 
         <AppAlert v-if="error" type="error" class="mb-4">{{ error }}</AppAlert>
+
+        <GoogleSignInButton class="mb-4" @success="onGoogleSuccess" @error="onGoogleError" />
+
+        <div class="relative flex items-center gap-3 mb-4">
+            <div class="flex-1 h-px bg-slate-200" />
+            <span class="text-xs text-slate-400 font-medium shrink-0">o con correo</span>
+            <div class="flex-1 h-px bg-slate-200" />
+        </div>
 
         <form class="space-y-4" @submit.prevent="submit">
             <AppInput

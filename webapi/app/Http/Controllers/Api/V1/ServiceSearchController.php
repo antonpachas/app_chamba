@@ -258,7 +258,11 @@ final class ServiceSearchController extends Controller
         if ($keyword !== null) {
             $query->where(function ($q) use ($keyword) {
                 $q->where('title', 'like', "%{$keyword}%")
-                  ->orWhere('description', 'like', "%{$keyword}%");
+                  ->orWhere('description', 'like', "%{$keyword}%")
+                  ->orWhere('address_text', 'like', "%{$keyword}%")
+                  ->orWhereHas('category', fn ($cq) => $cq->where('name', 'like', "%{$keyword}%"))
+                  ->orWhereHas('providerProfile', fn ($pq) => $pq->where('business_name', 'like', "%{$keyword}%")
+                      ->orWhere('address_text', 'like', "%{$keyword}%"));
             });
         }
         if (! empty($existingServiceIds)) {
