@@ -6,7 +6,7 @@ class Category {
   final String? slug;
 
   factory Category.fromJson(Map<String, dynamic> j) => Category(
-    id:   j['id'] as int,
+    id:   j['id'] is int ? j['id'] as int : int.tryParse(j['id'].toString()) ?? 0,
     name: j['name'] as String? ?? '',
     slug: j['slug'] as String?,
   );

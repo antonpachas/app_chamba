@@ -6,6 +6,8 @@ class Endpoints {
   static const register = '/auth/register';
   static const logout = '/auth/logout';
   static const me = '/auth/me';
+  static const updateMe   = '/me';
+  static const uploadAvatar = '/me/avatar';
   static const forgotPassword = '/auth/forgot-password';
   static const resetPassword = '/auth/reset-password';
 
@@ -41,15 +43,21 @@ class Endpoints {
   static const providerRequests = '/provider/service-requests';
   static String providerRequestStatus(int id) => '/provider/service-requests/$id/status';
   static const providerDashboard = '/provider/dashboard';
-  static const providerLocations = '/provider/locations';
+  static const providerLocations              = '/provider/locations';
+  static String providerLocationDetail(int id) => '/provider/locations/$id';
   static const providerNotifications = '/provider/notifications';
+  static String providerRequestEvidence(int id) => '/provider/service-requests/$id/evidence';
 
   // Notificaciones usuario
   static const notifications = '/me/notifications';
   static String markNotificationRead(int id) => '/me/notifications/$id/read';
 
+  // Mensajes de solicitud
+  static String requestMessages(int id) => '/service-requests/$id/messages';
+
   // Soporte
-  static const support = '/support/tickets';
+  static const support        = '/support-tickets';
+  static String supportDetail(int id) => '/support-tickets/$id';
 
   // Admin
   static const adminDashboard = '/admin/dashboard';

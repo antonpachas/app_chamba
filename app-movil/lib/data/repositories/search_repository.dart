@@ -41,7 +41,9 @@ class SearchRepository {
       listings: rows
           .map((e) => Listing.fromJson(e as Map<String, dynamic>))
           .toList(),
-      total: (pagination['total'] as num?)?.toInt() ?? rows.length,
+      total: pagination['total'] is num
+          ? (pagination['total'] as num).toInt()
+          : int.tryParse(pagination['total']?.toString() ?? '') ?? rows.length,
       isGuest: meta['guest_preview'] == true,
     );
   }

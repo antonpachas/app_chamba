@@ -12,20 +12,28 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _form     = GlobalKey<FormState>();
-  final _name     = TextEditingController();
-  final _email    = TextEditingController();
-  final _phone    = TextEditingController();
-  final _password = TextEditingController();
+  final _form        = GlobalKey<FormState>();
+  final _name        = TextEditingController();
+  final _email       = TextEditingController();
+  final _phone       = TextEditingController();
+  final _razonSocial = TextEditingController();
+  final _ruc         = TextEditingController();
+  final _password    = TextEditingController();
   String _role    = 'cliente';
   bool _loading   = false;
   bool _obscure   = true;
   String? _error;
 
+  bool get _isNegocio => _role == 'proveedor';
+
   @override
   void dispose() {
-    _name.dispose(); _email.dispose();
-    _phone.dispose(); _password.dispose();
+    _name.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _razonSocial.dispose();
+    _ruc.dispose();
+    _password.dispose();
     super.dispose();
   }
 
@@ -34,11 +42,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       await context.read<SessionProvider>().register(
-        fullName: _name.text.trim(),
-        email:    _email.text.trim(),
-        password: _password.text,
-        role:     _role,
-        phone:    _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+        fullName:    _name.text.trim(),
+        email:       _email.text.trim(),
+        password:    _password.text,
+        role:        _role,
+        phone:       _phone.text.trim(),
+        razonSocial: _isNegocio ? _razonSocial.text.trim() : null,
+        ruc:         _isNegocio ? _ruc.text.trim() : null,
       );
       if (mounted) context.go('/home');
     } catch (e) {
@@ -79,6 +89,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onSelectionChanged: (s) => setState(() => _role = s.first),
                 ),
                 const SizedBox(height: 24),
+
+                // Error banner
                 if (_error != null)
                   Container(
                     margin: const EdgeInsets.only(bottom: 16),
@@ -94,6 +106,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13))),
                     ]),
                   ),
+
+                // Nombre completo
                 TextFormField(
                   controller: _name,
                   textCapitalization: TextCapitalization.words,
@@ -105,6 +119,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
                 ),
                 const SizedBox(height: 16),
+
+                // Correo
                 TextFormField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
@@ -116,15 +132,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       (v == null || !v.contains('@')) ? 'Correo inválido' : null,
                 ),
                 const SizedBox(height: 16),
+
+                // Teléfono — obligatorio, solo dígitos
                 TextFormField(
                   controller: _phone,
-                  keyboardType: TextInputType.phone,
+                  keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Teléfono (opcional)',
+                    labelText: 'Teléfono',
                     prefixIcon: Icon(Icons.phone_outlined),
+                    hintText: '987654321',
                   ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'El teléfono es obligatorio';
+                    if (!RegExp(r'^\d{7,15}$').hasMatch(v.trim())) {
+                      return 'Solo dígitos, entre 7 y 15 números';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
+
+                // Campos exclusivos de negocio
+                if (_isNegocio) ...[
+                  TextFormField(
+                    controller: _razonSocial,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Razón social',
+                      prefixIcon: Icon(Icons.business_outlined),
+                      hintText: 'Mi Empresa SAC',
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'La razón social es obligatoria' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _ruc,
+                    keyboardType: TextInputType.number,
+                    maxLength: 11,
+                    decoration: const InputDecoration(
+                      labelText: 'RUC',
+                      prefixIcon: Icon(Icons.tag_outlined),
+                      hintText: '20123456789',
+                      counterText: '',
+                    ),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'El RUC es obligatorio';
+                      if (!RegExp(r'^\d{11}$').hasMatch(v.trim())) {
+                        return 'El RUC debe tener exactamente 11 dígitos';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Contraseña
                 TextFormField(
                   controller: _password,
                   obscureText: _obscure,
@@ -142,6 +205,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       (v == null || v.length < 8) ? 'Mínimo 8 caracteres' : null,
                 ),
                 const SizedBox(height: 28),
+
                 AppButton(label: 'Crear cuenta', onPressed: _submit, loading: _loading),
                 const SizedBox(height: 20),
                 Center(
@@ -156,6 +220,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ]),
                 ),
+                const SizedBox(height: 16),
               ]),
             ),
           ),

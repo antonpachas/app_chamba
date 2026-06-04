@@ -38,15 +38,18 @@ class SearchProvider extends ChangeNotifier {
   int?          get categoryId => _categoryId;
   bool          get useGps     => _useGps;
 
-  void setKeyword(String v)    { _keyword = v; }
+  void setKeyword(String v)    { _keyword = v; notifyListeners(); }
   void setCategory(int? id)    { _categoryId = id; notifyListeners(); }
-  void setDistrict(int? id)    { _districtId = id; }
-  void setSort(String s)       { _sort = s; }
+  void setDistrict(int? id)    { _districtId = id; notifyListeners(); }
+  void setSort(String s)       { _sort = s; notifyListeners(); }
   void setGps(double lat, double lng) {
     _userLat = lat; _userLng = lng; _useGps = true;
     notifyListeners();
   }
-  void clearGps() { _userLat = null; _userLng = null; _useGps = false; }
+  void clearGps() {
+    _userLat = null; _userLng = null; _useGps = false;
+    notifyListeners();
+  }
 
   Future<void> search() async {
     _status = SearchStatus.loading;

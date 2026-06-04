@@ -52,6 +52,11 @@ class ApiClient {
     return _request(() => _dio.patch(path, data: data));
   }
 
+  Future<dynamic> postForm(String path, {required FormData data}) async {
+    return _request(() => _dio.post(path, data: data,
+        options: Options(contentType: 'multipart/form-data')));
+  }
+
   Future<dynamic> delete(String path) async {
     return _request(() => _dio.delete(path));
   }

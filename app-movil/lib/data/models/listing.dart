@@ -76,17 +76,26 @@ class Listing {
 
   bool get hasContact => (whatsapp?.isNotEmpty ?? false) || (contactPhone?.isNotEmpty ?? false);
 
+  static int? _int(dynamic v) =>
+      v is int ? v : v is num ? v.toInt() : v is String ? int.tryParse(v) : null;
+
+  static double? _dbl(dynamic v) =>
+      v is double ? v : v is num ? v.toDouble() : v is String ? double.tryParse(v) : null;
+
   factory Listing.fromJson(Map<String, dynamic> j) {
-    final imgs = (j['images'] as List?)?.cast<String>() ?? [];
+    final imgs = (j['images'] as List?)
+        ?.map((e) => e?.toString() ?? '')
+        .where((e) => e.isNotEmpty)
+        .toList() ?? [];
     return Listing(
-      serviceId:         (j['service_id'] as num?)?.toInt() ?? 0,
+      serviceId:         _int(j['service_id']) ?? 0,
       title:             j['title'] as String? ?? '',
       slug:              j['slug'] as String?,
       listingRef:        j['listing_ref'] as String?,
       description:       j['description'] as String?,
-      categoryId:        (j['category_id'] as num?)?.toInt(),
+      categoryId:        _int(j['category_id']),
       categoryName:      j['category_name'] as String?,
-      providerProfileId: (j['provider_profile_id'] as num?)?.toInt(),
+      providerProfileId: _int(j['provider_profile_id']),
       providerName:      j['provider_name'] as String?,
       whatsapp:          j['whatsapp'] as String?,
       contactPhone:      j['contact_phone'] as String?,
@@ -94,17 +103,17 @@ class Listing {
       districtName:      j['district_name'] as String?,
       provinceName:      j['province_name'] as String?,
       departmentName:    j['department_name'] as String?,
-      avgRating:         (j['avg_rating'] as num?)?.toDouble(),
-      totalReviews:      (j['total_reviews'] as num?)?.toInt(),
-      basePrice:         (j['base_price'] as num?)?.toDouble(),
+      avgRating:         _dbl(j['avg_rating']),
+      totalReviews:      _int(j['total_reviews']),
+      basePrice:         _dbl(j['base_price']),
       priceType:         j['price_type'] as String?,
       coverImageUrl:     j['cover_image_url'] as String?,
       images:            imgs,
-      distanceKm:        (j['distance_km'] as num?)?.toDouble(),
+      distanceKm:        _dbl(j['distance_km']),
       isPro:             j['is_pro'] == true,
       isVerified:        j['is_verified'] == true,
-      latitude:          (j['provider_latitude'] as num?)?.toDouble(),
-      longitude:         (j['provider_longitude'] as num?)?.toDouble(),
+      latitude:          _dbl(j['provider_latitude']),
+      longitude:         _dbl(j['provider_longitude']),
       isOpenNow:         j['is_open_now'] as bool?,
       listingType:       j['listing_type'] as String?,
     );

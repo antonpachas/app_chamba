@@ -23,7 +23,9 @@ class AuthRepository {
     required String email,
     required String password,
     required String role,
-    String? phone,
+    required String phone,
+    String? razonSocial,
+    String? ruc,
   }) async {
     final data = await _api.post(Endpoints.register, data: {
       'full_name': fullName,
@@ -31,7 +33,9 @@ class AuthRepository {
       'password': password,
       'password_confirmation': password,
       'role': role,
-      if (phone != null && phone.isNotEmpty) 'phone': phone,
+      'phone': phone,
+      if (razonSocial != null && razonSocial.isNotEmpty) 'razon_social': razonSocial,
+      if (ruc != null && ruc.isNotEmpty) 'ruc': ruc,
     });
     await _storage.write(data['token'] as String);
     return User.fromJson(data['user'] as Map<String, dynamic>);
@@ -39,6 +43,27 @@ class AuthRepository {
 
   Future<User> me() async {
     final data = await _api.get(Endpoints.me);
+    return User.fromJson(data['user'] as Map<String, dynamic>);
+  }
+
+  Future<User> updateMe({
+    required String fullName,
+    required String phone,
+    String? currentPassword,
+    String? newPassword,
+    String? passwordConfirmation,
+  }) async {
+    final body = <String, dynamic>{
+      'full_name': fullName,
+      'phone': phone,
+      if (currentPassword != null && currentPassword.isNotEmpty)
+        'current_password': currentPassword,
+      if (newPassword != null && newPassword.isNotEmpty) ...{
+        'password': newPassword,
+        'password_confirmation': passwordConfirmation ?? newPassword,
+      },
+    };
+    final data = await _api.put(Endpoints.updateMe, data: body);
     return User.fromJson(data['user'] as Map<String, dynamic>);
   }
 

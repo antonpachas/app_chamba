@@ -45,6 +45,10 @@ class ClientRepository {
     return data['is_favorite'] == true;
   }
 
+  Future<void> closeRequest(int id) async {
+    await _api.post(Endpoints.closeClientRequest(id));
+  }
+
   Future<void> submitReview({
     required int serviceId,
     required int rating,

@@ -55,7 +55,9 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: session),
+        Provider.value(value: apiClient),
         Provider.value(value: authRepo),
+        Provider.value(value: geoRepo),
         Provider.value(value: listingRepo),
         Provider.value(value: clientRepo),
         Provider.value(value: providerRepo),

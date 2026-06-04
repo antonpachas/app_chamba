@@ -56,7 +56,9 @@ class SessionProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String role,
-    String? phone,
+    required String phone,
+    String? razonSocial,
+    String? ruc,
   }) async {
     _error = null;
     try {
@@ -66,6 +68,8 @@ class SessionProvider extends ChangeNotifier {
         password: password,
         role: role,
         phone: phone,
+        razonSocial: razonSocial,
+        ruc: ruc,
       );
       _state = SessionState.authenticated;
       notifyListeners();
@@ -79,6 +83,11 @@ class SessionProvider extends ChangeNotifier {
     await _auth.logout();
     _user = null;
     _state = SessionState.guest;
+    notifyListeners();
+  }
+
+  void updateUserData(User user) {
+    _user = user;
     notifyListeners();
   }
 }
