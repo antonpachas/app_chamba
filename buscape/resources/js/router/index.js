@@ -161,9 +161,7 @@ const routes = [
     },
     {
         path: '/admin/categorias',
-        name: 'admin-categories',
-        component: () => import('@/views/admin/CategorySuggestionsAdminView.vue'),
-        redirect: { name: 'admin-settings' }, // categorías se gestionan desde configuración
+        redirect: { name: 'admin-settings' },
     },
     {
         path: '/admin/ubicacion',
@@ -190,6 +188,20 @@ const routes = [
         meta: { layout: 'default', requiresAuth: true, role: 'admin', title: 'Admin · Anuncios' },
     },
 
+    // ─── Legal ────────────────────────────────────────────────────────────────
+    {
+        path: '/terminos',
+        name: 'terms',
+        component: () => import('@/views/TermsView.vue'),
+        meta: { layout: 'default', title: 'Términos y Condiciones' },
+    },
+    {
+        path: '/privacidad',
+        name: 'privacy',
+        component: () => import('@/views/PrivacyView.vue'),
+        meta: { layout: 'default', title: 'Política de Privacidad' },
+    },
+
     // ─── 404 ──────────────────────────────────────────────────────────────────
     {
         path: '/:pathMatch(.*)*',
@@ -200,7 +212,7 @@ const routes = [
 ];
 
 const router = createRouter({
-    history: createWebHistory('/'),
+    history: createWebHistory(import.meta.env.BASE_URL),
     routes,
     scrollBehavior(to, _from, saved) {
         if (saved) return saved;

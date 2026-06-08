@@ -19,7 +19,6 @@ import ListingContactActions from '@/components/listing/ListingContactActions.vu
 import { hasListingContact } from '@/utils/whatsapp';
 import BusinessHoursModal from '@/components/common/BusinessHoursModal.vue';
 import ListingImageCarousel from '@/components/listing/ListingImageCarousel.vue';
-import AdminBannerSlot from '@/components/ads/AdminBannerSlot.vue';
 import AdSenseSlot from '@/components/ads/AdSenseSlot.vue';
 
 const route = useRoute();
@@ -500,7 +499,7 @@ async function shareListing() {
                     <!-- Tarjeta de acción (solo en móvil, debajo del bloque info) -->
                     <div class="lg:hidden">
                         <!-- Anuncio patrocinado (encima del precio, móvil) -->
-                        <AdminBannerSlot placement="detail" class="px-0" />
+                        <AdSenseSlot placement="detail" class="px-0" />
 
                         <div class="ld-card">
                             <div class="ld-card__section ld-card__section--price">
@@ -612,7 +611,7 @@ async function shareListing() {
                 <aside class="ld-sidebar hidden lg:block">
 
                     <!-- Anuncio patrocinado (encima del precio) -->
-                    <AdminBannerSlot placement="detail" />
+                    <AdSenseSlot placement="detail" />
 
                     <!-- Tarjeta principal de acción -->
                     <div class="ld-card">

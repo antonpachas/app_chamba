@@ -11,6 +11,32 @@ import { useLoginModalStore } from '@/stores/loginModal';
 import { useSearchStore } from '@/stores/search';
 import { useGeoStore } from '@/stores/geo';
 
+// ── Buscador del header ───────────────────────────────────────────────────────
+const headerKeyword = ref('');
+watch(() => search?.keyword, (v) => { if (v !== undefined) headerKeyword.value = v ?? ''; }, { immediate: true });
+
+async function headerSearch() {
+    const s = useSearchStore();
+    const g = useGeoStore();
+    s.setKeyword(headerKeyword.value);
+    if (route.name !== 'home') {
+        await router.push({ name: 'home' });
+    }
+    await s.run(1);
+}
+
+async function headerNearMe() {
+    const s = useSearchStore();
+    const g = useGeoStore();
+    try {
+        g.clearSelection();
+        await g.useMyLocation();
+        s.setSortBy('nearest');
+        if (route.name !== 'home') await router.push({ name: 'home' });
+        await s.run(1);
+    } catch { /* permiso denegado */ }
+}
+
 const auth = useAuthStore();
 const notifications = useUserNotificationsStore();
 const loginModal = useLoginModalStore();
@@ -50,10 +76,9 @@ const navLinks = computed(() => {
     if (auth.isProveedor) {
         return [
             { name: 'provider-dashboard', label: 'Panel' },
-            { name: 'provider-listings', label: 'Anuncios' },
-            { name: 'provider-requests', label: 'Solicitudes' },
-            { name: 'provider-subscription', label: 'Mi plan' },
-            { name: 'support', label: 'Soporte' },
+            { name: 'provider-listings',  label: 'Anuncios' },
+            { name: 'provider-requests',  label: 'Solicitudes' },
+            { name: 'support',            label: 'Soporte' },
         ];
     }
     if (auth.isCliente) {
@@ -140,32 +165,69 @@ async function goHome(event) {
 
 <template>
     <header class="sticky top-0 z-40 header-glass">
-        <nav class="chamba-container h-16 flex items-center gap-3 justify-between">
-            <div class="flex items-center gap-3 min-w-0">
+        <nav class="chamba-container h-14 flex items-center gap-3">
+
+            <!-- Logo -->
+            <div class="flex items-center gap-2 shrink-0">
                 <button
                     type="button"
-                    class="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+                    class="md:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
                     aria-label="Menú"
                     @click="mobileNavOpen = !mobileNavOpen"
                 >
-                    <span class="material-symbols-outlined">{{ mobileNavOpen ? 'close' : 'menu' }}</span>
+                    <span class="material-symbols-outlined text-[20px]">{{ mobileNavOpen ? 'close' : 'menu' }}</span>
                 </button>
                 <a
                     href="#"
-                    class="flex items-center gap-2.5 shrink-0 no-underline cursor-pointer"
+                    class="flex items-center gap-2 shrink-0 no-underline cursor-pointer"
                     aria-label="Ir al inicio"
                     @click="goHome"
                 >
                     <span class="brand-logo brand-logo--sm ring-1 ring-slate-200/80">
-                        <img :src="asset('img/logo.png')" alt="Busca PE" />
+                        <img :src="asset('img/logo.png')" alt="BuscaPE" />
                     </span>
-                    <span class="text-lg md:text-xl font-semibold tracking-tight text-slate-900">Busca PE</span>
+                    <span class="hidden sm:inline text-base font-bold tracking-tight text-slate-900">BuscaPE</span>
                 </a>
             </div>
 
+            <!-- Buscador compacto (centro del header, no admin) -->
+            <form
+                v-if="!isAdmin"
+                class="flex-1 max-w-2xl mx-auto"
+                @submit.prevent="headerSearch"
+            >
+                <div class="flex items-stretch h-9 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:border-slate-300 focus-within:border-[#003874] focus-within:ring-1 focus-within:ring-[#003874]/20 transition">
+                    <span class="pl-3 flex items-center text-slate-400">
+                        <span class="material-symbols-outlined text-[20px]">search</span>
+                    </span>
+                    <input
+                        v-model="headerKeyword"
+                        type="search"
+                        placeholder="Busca negocios, servicios, tiendas..."
+                        class="flex-1 px-2 text-sm bg-transparent border-none outline-none focus:ring-0 text-slate-800 placeholder:text-slate-400 min-w-0"
+                        autocomplete="off"
+                    />
+                    <button
+                        type="button"
+                        class="px-3 border-l border-slate-200 text-slate-500 hover:text-[#003874] hover:bg-slate-50 transition hidden sm:flex items-center"
+                        title="Cerca de mí"
+                        @click="headerNearMe"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">my_location</span>
+                    </button>
+                    <button
+                        type="submit"
+                        class="px-4 bg-[#003874] hover:bg-[#002e60] text-white text-sm font-semibold transition"
+                    >
+                        Buscar
+                    </button>
+                </div>
+            </form>
+
             <AdminNavMenu v-if="isAdmin" />
 
-            <div v-if="!isAdmin" class="hidden md:flex items-center gap-1 lg:gap-2">
+            <!-- Nav links desktop (solo si no hay buscador, es decir admin) -->
+            <div v-if="isAdmin" class="hidden md:flex items-center gap-1 lg:gap-2">
                 <template v-for="link in navLinks" :key="link.name + (link.hash || '')">
                     <a
                         v-if="link.hash"

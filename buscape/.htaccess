@@ -6,7 +6,7 @@
     </IfModule>
 
     RewriteEngine On
-    RewriteBase /v1/chamba/
+    RewriteBase /
 
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -15,15 +15,10 @@
     RewriteRule ^public/ - [L]
 
     # 2) Si existe el archivo físico en public/, servirlo (assets, scripts, etc.).
-    RewriteCond %{DOCUMENT_ROOT}/v1/chamba/public/$1 -f
+    RewriteCond %{DOCUMENT_ROOT}/public/$1 -f
     RewriteRule ^(.+)$ public/$1 [L]
 
-    # 3) /app/ con trailing slash → quitar la barra (301 externo).
-    RewriteRule ^app/$ /v1/chamba/app [L,R=301]
-
-    # 4) Cualquier otra cosa → front controller.
-    #    El propio public/index.php pela el prefijo /v1/chamba del REQUEST_URI
-    #    para que Laravel resuelva las rutas correctamente.
+    # 3) Cualquier otra cosa → front controller.
     RewriteRule ^(.*)$ public/index.php [L]
 </IfModule>
 
@@ -36,4 +31,4 @@ DirectoryIndex public/index.php
 
 # Bloquea acceso directo a carpetas privadas (sin chocar con /app, ruta del SPA,
 # que ya está manejada por el RewriteRule de arriba).
-RedirectMatch 403 ^/v1/chamba/(bootstrap|config|database|resources|routes|storage|tests|vendor)(/|$)
+RedirectMatch 403 ^/(bootstrap|config|database|resources|routes|storage|tests|vendor)(/|$)

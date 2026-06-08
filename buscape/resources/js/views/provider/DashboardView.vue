@@ -2,23 +2,19 @@
 import { onMounted, computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useProviderProfileStore } from '@/stores/providerProfile';
-import { useWalletStore } from '@/stores/wallet';
+
 import { useProviderRequestsStore } from '@/stores/providerRequests';
 import { useAuthStore } from '@/stores/auth';
-import { escrowEnabled } from '@/services/features';
 import Money from '@/components/common/Money.vue';
 import StatusPill from '@/components/common/StatusPill.vue';
 
 const profileStore = useProviderProfileStore();
-const walletStore = useWalletStore();
 const requestsStore = useProviderRequestsStore();
 const auth = useAuthStore();
-const escrow = escrowEnabled();
+const escrow = false; // escrow desactivado en BuscaPE
 
 onMounted(async () => {
-    const tasks = [profileStore.loadProfile(), profileStore.loadDashboard(), requestsStore.load()];
-    if (escrow) tasks.push(walletStore.load());
-    await Promise.all(tasks);
+    await Promise.all([profileStore.loadProfile(), profileStore.loadDashboard(), requestsStore.load()]);
 });
 
 const pendingNew = computed(() => requestsStore.items.filter((r) => r.status === 'nuevo' || r.status === 'contactado').length);
@@ -48,50 +44,9 @@ const dashboard = computed(() => profileStore.dashboard || {});
             <div class="pointer-events-none absolute -top-20 -left-20 w-72 h-72 bg-[#ff7a2b]/30 rounded-full blur-3xl"></div>
         </header>
 
-        <RouterLink
-            v-if="auth.inTrial"
-            :to="{ name: 'provider-subscription' }"
-            class="block mb-6 rounded-2xl bg-grad-warm text-white p-5 shadow-lg shadow-orange-500/20 hover:brightness-105 transition no-underline"
-        >
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-[28px]">schedule</span>
-                    <div>
-                        <p class="font-black text-lg leading-tight">Tu periodo de prueba termina en {{ auth.trialDaysLeft }} día(s)</p>
-                        <p class="text-sm text-white/85">Suscríbete a Pro para no perder visibilidad ni contactos ilimitados.</p>
-                    </div>
-                </div>
-                <span class="rounded-full bg-white text-orange-700 font-bold px-4 py-2 text-sm">Activar Pro</span>
-            </div>
-        </RouterLink>
-
-        <RouterLink
-            v-else-if="!auth.isPro"
-            :to="{ name: 'provider-subscription' }"
-            class="block mb-6 rounded-2xl bg-grad-violet text-white p-5 shadow-lg shadow-violet-500/20 hover:brightness-105 transition no-underline"
-        >
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-[28px]">workspace_premium</span>
-                    <div>
-                        <p class="font-black text-lg leading-tight">Estás en plan Free</p>
-                        <p class="text-sm text-white/85">Pásate a Pro por S/ 29/mes y accede a contactos ilimitados, top en búsquedas y badge "Pro Verificado".</p>
-                    </div>
-                </div>
-                <span class="rounded-full bg-white text-violet-700 font-bold px-4 py-2 text-sm">Hacerme Pro</span>
-            </div>
-        </RouterLink>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div v-if="escrow" class="rounded-2xl bg-grad-card-emerald border border-emerald-200 p-5 glow-emerald relative overflow-hidden">
-                <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-grad-emerald flex items-center justify-center text-white">
-                    <span class="material-symbols-outlined text-[22px]">account_balance_wallet</span>
-                </div>
-                <p class="text-xs font-bold uppercase tracking-widest text-emerald-900">Saldo disponible</p>
-                <p class="text-3xl font-black text-emerald-950 mt-2"><Money :amount="walletStore.wallet?.balance" /></p>
-                <RouterLink :to="{ name: 'provider-wallet' }" class="text-xs font-bold text-emerald-900 hover:underline mt-1 inline-block no-underline">Retirar →</RouterLink>
-            </div>
-            <div v-else class="rounded-2xl bg-grad-card-emerald border border-emerald-200 p-5 glow-emerald relative overflow-hidden">
+            <div class="rounded-2xl bg-grad-card-emerald border border-emerald-200 p-5 glow-emerald relative overflow-hidden">
                 <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-grad-emerald flex items-center justify-center text-white">
                     <span class="material-symbols-outlined text-[22px]">workspace_premium</span>
                 </div>
@@ -99,16 +54,8 @@ const dashboard = computed(() => profileStore.dashboard || {});
                 <p class="text-xl font-black text-emerald-950 mt-2 capitalize">
                     {{ auth.planName || 'Free' }}
                 </p>
-                <RouterLink :to="{ name: 'provider-subscription' }" class="text-xs font-bold text-emerald-900 hover:underline mt-1 inline-block no-underline">Gestionar →</RouterLink>
             </div>
-            <div v-if="escrow" class="rounded-2xl bg-grad-card-blue border border-blue-200 p-5 glow-blue relative overflow-hidden">
-                <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-grad-brand flex items-center justify-center text-white">
-                    <span class="material-symbols-outlined text-[22px]">savings</span>
-                </div>
-                <p class="text-xs font-bold uppercase tracking-widest text-[#003874]">Total ganado</p>
-                <p class="text-2xl font-black text-[#003874] mt-2"><Money :amount="walletStore.wallet?.total_earned" /></p>
-            </div>
-            <div v-else class="rounded-2xl bg-grad-card-blue border border-blue-200 p-5 glow-blue relative overflow-hidden">
+            <div class="rounded-2xl bg-grad-card-blue border border-blue-200 p-5 glow-blue relative overflow-hidden">
                 <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-grad-brand flex items-center justify-center text-white">
                     <span class="material-symbols-outlined text-[22px]">visibility</span>
                 </div>

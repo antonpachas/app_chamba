@@ -19,7 +19,6 @@ import { platform } from '@/services/features';
 
 import ServiceCard from '@/components/service/ServiceCard.vue';
 
-import AdminBannerSlot from '@/components/ads/AdminBannerSlot.vue';
 import AdSenseSlot from '@/components/ads/AdSenseSlot.vue';
 
 import GuestBrowseBanner from '@/components/common/GuestBrowseBanner.vue';
@@ -34,9 +33,6 @@ import SearchResultsPagination from '@/components/search/SearchResultsPagination
 
 import ListingResultsMap from '@/components/search/ListingResultsMap.vue';
 
-import CategorySuggestModal from '@/components/search/CategorySuggestModal.vue';
-
-import CategorySuggestCallout from '@/components/search/CategorySuggestCallout.vue';
 
 import HomeFeaturedSlider from '@/components/home/HomeFeaturedSlider.vue';
 
@@ -303,38 +299,53 @@ async function resetSearch() {
 
     <div class="home-page home-page--market">
 
-        <!-- 1. Banda superior: búsqueda prominente -->
-        <section class="home-hero-band" aria-label="Buscar negocios">
-            <div class="home-hero-band__inner chamba-container max-w-5xl mx-auto px-4 md:px-6">
+        <!-- Barra de filtros de zona (compacta, reemplaza el hero) -->
+        <div class="border-b border-slate-200 bg-white">
+            <div class="chamba-container max-w-7xl mx-auto px-4 md:px-6 py-2 flex items-center gap-3 flex-wrap">
+                <!-- Filtros geo opcionales -->
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition"
+                    :class="showGeoFilters
+                        ? 'bg-[#003874] text-white border-[#003874]'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'"
+                    @click="showGeoFilters = !showGeoFilters"
+                >
+                    <span class="material-symbols-outlined text-[15px]">location_on</span>
+                    Filtrar por zona
+                </button>
 
-                <!-- Tagline (solo modo exploración) -->
-                <div v-if="!showSearchLayout" class="home-hero-band__headline text-center mb-5 md:mb-6">
-                    <h1 class="text-[1.75rem] md:text-[2.25rem] font-extrabold text-white tracking-tight leading-tight">
-                        Encuentra el negocio ideal
-                        <span class="block text-[#93c5fd]">en tu zona</span>
-                    </h1>
-                    <p class="text-white/65 text-sm md:text-base mt-2.5 max-w-md mx-auto leading-relaxed">
-                        Servicios, tiendas y negocios locales verificados en todo el Perú
-                    </p>
-                </div>
+                <!-- Chips de filtro activo -->
+                <span v-if="geo.selectedDepartmentId" class="inline-flex items-center gap-1 text-xs bg-blue-50 text-[#003874] border border-blue-100 px-2.5 py-1 rounded-full font-medium">
+                    {{ geo.departments.find(d => d.id == geo.selectedDepartmentId)?.name }}
+                    <button type="button" class="ml-1 opacity-60 hover:opacity-100" @click="geo.clearSelection(); search.run(1)">
+                        <span class="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                </span>
+                <span v-if="search.selectedCategoryId" class="inline-flex items-center gap-1 text-xs bg-blue-50 text-[#003874] border border-blue-100 px-2.5 py-1 rounded-full font-medium">
+                    {{ catalog.categories.find(c => c.id == search.selectedCategoryId)?.name }}
+                    <button type="button" class="ml-1 opacity-60 hover:opacity-100" @click="search.setCategory(null); search.run(1)">
+                        <span class="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                </span>
 
-                <div id="buscar" class="scroll-mt-24">
+                <GuestBrowseBanner :meta="search.guestMeta" compact class="ml-auto" />
+            </div>
+
+            <!-- Panel geo expandible -->
+            <div v-if="showGeoFilters" class="border-t border-slate-100 bg-slate-50 px-4 py-3">
+                <div class="chamba-container max-w-7xl mx-auto">
                     <ListingSearchBar
                         ref="searchBarRef"
-                        variant="home"
+                        variant="default"
                         auto-run-on-geo
-                        :compact-geo="showSearchLayout || !showGeoFilters"
-                        :show-filter-link="!showSearchLayout"
-                        :filter-expanded="showGeoFilters"
+                        compact-geo
                         @search="submitSearch"
                         @apply-recent="applyRecent"
-                        @toggle-geo-filters="showGeoFilters = !showGeoFilters"
                     />
                 </div>
-
-                <GuestBrowseBanner :meta="search.guestMeta" compact class="mt-2" />
             </div>
-        </section>
+        </div>
 
 
 
@@ -342,7 +353,6 @@ async function resetSearch() {
         <section v-if="!showSearchLayout" class="home-banner-zone" aria-label="Destacados">
             <HomeFeaturedSlider />
             <div class="chamba-container max-w-6xl mx-auto px-4 md:px-6 space-y-3">
-                <AdminBannerSlot placement="home" />
                 <AdSenseSlot placement="home" />
             </div>
         </section>
@@ -359,9 +369,6 @@ async function resetSearch() {
                 @clear="clearCategory"
             />
 
-            <div class="home-shelf__footer chamba-container max-w-6xl mx-auto px-4 md:px-6 pb-3">
-                <CategorySuggestCallout inline @open="showSuggestCategory = true" />
-            </div>
         </template>
 
 
@@ -466,7 +473,6 @@ async function resetSearch() {
 
                             <SearchResultsPagination v-if="search.viewMode === 'list' && search.results.length" />
 
-                            <AdminBannerSlot :placement="adPlacement" class="mt-8" />
                             <AdSenseSlot :placement="adPlacement" class="mt-4" />
                         </div>
                     </div>
@@ -482,8 +488,6 @@ async function resetSearch() {
         </div>
 
 
-
-        <CategorySuggestModal v-model:open="showSuggestCategory" />
 
     </div>
 

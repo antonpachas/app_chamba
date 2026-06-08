@@ -13,3 +13,7 @@ export const platform = {
 export function providerPublicProfileEnabled() {
     return !!platform.provider_public_profile;
 }
+
+// Escrow y suscripciones están desactivados en BuscaPE
+export function escrowEnabled() { return false; }
+export function subscriptionsEnabled() { return false; }

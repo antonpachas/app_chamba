@@ -59,12 +59,33 @@ function goHowItWorks(event) {
             </div>
             <div>
                 <h4 class="font-bold mb-4 uppercase text-[11px] tracking-[0.2em] text-white/60">Legal</h4>
-                <p class="text-sm text-white/60 leading-relaxed">Términos y privacidad — próximamente.</p>
+                <ul class="space-y-2.5">
+                    <li>
+                        <RouterLink to="/terminos" class="text-sm text-white/70 hover:text-white transition no-underline">
+                            Términos y Condiciones
+                        </RouterLink>
+                    </li>
+                    <li>
+                        <RouterLink to="/privacidad" class="text-sm text-white/70 hover:text-white transition no-underline">
+                            Política de Privacidad
+                        </RouterLink>
+                    </li>
+                </ul>
             </div>
         </div>
-        <div class="chamba-container mt-12 pt-8 border-t border-white/15 flex flex-col md:flex-row justify-between gap-3 text-xs text-white/50">
-            <p>© {{ year }} Busca PE · Perú</p>
-            <p>Hecho para conectar negocios y clientes</p>
+        <div class="chamba-container mt-12 pt-8 border-t border-white/15 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-white/50">
+            <p>© {{ year }} BuscaPE · Perú</p>
+            <p>
+                Desarrollado por
+                <a
+                    href="https://jaapsystem.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-white/70 hover:text-white font-semibold transition no-underline"
+                >
+                    JaapSystem
+                </a>
+            </p>
         </div>
     </footer>
 </template>
