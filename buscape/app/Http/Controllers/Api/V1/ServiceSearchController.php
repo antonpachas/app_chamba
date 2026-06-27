@@ -13,8 +13,6 @@ use App\Models\ProviderService;
 use App\Models\ProviderVisibilityEvent;
 use App\Models\SearchEvent;
 use App\Models\ServiceImage;
-use App\Models\SubscriptionPlan;
-use App\Models\UserSubscription;
 use App\Services\ListingGuestPreviewService;
 use App\Services\ListingListFormatter;
 use App\Services\ListingPresenterService;
@@ -71,24 +69,10 @@ final class ServiceSearchController extends Controller
         $rows = $this->filterVisibleListings($rows);
         $rows = $this->presenter->enrichSearchRows($rows);
 
-        $profileIds = collect($rows)->pluck('provider_profile_id')->filter()->unique()->values();
-        $proUserIds = collect();
-        if ($profileIds->isNotEmpty()) {
-            $userIds = ProviderProfile::query()->whereIn('id', $profileIds)->pluck('user_id', 'id');
-            $proUserIds = UserSubscription::query()
-                ->join('subscription_plans', 'subscription_plans.id', '=', 'user_subscriptions.plan_id')
-                ->whereIn('user_subscriptions.user_id', $userIds->values())
-                ->whereIn('user_subscriptions.status', ['trial', 'active'])
-                ->whereIn('subscription_plans.tier', ['pro', 'premium'])
-                ->pluck('user_subscriptions.user_id');
-
-            foreach ($rows as &$row) {
-                $pid = (int) ($row['provider_profile_id'] ?? 0);
-                $uid = (int) ($userIds[$pid] ?? 0);
-                $row['is_pro'] = $proUserIds->contains($uid);
-            }
-            unset($row);
+        foreach ($rows as &$row) {
+            $row['is_pro'] = false;
         }
+        unset($row);
 
         $minRating = isset($data['min_rating']) ? (float) $data['min_rating'] : null;
         if ($minRating !== null) {

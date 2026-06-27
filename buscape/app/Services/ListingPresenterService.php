@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\ProviderService;
 use App\Models\ServiceImage;
-use App\Models\UserSubscription;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -125,12 +124,7 @@ final class ListingPresenterService
 
     public function resolveIsPro(int $providerUserId): bool
     {
-        return UserSubscription::query()
-            ->join('subscription_plans', 'subscription_plans.id', '=', 'user_subscriptions.plan_id')
-            ->where('user_subscriptions.user_id', $providerUserId)
-            ->whereIn('user_subscriptions.status', ['trial', 'active'])
-            ->whereIn('subscription_plans.tier', ['pro', 'premium'])
-            ->exists();
+        return false;
     }
 
     /**
